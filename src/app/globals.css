@@ -1,0 +1,247 @@
+/* SocialGo — Global Styles */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ======================== CSS Variables ======================== */
+:root {
+  --rose: #FFB5C8;
+  --rose-deep: #FF8FAD;
+  --peach: #FFD4B8;
+  --peach-deep: #FFBA8A;
+  --lavender: #E8D5FF;
+  --cream: #FFF8F3;
+  --warm-white: #FFFBF8;
+  --sand: #F5EDE4;
+  --glass: rgba(255,255,255,0.55);
+  --glass-border: rgba(255,180,150,0.25);
+  --text-dark: #2A1F1A;
+  --text-mid: #7A6560;
+  --text-light: #B8A9A4;
+  --success: #B8E8C8;
+  --success-text: #2D6B47;
+  --warning: #FFE5B0;
+  --warning-text: #8A5A00;
+  --danger: #FFD0D8;
+  --danger-text: #8A1F35;
+  --shadow-soft: 0 4px 24px rgba(200,120,100,0.10);
+  --shadow-card: 0 2px 16px rgba(200,120,100,0.08);
+  --radius: 18px;
+  --radius-sm: 10px;
+}
+
+/* ======================== Base ======================== */
+* { @apply box-border; }
+
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+body {
+  @apply antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* ======================== Background Gradient Mesh ======================== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 10%, rgba(255,181,200,0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 20%, rgba(255,212,184,0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 80%, rgba(232,213,255,0.18) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ======================== Glass Components ======================== */
+@layer components {
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-card {
+    @apply glass;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-sidebar {
+    background: rgba(255,248,243,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center gap-2 font-semibold cursor-pointer border-none transition-all duration-200 font-sans;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 14px;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--rose-deep), var(--peach-deep));
+    color: white;
+    box-shadow: 0 4px 16px rgba(255,143,173,0.35);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255,143,173,0.45);
+  }
+
+  .btn-ghost {
+    @apply glass;
+    color: var(--text-mid);
+    backdrop-filter: blur(10px);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.8); }
+
+  .btn-danger {
+    background: var(--danger);
+    color: var(--danger-text);
+  }
+
+  .btn-sm {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1 font-semibold;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 11px;
+  }
+  .badge-success { background: var(--success); color: var(--success-text); }
+  .badge-warning { background: var(--warning); color: var(--warning-text); }
+  .badge-danger { background: var(--danger); color: var(--danger-text); }
+  .badge-neutral { background: rgba(180,160,155,0.15); color: var(--text-mid); }
+
+  /* Form inputs */
+  .form-input {
+    @apply w-full font-sans outline-none transition-all duration-150;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.7);
+    font-size: 14px;
+    color: var(--text-dark);
+  }
+  .form-input:focus {
+    border-color: var(--rose-deep);
+    box-shadow: 0 0 0 3px rgba(255,143,173,0.2);
+  }
+
+  .form-select {
+    @apply form-input cursor-pointer;
+  }
+
+  .form-label {
+    @apply font-semibold;
+    font-size: 12px;
+    color: var(--text-mid);
+    letter-spacing: 0.3px;
+  }
+
+  /* Package tag */
+  .package-tag {
+    background: linear-gradient(135deg, rgba(255,181,200,0.3), rgba(255,212,184,0.3));
+    border: 1px solid rgba(255,143,173,0.2);
+    color: var(--text-mid);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Filter chip */
+  .filter-chip {
+    padding: 7px 14px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.6);
+    color: var(--text-mid);
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { background: rgba(255,255,255,0.85); }
+  .filter-chip.active {
+    background: var(--rose);
+    border-color: var(--rose-deep);
+    color: #fff;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply glass-card relative overflow-hidden;
+    padding: 20px 22px;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.2;
+  }
+  .stat-card:nth-child(1)::before { background: var(--rose); }
+  .stat-card:nth-child(2)::before { background: var(--peach); }
+  .stat-card:nth-child(3)::before { background: var(--lavender); }
+  .stat-card:nth-child(4)::before { background: var(--success); }
+}
+
+/* ======================== Scrollbar ======================== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(200,150,130,0.0); border-radius: 3px; transition: background 0.3s; }
+*:hover::-webkit-scrollbar-thumb { background: rgba(200,150,130,0.25); }
+::-webkit-scrollbar-thumb:hover { background: rgba(200,150,130,0.45); }
+
+/* ======================== Animations ======================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-in { animation: fadeIn 0.3s ease; }
+.page-in { animation: pageIn 0.25s ease; }
+
+/* ======================== Focus ======================== */
+:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 2px;
+}
+
+/* ======================== Reduced Motion ======================== */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
