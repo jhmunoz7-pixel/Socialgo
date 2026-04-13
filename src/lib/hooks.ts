@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth-context';
 import {
   Organization,
   Member,
@@ -9,6 +10,9 @@ import {
   Package,
   Post,
   Asset,
+  BrandKit,
+  PostComment,
+  ContentWeek,
 } from '@/types';
 
 // Type for hook return pattern
@@ -31,124 +35,37 @@ interface HookResultArray<T> {
 // ==============================================================================
 
 /**
- * Fetches the current authenticated user and their member record
+ * Returns the current authenticated user and their member record.
+ * Uses the shared AuthProvider context — no duplicate API calls.
  */
 export function useCurrentUser(): HookResult<{
   user: any;
   member: Member | null;
 }> {
-  const [data, setData] = useState<{ user: any; member: Member | null } | null>(
-    null
+  const auth = useAuth();
+  const data = useMemo(
+    () => (auth.user ? { user: auth.user, member: auth.member } : null),
+    [auth.user, auth.member]
   );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const supabase = createSupabaseClient();
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      if (authError) throw authError;
-      if (!authData.user) {
-        setData({ user: null, member: null });
-        return;
-      }
-
-      const { data: memberData, error: memberError } = await supabase
-        .from('members')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (memberError && memberError.code !== 'PGRST116') {
-        throw memberError;
-      }
-
-      setData({
-        user: authData.user,
-        member: memberData || null,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
-
   return {
     data,
-    loading,
-    error,
-    refetch: fetchCurrentUser,
+    loading: auth.loading,
+    error: auth.error,
+    refetch: auth.refetch,
   };
 }
 
 /**
- * Fetches the current user's organization
+ * Returns the current user's organization.
+ * Uses the shared AuthProvider context — no duplicate API calls.
  */
 export function useOrganization(): HookResult<Organization> {
-  const [data, setData] = useState<Organization | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchOrganization = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const supabase = createSupabaseClient();
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      if (authError) throw authError;
-      if (!authData.user) {
-        setData(null);
-        return;
-      }
-
-      const { data: orgData, error: orgError } = await supabase
-        .from('members')
-        .select(
-          `
-          organizations:org_id (*)
-        `
-        )
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (orgError && orgError.code !== 'PGRST116') {
-        throw orgError;
-      }
-
-      if (orgData && orgData.organizations) {
-        setData(orgData.organizations as Organization);
-      } else {
-        setData(null);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOrganization();
-  }, [fetchOrganization]);
-
+  const auth = useAuth();
   return {
-    data,
-    loading,
-    error,
-    refetch: fetchOrganization,
+    data: auth.organization,
+    loading: auth.loading,
+    error: auth.error,
+    refetch: auth.refetch,
   };
 }
 
@@ -225,7 +142,7 @@ export function useClients(
       const supabase = createSupabaseClient();
       let query = supabase
         .from('clients')
-        .select('*')
+        .select('*, package:packages(*), manager:members(*)')
         .eq('org_id', currentUser.member.org_id);
 
       if (accountStatus) {
@@ -288,6 +205,8 @@ export function useClient(
         .select(
           `
           *,
+          package:packages(*),
+          manager:members(*),
           posts (*)
         `
         )
@@ -460,24 +379,23 @@ export function useStats(): HookResult<{
       const supabase = createSupabaseClient();
       const orgId = currentUser.member.org_id;
 
-      // Fetch active clients
+      // Fetch all clients with package info (not just activo — pending payments span all statuses)
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select('mrr, pay_status')
-        .eq('org_id', orgId)
-        .eq('account_status', 'activo');
+        .select('pay_status, package_type, custom_price, package_id, account_status')
+        .eq('org_id', orgId);
 
       if (clientsError) throw clientsError;
 
-      const activeClientsCount = clientsData?.length || 0;
+      const activeClientsCount = clientsData?.filter((c: any) => c.account_status === 'activo').length || 0;
 
-      // Calculate total MRR and pending payments
+      // Calculate pending payments (MRR calculation needs packages, simplified here)
       let totalMRR = 0;
       let pendingPayments = 0;
 
       clientsData?.forEach((client: any) => {
-        if (client.mrr) {
-          totalMRR += client.mrr;
+        if (client.custom_price) {
+          totalMRR += client.custom_price;
         }
         if (client.pay_status === 'pendiente' || client.pay_status === 'vencido') {
           pendingPayments++;
@@ -552,6 +470,26 @@ export async function createClient(
     throw new Error('User is not a member of any organization');
   }
 
+  // Enforce plan client limit before creating
+  const { data: orgData, error: orgError } = await supabase
+    .from('organizations')
+    .select('client_limit')
+    .eq('id', memberData.org_id)
+    .single();
+
+  if (orgError) throw orgError;
+
+  const { count: currentClientCount, error: countError } = await supabase
+    .from('clients')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_id', memberData.org_id);
+
+  if (countError) throw countError;
+
+  if (orgData?.client_limit && (currentClientCount ?? 0) >= orgData.client_limit) {
+    throw new Error(`Has alcanzado el límite de ${orgData.client_limit} cliente(s) de tu plan. Actualiza tu plan para agregar más clientes.`);
+  }
+
   const { data: result, error } = await supabase
     .from('clients')
     .insert({
@@ -609,12 +547,15 @@ export async function createPost(
     throw new Error('Not authenticated');
   }
 
-  const { data: memberData } = await supabase
+  const { data: memberData, error: memberError } = await supabase
     .from('members')
     .select('org_id')
     .eq('user_id', authData.user.id)
     .single();
 
+  if (memberError) {
+    throw new Error(`Error fetching member: ${memberError.message} (code: ${memberError.code})`);
+  }
   if (!memberData) {
     throw new Error('User is not a member of any organization');
   }
@@ -676,12 +617,15 @@ export async function createPackage(
     throw new Error('Not authenticated');
   }
 
-  const { data: memberData } = await supabase
+  const { data: memberData, error: memberError } = await supabase
     .from('members')
     .select('org_id')
     .eq('user_id', authData.user.id)
     .single();
 
+  if (memberError) {
+    throw new Error(`Error fetching member: ${memberError.message} (code: ${memberError.code})`);
+  }
   if (!memberData) {
     throw new Error('User is not a member of any organization');
   }
@@ -697,4 +641,297 @@ export async function createPackage(
 
   if (error) throw error;
   return result as Package;
+}
+
+/**
+ * Updates an existing package
+ */
+export async function updatePackage(
+  id: string,
+  data: Partial<Omit<Package, 'id' | 'org_id' | 'created_at' | 'updated_at'>>
+): Promise<Package> {
+  const supabase = createSupabaseClient();
+
+  const { data: result, error } = await supabase
+    .from('packages')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return result as Package;
+}
+
+/**
+ * Deletes a package
+ */
+export async function deletePackage(id: string): Promise<void> {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase.from('packages').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Updates organization theme
+ */
+export async function updateOrganizationTheme(
+  orgId: string,
+  theme: 'rose' | 'blue' | 'dark'
+): Promise<void> {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase
+    .from('organizations')
+    .update({ theme })
+    .eq('id', orgId);
+  if (error) throw error;
+}
+
+/**
+ * Creates a brand kit for a client
+ */
+export async function createBrandKit(
+  data: Omit<BrandKit, 'id' | 'created_at' | 'updated_at'>
+): Promise<BrandKit> {
+  const supabase = createSupabaseClient();
+  const { data: result, error } = await supabase
+    .from('brand_kits')
+    .insert(data)
+    .select()
+    .single();
+  if (error) throw error;
+  return result as BrandKit;
+}
+
+/**
+ * Updates a brand kit
+ */
+export async function updateBrandKit(
+  id: string,
+  data: Partial<Omit<BrandKit, 'id' | 'created_at' | 'updated_at'>>
+): Promise<BrandKit> {
+  const supabase = createSupabaseClient();
+  const { data: result, error } = await supabase
+    .from('brand_kits')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result as BrandKit;
+}
+
+/**
+ * Creates a post comment (used in approval flows)
+ */
+export async function createPostComment(
+  data: Omit<PostComment, 'id' | 'created_at'>
+): Promise<PostComment> {
+  const supabase = createSupabaseClient();
+  const { data: result, error } = await supabase
+    .from('post_comments')
+    .insert(data)
+    .select()
+    .single();
+  if (error) throw error;
+  return result as PostComment;
+}
+
+/**
+ * Fetches comments for a post
+ */
+export function usePostComments(postId: string | null): HookResultArray<PostComment> {
+  const [data, setData] = useState<PostComment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchComments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!postId) { setData([]); return; }
+
+      const supabase = createSupabaseClient();
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('post_comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if (commentsError) throw commentsError;
+      setData(commentsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => { fetchComments(); }, [fetchComments]);
+
+  return { data, loading, error, refetch: fetchComments };
+}
+
+/**
+ * Fetches content weeks for a client within a date range
+ */
+export function useContentWeeks(clientId?: string | null, weekStart?: string): HookResultArray<ContentWeek> {
+  const [data, setData] = useState<ContentWeek[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const fetchContentWeeks = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!currentUser?.member?.org_id) {
+        setData([]);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      let query = supabase
+        .from('content_weeks')
+        .select('*')
+        .eq('org_id', currentUser.member.org_id);
+
+      if (clientId) {
+        query = query.eq('client_id', clientId);
+      }
+
+      if (weekStart) {
+        query = query.eq('week_start', weekStart);
+      }
+
+      const { data: weeksData, error: weeksError } = await query.order('week_start', { ascending: false });
+
+      if (weeksError) throw weeksError;
+      setData(weeksData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.member?.org_id, clientId, weekStart]);
+
+  useEffect(() => { fetchContentWeeks(); }, [fetchContentWeeks]);
+
+  return { data, loading, error, refetch: fetchContentWeeks };
+}
+
+/**
+ * Creates a content week
+ */
+export async function createContentWeek(
+  data: Omit<ContentWeek, 'id' | 'created_at' | 'updated_at'>
+): Promise<ContentWeek> {
+  const supabase = createSupabaseClient();
+  const { data: result, error } = await supabase
+    .from('content_weeks')
+    .insert(data)
+    .select()
+    .single();
+  if (error) throw error;
+  return result as ContentWeek;
+}
+
+/**
+ * Updates a content week
+ */
+export async function updateContentWeek(
+  id: string,
+  data: Partial<Omit<ContentWeek, 'id' | 'created_at' | 'updated_at'>>
+): Promise<ContentWeek> {
+  const supabase = createSupabaseClient();
+  const { data: result, error } = await supabase
+    .from('content_weeks')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return result as ContentWeek;
+}
+
+/**
+ * Fetches brand kit for a client
+ */
+export function useBrandKit(clientId: string | null): HookResult<BrandKit> {
+  const [data, setData] = useState<BrandKit | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchBrandKit = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!clientId) { setData(null); return; }
+
+      const supabase = createSupabaseClient();
+      const { data: bkData, error: bkError } = await supabase
+        .from('brand_kits')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
+
+      if (bkError && bkError.code !== 'PGRST116') throw bkError;
+      setData(bkData as BrandKit || null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => { fetchBrandKit(); }, [fetchBrandKit]);
+
+  return { data, loading, error, refetch: fetchBrandKit };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Asset Upload
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Uploads a file to Supabase Storage and returns the public URL.
+ * Bucket: "post-assets" (must exist in Supabase dashboard).
+ */
+export async function uploadPostAsset(
+  file: File,
+  orgId: string,
+  postId: string
+): Promise<string> {
+  const supabase = createSupabaseClient();
+
+  const ext = file.name.split('.').pop() || 'bin';
+  const filePath = `${orgId}/${postId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('post-assets')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage
+    .from('post-assets')
+    .getPublicUrl(filePath);
+
+  return urlData.publicUrl;
+}
+
+/**
+ * Uploads an asset file, updates the post's image_url, and returns the updated post.
+ */
+export async function uploadAndAttachAsset(
+  file: File,
+  orgId: string,
+  postId: string
+): Promise<Post> {
+  const publicUrl = await uploadPostAsset(file, orgId, postId);
+  return updatePost(postId, { image_url: publicUrl });
 }

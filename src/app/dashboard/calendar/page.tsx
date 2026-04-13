@@ -6,7 +6,7 @@ const ChevronLeft = ({ className }: { className?: string }) => <span className={
 const ChevronRight = ({ className }: { className?: string }) => <span className={className} style={{ display: 'inline-block' }}>▶</span>;
 import { usePosts } from '@/lib/hooks';
 import { useClients } from '@/lib/hooks';
-import { POST_TYPE_COLORS } from '@/types';
+import { POST_TYPE_CONFIG } from '@/types';
 import type { Post, PostType } from '@/types';
 
 // Types
@@ -73,12 +73,10 @@ const formatDateKey = (date: Date): string => {
 const PostTypeLegend: React.FC = () => {
   const postTypes = [
     'educativo',
-    'producto',
-    'fun',
-    'social',
-    'behind_the_scenes',
-    'ugc',
-    'promo',
+    'ventas_promo',
+    'fun_casual',
+    'formal',
+    'otro',
   ] as PostType[];
 
   return (
@@ -91,10 +89,10 @@ const PostTypeLegend: React.FC = () => {
         {postTypes.map((type) => (
           <div key={type} className="flex items-center gap-2">
             <div
-              className={`w-3 h-3 rounded-full ${POST_TYPE_COLORS[type]?.bg}`}
-              style={{ backgroundColor: POST_TYPE_COLORS[type]?.bg }}
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: POST_TYPE_CONFIG[type]?.color || '#eee' }}
             />
-            <span className="text-xs text-[#2A1F1A] capitalize">{type}</span>
+            <span className="text-xs text-[#2A1F1A] capitalize">{POST_TYPE_CONFIG[type]?.label || type}</span>
           </div>
         ))}
       </div>
@@ -133,8 +131,8 @@ const DayCell: React.FC<DayCellProps> = ({ day, onSelectDay }) => {
             key={post.id}
             className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
             style={{
-              backgroundColor: POST_TYPE_COLORS[post.post_type]?.bg || '#FFD4B8',
-              color: POST_TYPE_COLORS[post.post_type]?.text || '#2A1F1A',
+              backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#FFD4B8',
+              color: '#2A1F1A',
             }}
             title={`${post.post_type} - ${post.platform}`}
           >
@@ -220,20 +218,27 @@ export default function CalendarPage() {
 
   const dayOfWeekHeaders: DayOfWeek[] = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  if (postsLoading || clientsLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-[#2A1F1A] font-serif text-lg">Cargando calendario...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen p-4 md:p-8" style={{ background: '#FFF8F3' }}>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Sticky Header */}
+      <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
+        <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>📅 Calendario</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Vista mensual de tus posts planificados</p>
+      </div>
+
+      {(postsLoading || clientsLoading) ? (
+        <div className="space-y-4 animate-pulse">
+          <div className="h-10 rounded-xl" style={{ background: 'var(--glass-border)' }} />
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-lg" style={{ background: 'var(--glass-border)' }} />
+            ))}
+          </div>
+        </div>
+      ) : (
+      <div>
         <div className="space-y-4">
-          <h1 className="text-4xl font-serif font-bold text-[#2A1F1A]">Calendario</h1>
+          <div>
 
           {/* Controls: Month navigation + Client filter */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -345,11 +350,11 @@ export default function CalendarPage() {
                         <div
                           className="px-2 py-1 rounded-full text-xs font-semibold"
                           style={{
-                            backgroundColor: POST_TYPE_COLORS[post.post_type]?.bg || '#FFD4B8',
-                            color: POST_TYPE_COLORS[post.post_type]?.text || '#2A1F1A',
+                            backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#FFD4B8',
+                            color: '#2A1F1A',
                           }}
                         >
-                          {post.post_type}
+                          {POST_TYPE_CONFIG[post.post_type || 'otro']?.label || post.post_type}
                         </div>
                       </div>
                       <p className="text-sm text-[#2A1F1A] line-clamp-2">{post.copy}</p>
@@ -379,6 +384,8 @@ export default function CalendarPage() {
         {/* Legend */}
         <PostTypeLegend />
       </div>
+      </div>
+      )}
     </div>
   );
 }

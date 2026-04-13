@@ -1,0 +1,14 @@
+<svg width="340" height="60" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="go" x1="258" y1="0" x2="330" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF8FAD"/><stop offset="100%" stop-color="#FFBA8A"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="3" width="22" height="22" rx="6" fill="#FF8FAD" opacity="0.85"/>
+  <rect x="13" y="13" width="22" height="22" rx="6" fill="#FFBA8A" opacity="0.8"/>
+  <rect x="24" y="23" width="22" height="22" rx="6" fill="#C4A1FF" opacity="0.75"/>
+  <path d="M34 14 C34 14, 18 10, 16 20 C14 30, 30 28, 32 36 C34 44, 20 46, 16 40" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M14 38 L16 40 L14 44" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <text x="60" y="42" font-family="Fraunces, Georgia, serif" font-weight="700" font-size="40" fill="#FFFFFF" letter-spacing="-3">social</text>
+  <text x="258" y="42" font-family="Fraunces, Georgia, serif" font-weight="900" font-size="40" fill="url(#go)" letter-spacing="-3">go</text>
+</svg>

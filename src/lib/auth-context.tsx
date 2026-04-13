@@ -1,0 +1,94 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
+import type { Organization, Member } from '@/types';
+
+interface AuthContextData {
+  user: any | null;
+  member: Member | null;
+  organization: Organization | null;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextData>({
+  user: null,
+  member: null,
+  organization: null,
+  loading: true,
+  error: null,
+  refetch: async () => {},
+});
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any | null>(null);
+  const [member, setMember] = useState<Member | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const supabase = createSupabaseClient();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+
+      if (authError) throw authError;
+      if (!authData.user) {
+        setUser(null);
+        setMember(null);
+        setOrganization(null);
+        return;
+      }
+
+      setUser(authData.user);
+
+      // Fetch member + org in a single query using join
+      const { data: memberData, error: memberError } = await supabase
+        .from('members')
+        .select(`
+          *,
+          organizations:org_id (*)
+        `)
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (memberError && memberError.code !== 'PGRST116') {
+        throw memberError;
+      }
+
+      if (memberData) {
+        const { organizations, ...memberOnly } = memberData;
+        setMember(memberOnly as Member);
+        setOrganization((organizations as unknown as Organization) || null);
+      } else {
+        setMember(null);
+        setOrganization(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  return (
+    <AuthContext.Provider
+      value={{ user, member, organization, loading, error, refetch: fetchAll }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextData {
+  return useContext(AuthContext);
+}

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Post } from "@/types";
+import type { Post as _Post } from "@/types";
 
 interface AiScoreRequest {
   post_id: string;
@@ -149,11 +149,11 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as AiScoreRequest;
     const { post_id, copy, objective, post_type, platform, client_name } = body;
 
-    // Validate required fields
-    if (!post_id || !copy || !objective || !post_type || !platform || !client_name) {
+    // Validate required fields (post_id is optional for ad-hoc scoring)
+    if (!copy || !objective || !post_type || !platform || !client_name) {
       return NextResponse.json(
         {
-          error: "Missing required fields: post_id, copy, objective, post_type, platform, client_name",
+          error: "Missing required fields: copy, objective, post_type, platform, client_name",
         },
         { status: 400 }
       );
@@ -183,33 +183,28 @@ export async function POST(request: NextRequest) {
       client_name
     );
 
-    // Update the post in Supabase with the AI score and insights
-    const { error: updateError } = await supabase
-      .from("posts")
-      .update({
-        ai_score: scoreResult.score,
-        ai_insights: scoreResult.insights,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", post_id)
-      .eq("org_id", (await supabase.auth.getUser()).data.user?.user_metadata?.org_id);
+    // Update the post in Supabase with the AI score (only if post_id is provided)
+    if (post_id) {
+      const { error: updateError } = await supabase
+        .from("posts")
+        .update({
+          ai_score: scoreResult.score,
+          ai_insights: scoreResult.insights,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", post_id);
 
-    if (updateError) {
-      console.error("Error updating post in Supabase:", updateError);
-      return NextResponse.json(
-        { error: `Failed to save AI score to database: ${updateError.message}` },
-        { status: 500 }
-      );
+      if (updateError) {
+        console.error("Error updating post in Supabase:", updateError);
+        // Don't fail the request, still return the score
+      }
     }
 
     // Return the score and insights
     return NextResponse.json({
       success: true,
-      data: {
-        post_id,
-        score: scoreResult.score,
-        insights: scoreResult.insights,
-      },
+      score: scoreResult.score,
+      insights: scoreResult.insights,
     });
   } catch (error) {
     console.error("AI score route error:", error);

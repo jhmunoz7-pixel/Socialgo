@@ -2,14 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, useStats, usePackages, useMembers, deleteClient } from '@/lib/hooks';
-import { Client, PayStatus, AccountStatus } from '@/types';
+import { useClients, useStats, usePackages, useMembers, deleteClient, updateClient } from '@/lib/hooks';
+import { Client, PayStatus, AccountStatus, calculateMonthlyPayment } from '@/types';
 import { AddClientModal } from '@/components/clients/AddClientModal';
 
-/**
- * Clients Dashboard Page
- * Displays all clients for the agency with stats, search, filtering, and actions
- */
 export default function ClientsPage() {
   const router = useRouter();
   const { data: clients, loading: clientsLoading, refetch: refetchClients } = useClients();
@@ -17,45 +13,25 @@ export default function ClientsPage() {
   const { data: packages } = usePackages();
   const { data: members } = useMembers();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activo' | 'onboarding' | 'pausado'>('todos');
+  const [packageTypeFilter, setPackageTypeFilter] = useState<string>('todos');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [addClientOpen, setAddClientOpen] = useState(false);
 
-  // Filter clients based on search and status
+  // Filter clients based on search, package type, and status
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {
       const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (client.contact_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-      const matchesStatus = statusFilter === 'todos' || client.account_status === statusFilter;
+      const matchesPackageType = packageTypeFilter === 'todos' || client.package_type === packageTypeFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesStatus = statusFilter === 'todos' ||
+        (statusFilter === 'pago_pendiente' && client.pay_status === 'pendiente') ||
+        (statusFilter !== 'pago_pendiente' && client.account_status === statusFilter);
+
+      return matchesSearch && matchesPackageType && matchesStatus;
     });
-  }, [clients, searchQuery, statusFilter]);
-
-  // Helper functions
-  const formatDate = (dateStr: string | null): string => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-MX', { month: 'short', day: '2-digit', year: 'numeric' });
-  };
-
-  const payBadge = (status: PayStatus) => {
-    const badgeMap = {
-      pagado: 'badge-success',
-      pendiente: 'badge-warning',
-      vencido: 'badge-danger',
-    };
-    return badgeMap[status];
-  };
-
-  const accountBadge = (status: AccountStatus) => {
-    const badgeMap = {
-      activo: 'badge-success',
-      onboarding: 'badge-warning',
-      pausado: 'badge-neutral',
-    };
-    return badgeMap[status];
-  };
+  }, [clients, searchQuery, packageTypeFilter, statusFilter]);
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('es-MX', {
@@ -66,92 +42,105 @@ export default function ClientsPage() {
     }).format(value);
   };
 
+  const calculateMonthsActive = (startDate: string | null): number => {
+    if (!startDate) return 0;
+    const start = new Date(startDate);
+    const today = new Date();
+    const daysDiff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(1, Math.ceil(daysDiff / 30));
+  };
+
+  const getMonthlyPayment = (client: Client): number => {
+    return calculateMonthlyPayment(client.package || null, client.package_type, client.custom_price);
+  };
+
+  const getStatusBadgeClass = (status: AccountStatus | 'pago_pendiente'): string => {
+    const map: Record<string, string> = {
+      activo: 'badge-success',
+      on_track: 'badge-success',
+      pago_pendiente: 'badge-warning',
+      onboarding: 'badge-warning',
+      pausado: 'badge-neutral',
+    };
+    return map[status] || 'badge-neutral';
+  };
+
+  const getStatusLabel = (status: AccountStatus | 'pago_pendiente'): string => {
+    const map: Record<string, string> = {
+      activo: 'Activo',
+      on_track: 'On Track',
+      pago_pendiente: 'Pago Pendiente',
+      onboarding: 'Onboarding',
+      pausado: 'Pausado',
+    };
+    return map[status] || status;
+  };
+
+  const handleTogglePayStatus = async (client: Client) => {
+    try {
+      const newPayStatus: PayStatus = client.pay_status === 'pendiente' ? 'pagado' : 'pendiente';
+      await updateClient(client.id, { pay_status: newPayStatus });
+      await refetchClients();
+    } catch (error) {
+      console.error('Error updating pay status:', error);
+      alert('Error al actualizar el estado de pago');
+    }
+  };
+
   const handleDeleteClient = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) return;
     try {
       await deleteClient(id);
-      // Refetch clients
-      window.location.reload();
+      await refetchClients();
     } catch (error) {
       console.error('Error deleting client:', error);
       alert('Error al eliminar el cliente');
     }
   };
 
-  const handleViewClient = (id: string) => {
+  const handleEditClient = (id: string) => {
     router.push(`/dashboard/clients/${id}`);
   };
 
-  // Skeleton loading component
-  if (clientsLoading || statsLoading) {
-    return (
-      <div className="min-h-screen bg-sg-bg p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header skeleton */}
-          <div className="mb-8">
-            <div className="h-10 bg-gradient-to-r from-gray-200 to-gray-100 rounded-lg w-1/3 mb-4 animate-pulse" />
-            <div className="h-5 bg-gray-200 rounded w-1/2 animate-pulse" />
-          </div>
-          {/* Stats skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="stat-card animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-1/2 mb-4" />
-                <div className="h-8 bg-gray-200 rounded w-1/3 mb-2" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleExportXLS = async () => {
+    try {
+      // @ts-ignore
+      const XLSX = (await import('xlsx')).default;
 
-  // Empty state
-  if (clients.length === 0) {
-    return (
-      <div className="min-h-screen bg-sg-bg p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8 flex justify-between items-start">
-            <div>
-              <h1 className="font-display text-display-md text-sg-text mb-2">Clientes</h1>
-              <p className="text-body-md text-sg-text-mid">Gestiona cuentas, contratos y estatus de pago</p>
-            </div>
-            <button
-              onClick={() => setAddClientOpen(true)}
-              className="btn btn-primary"
-            >
-              + Agregar cliente
-            </button>
-          </div>
+      const exportData = filteredClients.map((client) => ({
+        Marca: client.name,
+        Paquete: client.package?.name || 'Sin paquete',
+        Tipo: client.package_type || '-',
+        'Meses Activos': calculateMonthsActive(client.start_date),
+        'Pago Mensual': getMonthlyPayment(client),
+        Ciudad: client.city || '-',
+        Instagram: client.instagram || '-',
+        Status: getStatusLabel(
+          client.pay_status === 'pendiente' ? 'pago_pendiente' : (client.account_status as AccountStatus)
+        ),
+      }));
 
-          {/* Empty state */}
-          <div className="glass-card p-12 text-center">
-            <div className="mb-4 text-5xl">👥</div>
-            <h2 className="text-heading-md text-sg-text font-semibold mb-2">No tienes clientes aún</h2>
-            <p className="text-body-md text-sg-text-mid mb-6">
-              Comienza a agregar tus primeros clientes para gestionar sus cuentas y pagos
-            </p>
-            <button
-              onClick={() => setAddClientOpen(true)}
-              className="btn btn-primary"
-            >
-              Agregar mi primer cliente
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Clientes');
+
+      XLSX.writeFile(workbook, `clientes-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting XLS:', error);
+      alert('Error al exportar archivo');
+    }
+  };
+
+  const isLoading = clientsLoading || statsLoading;
 
   return (
-    <div className="min-h-screen bg-sg-bg p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-start">
+    <div className="space-y-6">
+      {/* Sticky Header + Stats — always pinned at top */}
+      <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="font-display text-display-md text-sg-text mb-2">Clientes</h1>
-            <p className="text-body-md text-sg-text-mid">Gestiona cuentas, contratos y estatus de pago</p>
+            <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>👥 Clientes</h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Gestiona cuentas, contratos y estatus de pago</p>
           </div>
           <button
             onClick={() => setAddClientOpen(true)}
@@ -161,114 +150,143 @@ export default function ClientsPage() {
           </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Active Clients */}
-          <div className="stat-card">
-            <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-3">
-              Clientes activos
-            </p>
-            <p className="font-mono text-heading-lg text-sg-text font-bold mb-2">
-              {stats?.activeClientsCount ?? 0}
-            </p>
-            <p className="text-body-xs text-sg-text-light">De tu plan actual</p>
-          </div>
-
-          {/* Total MRR */}
-          <div className="stat-card">
-            <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-3">
-              MRR Total
-            </p>
-            <p className="font-mono text-heading-lg text-sg-text font-bold mb-2">
-              {formatCurrency(stats?.totalMRR ?? 0)}
-            </p>
-            <p className="text-body-xs text-sg-text-light">Ingresos recurrentes mensuales</p>
-          </div>
-
-          {/* Posts This Month */}
-          <div className="stat-card">
-            <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-3">
-              Posts planeados
-            </p>
-            <p className="font-mono text-heading-lg text-sg-text font-bold mb-2">
-              {stats?.postsThisMonth ?? 0}
-            </p>
-            <p className="text-body-xs text-sg-text-light">Este mes</p>
-          </div>
-
-          {/* Pending Payments */}
-          <div className="stat-card">
-            <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-3">
-              Pagos pendientes
-            </p>
-            <p className="font-mono text-heading-lg text-sg-text font-bold mb-2">
-              {stats?.pendingPayments ?? 0}
-            </p>
-            <p className="text-body-xs text-sg-text-light">Requieren atención</p>
-          </div>
+        {/* Stats Grid — inside sticky area */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {isLoading ? (
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="stat-card animate-pulse">
+                <div className="h-4 rounded w-1/2 mb-3" style={{ background: 'var(--glass-border)' }} />
+                <div className="h-6 rounded w-1/3" style={{ background: 'var(--glass-border)' }} />
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="stat-card">
+                <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-1">MRR Total</p>
+                <p className="font-mono text-heading-md text-sg-text font-bold">{formatCurrency(stats?.totalMRR ?? 0)}</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-1">Clientes activos</p>
+                <p className="font-mono text-heading-md text-sg-text font-bold">{stats?.activeClientsCount ?? 0}</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-1">Posts planeados</p>
+                <p className="font-mono text-heading-md text-sg-text font-bold">{stats?.postsThisMonth ?? 0}</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-1">Pagos pendientes</p>
+                <p className="font-mono text-heading-md text-sg-text font-bold">{stats?.pendingPayments ?? 0}</p>
+              </div>
+            </>
+          )}
         </div>
+      </div>
 
-        {/* Clients Table */}
-        <div className="glass-card overflow-hidden">
-          {/* Filter Bar */}
-          <div className="p-6 border-b border-sg-border">
-            <div className="flex flex-col gap-4">
-              {/* Search */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Buscar cliente por nombre o contacto..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input w-full"
-                />
-              </div>
-
-              {/* Filter Chips */}
-              <div className="flex flex-wrap gap-2">
-                {['todos', 'activo', 'onboarding', 'pausado'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status as any)}
-                    className={`filter-chip ${statusFilter === status ? 'active' : ''}`}
-                  >
-                    {status === 'todos' && 'Todos'}
-                    {status === 'activo' && 'Activos'}
-                    {status === 'onboarding' && 'Pendientes'}
-                    {status === 'pausado' && 'Pausados'}
-                  </button>
-                ))}
-
-                {/* Export Button */}
-                <button className="filter-chip ml-auto">
-                  📥 Exportar
-                </button>
-              </div>
-            </div>
+      {isLoading ? (
+        /* Skeleton for data area only */
+        <>
+          <div className="glass-card rounded-lg animate-pulse p-6">
+            <div className="h-4 rounded w-full mb-3" style={{ background: 'var(--glass-border)' }} />
+            <div className="h-4 rounded w-3/4 mb-3" style={{ background: 'var(--glass-border)' }} />
+            <div className="h-4 rounded w-1/2" style={{ background: 'var(--glass-border)' }} />
           </div>
+        </>
+      ) : clients.length === 0 ? (
+        <div className="glass-card p-12 text-center">
+          <div className="mb-4 text-5xl">👥</div>
+          <h2 className="text-heading-md text-sg-text font-semibold mb-2">No tienes clientes aún</h2>
+          <p className="text-body-md text-sg-text-mid mb-6">
+            Comienza a agregar tus primeros clientes para gestionar sus cuentas y pagos
+          </p>
+          <button
+            onClick={() => setAddClientOpen(true)}
+            className="btn btn-primary"
+          >
+            Agregar mi primer cliente
+          </button>
+        </div>
+      ) : (
+      <>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-sg-border">
+      {/* Filter Bar */}
+      <div className="flex flex-col gap-4">
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Buscar cliente por nombre..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="form-input w-full"
+        />
+
+        {/* Filters and Export */}
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Package Type Filter */}
+          <select
+            value={packageTypeFilter}
+            onChange={(e) => setPackageTypeFilter(e.target.value)}
+            className="form-input flex-1"
+          >
+            <option value="todos">Tipo: Todos</option>
+            <option value="mensual">Mensual</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="form-input flex-1"
+          >
+            <option value="todos">Status: Todos</option>
+            <option value="activo">Activo</option>
+            <option value="on_track">On Track</option>
+            <option value="pago_pendiente">Pago Pendiente</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="pausado">Pausado</option>
+          </select>
+
+          {/* Export Button */}
+          <button
+            onClick={handleExportXLS}
+            className="btn btn-primary whitespace-nowrap"
+          >
+            📥 Exportar XLS
+          </button>
+        </div>
+      </div>
+
+      {/* Table Container */}
+      <div className="pb-8">
+        <div className="overflow-x-auto glass-card rounded-lg">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-sg-border" style={{ backgroundColor: 'var(--bg)' }}>
                   <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
-                    Marca / Contacto
+                    Marca
                   </th>
                   <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Paquete
                   </th>
                   <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
-                    Inicio
+                    Tipo
+                  </th>
+                  <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                    Meses activos
                   </th>
                   <th className="text-right p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
-                    Mensualidad
+                    Pago mensual
+                  </th>
+                  <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                    Ciudad
                   </th>
                   <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
-                    Pago
+                    IG
                   </th>
                   <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
-                    Cuenta
+                    Status
                   </th>
                   <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Acciones
@@ -279,9 +297,9 @@ export default function ClientsPage() {
                 {filteredClients.map((client) => (
                   <tr
                     key={client.id}
-                    className="border-b border-sg-border hover:bg-[rgba(255,181,200,0.07)] transition-colors cursor-pointer"
+                    className="border-b border-sg-border hover:bg-[rgba(255,181,200,0.07)] transition-colors"
                   >
-                    {/* Brand / Contact */}
+                    {/* Marca */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div
@@ -290,73 +308,98 @@ export default function ClientsPage() {
                         >
                           {client.emoji}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-body-md font-semibold text-sg-text truncate">
-                            {client.name}
-                          </p>
-                          <p className="text-body-xs text-sg-text-light truncate">
-                            {client.contact_name || client.contact_email || '-'}
-                          </p>
-                        </div>
+                        <p className="text-body-md font-semibold text-sg-text truncate">
+                          {client.name}
+                        </p>
                       </div>
                     </td>
 
-                    {/* Package */}
+                    {/* Paquete */}
                     <td className="p-4">
                       <span className="package-tag">
                         {client.package?.name ?? 'Sin paquete'}
                       </span>
                     </td>
 
-                    {/* Start Date */}
+                    {/* Tipo */}
                     <td className="p-4">
                       <p className="text-body-sm text-sg-text">
-                        {formatDate(client.start_date)}
+                        {client.package_type || '-'}
                       </p>
                     </td>
 
-                    {/* MRR */}
+                    {/* Meses activos */}
+                    <td className="p-4">
+                      <p className="text-body-sm text-sg-text">
+                        Mes {calculateMonthsActive(client.start_date)}
+                      </p>
+                    </td>
+
+                    {/* Pago mensual */}
                     <td className="p-4 text-right">
                       <p className="font-mono text-body-md font-semibold text-sg-text">
-                        {formatCurrency(client.mrr)}
+                        {formatCurrency(getMonthlyPayment(client))}
                       </p>
                     </td>
 
-                    {/* Pay Status Badge */}
-                    <td className="p-4 text-center">
-                      <span className={`badge ${payBadge(client.pay_status)}`}>
-                        {client.pay_status === 'pagado' && '✓ Pagado'}
-                        {client.pay_status === 'pendiente' && '⏳ Pendiente'}
-                        {client.pay_status === 'vencido' && '⚠ Vencido'}
-                      </span>
+                    {/* Ciudad */}
+                    <td className="p-4">
+                      <p className="text-body-sm text-sg-text">
+                        {client.city || '-'}
+                      </p>
                     </td>
 
-                    {/* Account Status Badge */}
+                    {/* IG */}
                     <td className="p-4 text-center">
-                      <span className={`badge ${accountBadge(client.account_status)}`}>
-                        {client.account_status === 'activo' && '✓ Activo'}
-                        {client.account_status === 'onboarding' && '⏳ Onboarding'}
-                        {client.account_status === 'pausado' && '⊘ Pausado'}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleViewClient(client.id)}
-                          className="text-body-xs font-semibold text-rose hover:text-rose-deep transition-colors"
-                          title="Ver cliente"
+                      {client.instagram ? (
+                        <a
+                          href={client.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-rose hover:text-rose-deep transition-colors text-lg"
+                          title="Abrir Instagram"
                         >
-                          Ver
+                          📷
+                        </a>
+                      ) : (
+                        <span className="text-sg-text-light">-</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => {
+                          if (client.pay_status === 'pendiente') {
+                            handleTogglePayStatus(client);
+                          }
+                        }}
+                        className={`badge ${getStatusBadgeClass(
+                          client.pay_status === 'pendiente' ? 'pago_pendiente' : client.account_status
+                        )} ${client.pay_status === 'pendiente' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                      >
+                        {client.pay_status === 'pendiente'
+                          ? 'Pago Pendiente'
+                          : getStatusLabel(client.account_status)}
+                      </button>
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => handleEditClient(client.id)}
+                          className="text-rose hover:text-rose-deep transition-colors text-lg"
+                          title="Editar cliente"
+                        >
+                          ✏️
                         </button>
-                        <span className="text-sg-border">•</span>
                         <button
                           onClick={() => handleDeleteClient(client.id)}
-                          className="text-body-xs font-semibold text-sg-text-light hover:text-sg-danger-text transition-colors"
+                          className="text-sg-text-light hover:text-sg-danger-text transition-colors text-lg"
                           title="Eliminar cliente"
                         >
-                          Eliminar
+                          🗑️
                         </button>
                       </div>
                     </td>
@@ -364,25 +407,25 @@ export default function ClientsPage() {
                 ))}
               </tbody>
             </table>
+
+            {filteredClients.length === 0 && clients.length > 0 && (
+              <div className="p-12 text-center">
+                <p className="text-body-md text-sg-text-mid">
+                  No se encontraron clientes que coincidan con tu búsqueda
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Empty filter state */}
-          {filteredClients.length === 0 && clients.length > 0 && (
-            <div className="p-12 text-center">
-              <p className="text-body-md text-sg-text-mid">
-                No se encontraron clientes que coincidan con tu búsqueda
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Pagination info */}
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-body-sm text-sg-text-mid">
-            Mostrando {filteredClients.length} de {clients.length} clientes
-          </p>
-        </div>
+          {/* Info Footer */}
+          <div className="mt-4 flex items-center justify-between px-4">
+            <p className="text-body-sm text-sg-text-mid">
+              Mostrando {filteredClients.length} de {clients.length} clientes
+            </p>
+          </div>
       </div>
+      </>
+      )}
 
       {/* Add Client Modal */}
       <AddClientModal

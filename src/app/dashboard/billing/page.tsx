@@ -58,10 +58,10 @@ export default function BillingPage() {
     <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-serif font-bold" style={{ color: '#2A1F1A' }}>
-          Facturación
+        <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
+          💳 Facturación
         </h1>
-        <p className="text-sm mt-1" style={{ color: '#7A6560' }}>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
           Gestiona tu suscripción y método de pago
         </p>
       </div>

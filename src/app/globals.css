@@ -6,6 +6,23 @@
 
 /* ======================== CSS Variables ======================== */
 :root {
+  /* Theme colors (rose is default, overridden by ThemeProvider) */
+  --primary: #FFB5C8;
+  --primary-deep: #FF8FAD;
+  --secondary: #FFD4B8;
+  --secondary-deep: #FFBA8A;
+  --accent: #E8D5FF;
+  --bg: #FFF8F3;
+  --bg-warm: #FFFBF8;
+  --surface: #FFFCFA;
+  --glass-border: rgba(255,180,150,0.25);
+  --text-dark: #2A1F1A;
+  --text-mid: #7A6560;
+  --text-light: #B8A9A4;
+  --gradient: linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%);
+  --sidebar-bg: #FFF8F3;
+
+  /* Legacy color names for backward compatibility */
   --rose: #FFB5C8;
   --rose-deep: #FF8FAD;
   --peach: #FFD4B8;
@@ -14,17 +31,17 @@
   --cream: #FFF8F3;
   --warm-white: #FFFBF8;
   --sand: #F5EDE4;
-  --glass: rgba(255,255,255,0.55);
-  --glass-border: rgba(255,180,150,0.25);
-  --text-dark: #2A1F1A;
-  --text-mid: #7A6560;
-  --text-light: #B8A9A4;
+  --glass: var(--surface);
+
+  /* Status colors */
   --success: #B8E8C8;
   --success-text: #2D6B47;
   --warning: #FFE5B0;
   --warning-text: #8A5A00;
   --danger: #FFD0D8;
   --danger-text: #8A1F35;
+
+  /* Spacing and radius */
   --shadow-soft: 0 4px 24px rgba(200,120,100,0.10);
   --shadow-card: 0 2px 16px rgba(200,120,100,0.08);
   --radius: 18px;
@@ -53,9 +70,9 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 50% at 15% 10%, rgba(255,181,200,0.22) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 60% at 85% 20%, rgba(255,212,184,0.22) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 50% 80%, rgba(232,213,255,0.18) 0%, transparent 70%);
+    radial-gradient(ellipse 60% 50% at 15% 10%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 85% 20%, color-mix(in srgb, var(--secondary) 22%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 80%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -64,8 +81,6 @@ body::before {
 @layer components {
   .glass {
     background: var(--glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
   }
 
@@ -76,9 +91,7 @@ body::before {
   }
 
   .glass-sidebar {
-    background: rgba(255,248,243,0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--sidebar-bg);
     border-right: 1px solid var(--glass-border);
   }
 
@@ -92,13 +105,13 @@ body::before {
   .btn:active { transform: scale(0.97); }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--rose-deep), var(--peach-deep));
+    background: var(--gradient);
     color: white;
-    box-shadow: 0 4px 16px rgba(255,143,173,0.35);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--primary-deep) 35%, transparent);
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(255,143,173,0.45);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-deep) 45%, transparent);
   }
 
   .btn-ghost {
@@ -141,8 +154,8 @@ body::before {
     color: var(--text-dark);
   }
   .form-input:focus {
-    border-color: var(--rose-deep);
-    box-shadow: 0 0 0 3px rgba(255,143,173,0.2);
+    border-color: var(--primary-deep);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-deep) 20%, transparent);
   }
 
   .form-select {
@@ -158,8 +171,8 @@ body::before {
 
   /* Package tag */
   .package-tag {
-    background: linear-gradient(135deg, rgba(255,181,200,0.3), rgba(255,212,184,0.3));
-    border: 1px solid rgba(255,143,173,0.2);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 30%, transparent), color-mix(in srgb, var(--secondary) 30%, transparent));
+    border: 1px solid color-mix(in srgb, var(--primary-deep) 20%, transparent);
     color: var(--text-mid);
     padding: 4px 10px;
     border-radius: 6px;
@@ -181,9 +194,23 @@ body::before {
   }
   .filter-chip:hover { background: rgba(255,255,255,0.85); }
   .filter-chip.active {
-    background: var(--rose);
-    border-color: var(--rose-deep);
+    background: var(--primary);
+    border-color: var(--primary-deep);
     color: #fff;
+  }
+
+  /* Sticky header zone — fully opaque so scrolling content never bleeds through */
+  .sticky-header {
+    background-color: var(--bg);
+  }
+  .sticky-header .stat-card,
+  .sticky-header .glass-card {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
   }
 
   /* Stat card */
@@ -201,9 +228,9 @@ body::before {
     border-radius: 50%;
     opacity: 0.2;
   }
-  .stat-card:nth-child(1)::before { background: var(--rose); }
-  .stat-card:nth-child(2)::before { background: var(--peach); }
-  .stat-card:nth-child(3)::before { background: var(--lavender); }
+  .stat-card:nth-child(1)::before { background: var(--primary); }
+  .stat-card:nth-child(2)::before { background: var(--secondary); }
+  .stat-card:nth-child(3)::before { background: var(--accent); }
   .stat-card:nth-child(4)::before { background: var(--success); }
 }
 
@@ -232,7 +259,7 @@ body::before {
 
 /* ======================== Focus ======================== */
 :focus-visible {
-  outline: 2px solid var(--rose-deep);
+  outline: 2px solid var(--primary-deep);
   outline-offset: 2px;
 }
 

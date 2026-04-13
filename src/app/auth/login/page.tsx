@@ -3,6 +3,7 @@
  */
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
@@ -39,7 +40,9 @@ export default function LoginPage() {
             Bienvenido de vuelta a SocialGo
           </p>
 
-          <LoginForm />
+          <Suspense fallback={<div className="py-8 text-center" style={{ color: '#B8A9A4' }}>Cargando...</div>}>
+            <LoginForm />
+          </Suspense>
 
           <div className="mt-6">
             <div className="relative mb-6">

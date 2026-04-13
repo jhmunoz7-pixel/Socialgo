@@ -6,13 +6,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const message = searchParams.get("message");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,17 +35,16 @@ export function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message || "Failed to sign in");
+        setError(signInError.message || "Error al iniciar sesión");
         setIsLoading(false);
         return;
       }
 
-      // Redirect to dashboard on success
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
+        err instanceof Error ? err.message : "Ocurrió un error inesperado";
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -50,6 +52,22 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-lg">
+      {message === "check_email" && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-md p-md">
+          <p className="text-body-sm text-green-600" style={{ fontWeight: 500 }}>
+            ✉️ ¡Cuenta creada! Revisa tu correo electrónico y haz clic en el enlace de confirmación para activar tu cuenta.
+          </p>
+        </div>
+      )}
+
+      {message === "email_confirmed" && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-md p-md">
+          <p className="text-body-sm text-green-600" style={{ fontWeight: 500 }}>
+            ✅ ¡Email confirmado! Ya puedes iniciar sesión.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-md p-md">
           <p className="text-body-sm text-red-500">{error}</p>
@@ -58,8 +76,8 @@ export function LoginForm() {
 
       <Input
         type="email"
-        label="Email"
-        placeholder="you@example.com"
+        label="Correo electrónico"
+        placeholder="tu@ejemplo.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -69,7 +87,7 @@ export function LoginForm() {
 
       <Input
         type="password"
-        label="Password"
+        label="Contraseña"
         placeholder="••••••••"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -86,12 +104,12 @@ export function LoginForm() {
         isLoading={isLoading}
         disabled={isLoading || !email || !password}
       >
-        Sign In
+        Iniciar sesión
       </Button>
 
       <p className="text-body-xs text-aurometal text-center">
         <a href="#" className="text-inchworm hover:underline">
-          Forgot your password?
+          ¿Olvidaste tu contraseña?
         </a>
       </p>
     </form>

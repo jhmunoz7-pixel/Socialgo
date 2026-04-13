@@ -131,7 +131,7 @@ const formatDate = (dateString: string) => {
 const getClientNameById = (clientId: string | null, clients: any[]) => {
   if (!clientId) return 'Sin cliente';
   const client = clients.find((c) => c.id === clientId);
-  return client?.name || 'Cliente desconocido';
+  return client?.name || 'Sin cliente';
 };
 
 export default function AssetsPage() {
@@ -144,6 +144,12 @@ export default function AssetsPage() {
   const [selectedType, setSelectedType] = useState<AssetType | 'all'>('all');
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Upload modal state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [uploadClientId, setUploadClientId] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
 
   // Filter assets based on search and filters
   const filteredAssets = useMemo(() => {
@@ -161,30 +167,28 @@ export default function AssetsPage() {
   }, [assets, searchQuery, selectedType, selectedClient]);
 
   return (
-    <div className="min-h-screen" style={{ background: '#FFF8F3' }}>
-      {/* Header */}
-      <div className="border-b" style={{ borderColor: 'rgba(255,181,200,0.2)' }}>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1
-              className="text-4xl font-serif font-bold"
-              style={{ color: '#2A1F1A' }}
-            >
-              Assets
-            </h1>
-            {/* TODO: Implement Supabase Storage integration for file uploads */}
-            <button
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-sans font-medium transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FFB5C8, #FF8FAD)' }}
-            >
-              <Upload className="w-5 h-5" />
-              Subir archivo
-            </button>
-          </div>
-          <p style={{ color: '#2A1F1A', opacity: 0.6 }} className="text-sm">
-            Gestiona fotos, videos y plantillas para tus clientes
-          </p>
+    <div className="space-y-6">
+      {/* Sticky Header */}
+      <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h1
+            className="text-2xl font-serif font-bold"
+            style={{ color: 'var(--text-dark)' }}
+          >
+            📁 Assets
+          </h1>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-sans font-medium transition-transform hover:scale-105"
+            style={{ background: 'linear-gradient(135deg, #FFB5C8, #FF8FAD)' }}
+          >
+            <Upload className="w-5 h-5" />
+            Subir archivo
+          </button>
         </div>
+        <p style={{ color: 'var(--text-mid)' }} className="text-sm">
+          Gestiona fotos, videos y plantillas para tus clientes
+        </p>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -482,6 +486,92 @@ export default function AssetsPage() {
           </div>
         )}
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-[500] backdrop-blur-lg"
+          style={{ backgroundColor: 'rgba(42,31,26,0.45)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowUploadModal(false); }}
+        >
+          <div
+            className="rounded-3xl max-w-md w-full shadow-lg border p-8 space-y-6"
+            style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--glass-border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
+                Subir archivo
+              </h2>
+              <button
+                onClick={() => { setShowUploadModal(false); setUploadingFile(null); setUploadClientId(''); }}
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: 'var(--surface)' }}
+              >
+                <span className="text-xl" style={{ color: 'var(--text-mid)' }}>×</span>
+              </button>
+            </div>
+
+            {/* File Input */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-dark)' }}>Archivo</label>
+              <input
+                type="file"
+                accept="image/*,video/*,.pdf,.svg"
+                onChange={(e) => setUploadingFile(e.target.files?.[0] || null)}
+                className="w-full text-sm rounded-lg border p-2"
+                style={{ borderColor: 'var(--glass-border)', color: 'var(--text-dark)', backgroundColor: 'var(--surface)' }}
+              />
+              {uploadingFile && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-mid)' }}>
+                  {uploadingFile.name} ({(uploadingFile.size / 1024 / 1024).toFixed(1)} MB)
+                </p>
+              )}
+            </div>
+
+            {/* Client Selector */}
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-dark)' }}>Cliente (opcional)</label>
+              <select
+                value={uploadClientId}
+                onChange={(e) => setUploadClientId(e.target.value)}
+                className="w-full text-sm rounded-lg border p-2"
+                style={{ borderColor: 'var(--glass-border)', color: 'var(--text-dark)', backgroundColor: 'var(--surface)' }}
+              >
+                <option value="">Sin cliente</option>
+                {(clients || []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Upload Button */}
+            <button
+              disabled={!uploadingFile || uploading}
+              onClick={async () => {
+                if (!uploadingFile) return;
+                setUploading(true);
+                try {
+                  // TODO: Implement actual Supabase storage upload when assets table is ready
+                  // For now, show success and close
+                  alert('Archivo listo para subir. La funcionalidad de storage se conectará próximamente.');
+                  setShowUploadModal(false);
+                  setUploadingFile(null);
+                  setUploadClientId('');
+                } catch (err) {
+                  alert('Error al subir archivo');
+                } finally {
+                  setUploading(false);
+                }
+              }}
+              className="w-full py-3 rounded-2xl text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #FFB5C8, #FF8FAD)' }}
+            >
+              {uploading ? 'Subiendo...' : 'Subir archivo'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

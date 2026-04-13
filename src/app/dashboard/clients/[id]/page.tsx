@@ -2,9 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useClient, updatePost } from '@/lib/hooks';
-import { Client, Post, POST_TYPE_COLORS, PostType } from '@/types';
+import { useClient, usePackages, useMembers, updatePost, useCurrentUser } from '@/lib/hooks';
+import { Client, Post, POST_TYPE_CONFIG, PostType, calculateMonthlyPayment } from '@/types';
 import { PostModal } from '@/components/posts/PostModal';
+import { EditClientModal } from '@/components/clients/EditClientModal';
+import BrandKitPanel from '@/components/clients/BrandKitPanel';
+import FeedPreview from '@/components/clients/FeedPreview';
+import InstagramPanel from '@/components/clients/InstagramPanel';
 
 /**
  * Client Detail Page
@@ -16,10 +20,15 @@ export default function ClientDetailPage() {
   const clientId = params.id as string;
 
   const { data: clientData, loading, refetch } = useClient(clientId);
+  const currentUser = useCurrentUser();
+  const { data: packages } = usePackages();
+  const { data: members } = useMembers();
 
-  // State for month navigation and post selection
+  // State for month navigation, post selection, active tab, and edit modal
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'parrilla' | 'feed' | 'instagram' | 'brandkit'>('parrilla');
+  const [editClientOpen, setEditClientOpen] = useState(false);
 
   // Filter posts by selected month
   const filteredPosts = useMemo(() => {
@@ -268,7 +277,7 @@ export default function ClientDetailPage() {
           {/* Right: Action Buttons */}
           <div className="flex gap-3">
             {/* Edit Button */}
-            <button className="btn btn-ghost">Editar</button>
+            <button onClick={() => setEditClientOpen(true)} className="btn btn-ghost">Editar</button>
 
             {/* Add Post Button */}
             <button className="btn btn-primary">+ Agregar post</button>
@@ -296,7 +305,7 @@ export default function ClientDetailPage() {
               Mensualidad
             </p>
             <p className="text-heading-sm text-sg-text font-bold mb-1">
-              {formatCurrency(client.mrr)}
+              {formatCurrency(calculateMonthlyPayment(client.package || null, client.package_type, client.custom_price))}
             </p>
             <div>
               <span
@@ -325,6 +334,55 @@ export default function ClientDetailPage() {
           </div>
         </div>
 
+        {/* Tab Switcher */}
+        <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)' }}>
+          <button
+            onClick={() => setActiveTab('parrilla')}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'parrilla' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
+          >
+            📋 Parrilla
+          </button>
+          <button
+            onClick={() => setActiveTab('feed')}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'feed' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
+          >
+            📱 Feed Preview
+          </button>
+          <button
+            onClick={() => setActiveTab('instagram')}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'instagram' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
+          >
+            📸 Instagram
+          </button>
+          <button
+            onClick={() => setActiveTab('brandkit')}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'brandkit' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
+          >
+            🎨 Brand Kit
+          </button>
+        </div>
+
+        {/* Feed Preview Tab */}
+        {activeTab === 'feed' && (
+          <FeedPreview clientId={clientId} posts={clientData?.posts || []} />
+        )}
+
+        {/* Instagram Tab */}
+        {activeTab === 'instagram' && (
+          <InstagramPanel client={client} onRefresh={refetch} />
+        )}
+
+        {/* Brand Kit Tab */}
+        {activeTab === 'brandkit' && (
+          <BrandKitPanel clientId={clientId} orgId={currentUser.data?.member?.org_id || ''} />
+        )}
+
+        {/* Parrilla Tab */}
+        {activeTab === 'parrilla' && (<>
         {/* Section Title with Month Picker */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-display text-display-sm text-sg-text font-bold">
@@ -378,6 +436,7 @@ export default function ClientDetailPage() {
             ))}
           </div>
         )}
+        </>)}
       </div>
 
       {/* Post Modal */}
@@ -391,6 +450,16 @@ export default function ClientDetailPage() {
           refetch();
           setSelectedPostId(null);
         }}
+      />
+
+      {/* Edit Client Modal */}
+      <EditClientModal
+        isOpen={editClientOpen}
+        onClose={() => setEditClientOpen(false)}
+        onUpdated={() => refetch()}
+        client={client}
+        packages={packages}
+        members={members}
       />
     </div>
   );
@@ -409,10 +478,11 @@ function PostCard({ post, onClick }: PostCardProps) {
   const getPostTypeColors = (
     postType: PostType | null
   ): { bg: string; text: string } => {
-    if (!postType || !POST_TYPE_COLORS[postType]) {
+    if (!postType) {
       return { bg: '#F5EDE4', text: '#7A6560' };
     }
-    return POST_TYPE_COLORS[postType];
+    const config = POST_TYPE_CONFIG[postType];
+    return { bg: config?.color || '#F5EDE4', text: '#7A6560' };
   };
 
   const getAIScoreColor = (score: number | null): string => {
@@ -429,9 +499,8 @@ function PostCard({ post, onClick }: PostCardProps) {
   };
 
   const postTypeLabel =
-    post.post_type && POST_TYPE_COLORS[post.post_type]
-      ? post.post_type.charAt(0).toUpperCase() +
-        post.post_type.slice(1).replace(/_/g, ' ')
+    post.post_type && POST_TYPE_CONFIG[post.post_type]
+      ? POST_TYPE_CONFIG[post.post_type].label
       : 'Sin tipo';
 
   const postTypeColors = getPostTypeColors(post.post_type);
@@ -484,10 +553,10 @@ function PostCard({ post, onClick }: PostCardProps) {
 
       {/* Card Body */}
       <div className="p-4">
-        {/* Objective Label */}
-        {post.objective && (
+        {/* Explanation Label */}
+        {post.explanation && (
           <p className="text-body-xs text-sg-text-mid font-semibold uppercase tracking-wide mb-2">
-            {post.objective}
+            {post.explanation}
           </p>
         )}
 

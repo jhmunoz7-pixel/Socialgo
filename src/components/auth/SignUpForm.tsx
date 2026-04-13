@@ -24,15 +24,13 @@ export function SignUpForm() {
     e.preventDefault();
     setError(null);
 
-    // Validate passwords match
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Las contraseñas no coinciden");
       return;
     }
 
-    // Validate password length
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
@@ -41,11 +39,14 @@ export function SignUpForm() {
     try {
       const supabase = createClient();
 
-      // Sign up user
+      // Build the redirect URL for email confirmation
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+
       const { error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName.trim() || null,
           },
@@ -53,18 +54,16 @@ export function SignUpForm() {
       });
 
       if (signUpError) {
-        setError(signUpError.message || "Failed to sign up");
+        setError(signUpError.message || "Error al crear la cuenta");
         setIsLoading(false);
         return;
       }
 
-      // Redirect to confirm email page or dashboard
-      // You might want to show a confirmation email message first
       router.push("/auth/login?message=check_email");
       router.refresh();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
+        err instanceof Error ? err.message : "Ocurrió un error inesperado";
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -80,8 +79,8 @@ export function SignUpForm() {
 
       <Input
         type="text"
-        label="Full Name"
-        placeholder="John Doe"
+        label="Nombre completo"
+        placeholder="María García"
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
         disabled={isLoading}
@@ -90,8 +89,8 @@ export function SignUpForm() {
 
       <Input
         type="email"
-        label="Email"
-        placeholder="you@example.com"
+        label="Correo electrónico"
+        placeholder="tu@ejemplo.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -101,19 +100,19 @@ export function SignUpForm() {
 
       <Input
         type="password"
-        label="Password"
+        label="Contraseña"
         placeholder="••••••••"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
         disabled={isLoading}
         autoComplete="new-password"
-        helperText="At least 8 characters"
+        helperText="Mínimo 8 caracteres"
       />
 
       <Input
         type="password"
-        label="Confirm Password"
+        label="Confirmar contraseña"
         placeholder="••••••••"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -130,12 +129,11 @@ export function SignUpForm() {
         isLoading={isLoading}
         disabled={isLoading || !email || !password || !confirmPassword}
       >
-        Create Account
+        Crear cuenta
       </Button>
 
       <p className="text-body-xs text-aurometal text-center">
-        By signing up, you agree to start a 14-day free trial. No credit card
-        required.
+        Al registrarte inicias un trial de 14 días gratis. Sin tarjeta de crédito.
       </p>
     </form>
   );
