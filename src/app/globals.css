@@ -257,6 +257,51 @@ body::before {
 .fade-in { animation: fadeIn 0.3s ease; }
 .page-in { animation: pageIn 0.25s ease; }
 
+/* ======================== Mobile Responsive ======================== */
+@media (max-width: 767px) {
+  /* Push main content below the fixed mobile banner */
+  main {
+    padding-top: 56px !important;
+  }
+
+  /* Fix sticky headers: sit below the fixed mobile banner (56px) */
+  .sticky-header {
+    top: 56px !important;
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Any generic sticky top-0 inside main should also clear the banner */
+  main .sticky {
+    top: 56px !important;
+  }
+
+  /* Stack stat card grids on mobile */
+  .sticky-header .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Smaller stat cards on mobile */
+  .stat-card {
+    padding: 14px 16px !important;
+  }
+
+  /* Smaller headings on mobile */
+  h1 { font-size: 1.25rem !important; }
+
+  /* Table scroll containers */
+  table { font-size: 13px; }
+
+  /* Modal adjustments for mobile */
+  .fixed.inset-0 > div {
+    max-height: 95vh;
+    margin: 8px;
+  }
+}
+
 /* ======================== Focus ======================== */
 :focus-visible {
   outline: 2px solid var(--primary-deep);
