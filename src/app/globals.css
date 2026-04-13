@@ -286,7 +286,6 @@ body::before {
   main .sticky {
     top: 0 !important;
   }
-}
 
   /* Stack stat card grids on mobile */
   .sticky-header .grid {
