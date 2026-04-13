@@ -259,24 +259,34 @@ body::before {
 
 /* ======================== Mobile Responsive ======================== */
 @media (max-width: 767px) {
-  /* Push main content below the fixed mobile banner */
+  /* Push main content below the fixed mobile banner (banner = 57px) */
   main {
-    padding-top: 56px !important;
+    padding-top: 57px !important;
+    background-color: var(--bg) !important;
   }
 
-  /* Fix sticky headers: sit below the fixed mobile banner (56px) */
+  /* Sticky headers: extend behind the banner to eliminate any gap.
+     main is overflow-y-auto → it's the scroll container.
+     top: 0 pins to main's viewport edge (= real viewport top).
+     padding-top: 57px pushes visible content below the banner.
+     The header's opaque bg fills everything from viewport-0 downward,
+     so there is never a transparent sliver between banner and header. */
   .sticky-header {
-    top: 56px !important;
+    top: 0 !important;
     margin-left: -16px !important;
     margin-right: -16px !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
+    padding-top: 69px !important;   /* 57px (banner) + 12px visual spacing */
+    background-color: var(--bg) !important;
+    z-index: 40 !important;         /* below banner (z-50) so border-b stays visible */
   }
 
-  /* Any generic sticky top-0 inside main should also clear the banner */
+  /* Same for any sticky element inside main */
   main .sticky {
-    top: 56px !important;
+    top: 0 !important;
   }
+}
 
   /* Stack stat card grids on mobile */
   .sticky-header .grid {
