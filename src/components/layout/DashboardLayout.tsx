@@ -60,7 +60,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetch('/api/me/is-platform-admin', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { isAdmin: false }))
       .then((d) => {
-        if (!cancelled) setIsPlatformAdmin(Boolean(d?.isAdmin));
+        if (!cancelled) {
+          const isAdmin = Boolean(d?.isAdmin);
+          setIsPlatformAdmin(isAdmin);
+          // Redirect platform admin to /platform (skip if impersonating)
+          const imp = document.cookie.includes('x-impersonate-org=');
+          if (isAdmin && pathname === '/dashboard' && !imp) {
+            router.replace('/platform');
+          }
+        }
       })
       .catch(() => {
         /* non-admin → silently ignore */
