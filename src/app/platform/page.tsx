@@ -9,8 +9,16 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { SOCIALGO_PLANS } from "@/lib/pricing-config";
+import {
+  enrichSubscriptions,
+  type StripeEnrichment,
+} from "@/lib/stripe-enrichment";
 import AgenciesTable, { type PlatformAgencyRow } from "./AgenciesTable";
 import MRRChart, { type MRRPoint } from "./MRRChart";
+
+// Platform admin must always reflect live Stripe state — never cache.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PlanKey = keyof typeof SOCIALGO_PLANS;
 
@@ -21,6 +29,7 @@ type Organization = {
   plan: PlanKey;
   plan_status: "trialing" | "active" | "past_due" | "canceled";
   stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   created_at: string;
   updated_at: string;
   trial_ends_at: string | null;
@@ -31,6 +40,7 @@ type AgencyRow = Organization & {
   clientsCount: number;
   postsThisMonth: number;
   mrr: number;
+  stripe: StripeEnrichment | null;
 };
 
 async function loadPlatformData() {
@@ -40,7 +50,7 @@ async function loadPlatformData() {
     supabase
       .from("organizations")
       .select(
-        "id, name, slug, plan, plan_status, stripe_customer_id, created_at, updated_at, trial_ends_at, internal_notes"
+        "id, name, slug, plan, plan_status, stripe_customer_id, stripe_subscription_id, created_at, updated_at, trial_ends_at, internal_notes"
       )
       .order("created_at", { ascending: false }),
     supabase.from("clients").select("org_id"),
@@ -60,12 +70,27 @@ async function loadPlatformData() {
   const clientsByOrg = countBy(clientRows, (r) => r.org_id);
   const postsByOrg = countBy(postRows, (r) => r.org_id);
 
-  const agencies: AgencyRow[] = orgs.map((o) => ({
-    ...o,
-    clientsCount: clientsByOrg.get(o.id) ?? 0,
-    postsThisMonth: postsByOrg.get(o.id) ?? 0,
-    mrr: mrrFor(o.plan),
-  }));
+  // Enrich with live Stripe data for orgs that have a subscription ID.
+  const subscriptionIds = orgs
+    .map((o) => o.stripe_subscription_id)
+    .filter((id): id is string => !!id);
+  const stripeByIdPromise = enrichSubscriptions(subscriptionIds);
+  const stripeById = await stripeByIdPromise;
+
+  const agencies: AgencyRow[] = orgs.map((o) => {
+    const stripe = o.stripe_subscription_id
+      ? stripeById.get(o.stripe_subscription_id) ?? null
+      : null;
+    // Prefer live Stripe MRR when available; fall back to pricing-config.
+    const mrr = stripe ? Math.round(stripe.mrrMajor) : mrrFor(o.plan);
+    return {
+      ...o,
+      clientsCount: clientsByOrg.get(o.id) ?? 0,
+      postsThisMonth: postsByOrg.get(o.id) ?? 0,
+      mrr,
+      stripe,
+    };
+  });
 
   // Aggregate metrics
   const totalMRR = agencies.reduce(
@@ -75,6 +100,22 @@ async function loadPlatformData() {
         : sum,
     0
   );
+
+  // Real revenue this month: sum of latest-invoice amount_paid for active subs.
+  const realRevenueThisMonth = agencies.reduce((sum, a) => {
+    if (!a.stripe) return sum;
+    if (a.stripe.latestInvoiceStatus !== "paid") return sum;
+    return sum + (a.stripe.latestInvoiceAmountMajor ?? 0);
+  }, 0);
+
+  // Count failed/unpaid invoices across all agencies.
+  const failedInvoices = agencies.filter(
+    (a) =>
+      a.stripe &&
+      (a.stripe.latestInvoiceStatus === "uncollectible" ||
+        a.stripe.latestInvoiceStatus === "open" &&
+          (a.stripe.status === "past_due" || a.stripe.status === "unpaid"))
+  ).length;
   const activeAgencies = agencies.filter(
     (a) => a.plan_status === "active" || a.plan_status === "trialing"
   ).length;
@@ -136,6 +177,9 @@ async function loadPlatformData() {
       churnRate,
       totalClients,
       totalPostsThisMonth,
+      realRevenueThisMonth,
+      failedInvoices,
+      stripeLinkedCount: stripeById.size,
     },
     mrrSeries,
   };
@@ -265,6 +309,15 @@ export default async function PlatformDashboard() {
     created_at: a.created_at,
     trial_ends_at: a.trial_ends_at,
     internal_notes: a.internal_notes,
+    stripe: a.stripe
+      ? {
+          status: a.stripe.status,
+          currentPeriodEnd: a.stripe.currentPeriodEnd,
+          latestInvoiceStatus: a.stripe.latestInvoiceStatus,
+          latestInvoiceHostedUrl: a.stripe.latestInvoiceHostedUrl,
+          cancelAtPeriodEnd: a.stripe.cancelAtPeriodEnd,
+        }
+      : null,
   }));
 
   return (
@@ -354,6 +407,25 @@ export default async function PlatformDashboard() {
           value={metrics.totalPostsThisMonth.toString()}
           delta="Este mes"
           deltaTone="flat"
+        />
+        <Tile
+          label="Ingresos reales (Stripe)"
+          value={formatMXN(metrics.realRevenueThisMonth)}
+          delta={`${metrics.stripeLinkedCount} agencia${
+            metrics.stripeLinkedCount === 1 ? "" : "s"
+          } conectada${metrics.stripeLinkedCount === 1 ? "" : "s"}`}
+          deltaTone={metrics.realRevenueThisMonth > 0 ? "up" : "flat"}
+        />
+        <Tile
+          label="Facturas fallidas"
+          value={metrics.failedInvoices.toString()}
+          delta={
+            metrics.failedInvoices > 0
+              ? "Requieren atención"
+              : "Todo al día"
+          }
+          deltaTone={metrics.failedInvoices > 0 ? "down" : "up"}
+          alert={metrics.failedInvoices > 0}
         />
       </section>
 
