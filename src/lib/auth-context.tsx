@@ -8,26 +8,39 @@ interface AuthContextData {
   user: any | null;
   member: Member | null;
   organization: Organization | null;
+  allMemberships: { member: Member; organization: Organization }[];
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
+  switchOrg: (orgId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextData>({
   user: null,
   member: null,
   organization: null,
+  allMemberships: [],
   loading: true,
   error: null,
   refetch: async () => {},
+  switchOrg: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [allMemberships, setAllMemberships] = useState<{ member: Member; organization: Organization }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+
+  const switchOrg = useCallback((orgId: string) => {
+    setSelectedOrgId(orgId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('socialgo_active_org', orgId);
+    }
+  }, []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -42,39 +55,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setMember(null);
         setOrganization(null);
+        setAllMemberships([]);
         return;
       }
 
       setUser(authData.user);
 
-      // Fetch member + org in a single query using join
-      const { data: memberData, error: memberError } = await supabase
+      // Fetch ALL memberships for this user (supports multi-org)
+      const { data: membersData, error: memberError } = await supabase
         .from('members')
         .select(`
           *,
           organizations:org_id (*)
         `)
-        .eq('user_id', authData.user.id)
-        .single();
+        .eq('user_id', authData.user.id);
 
       if (memberError && memberError.code !== 'PGRST116') {
         throw memberError;
       }
 
-      if (memberData) {
-        const { organizations, ...memberOnly } = memberData;
-        setMember(memberOnly as Member);
-        setOrganization((organizations as unknown as Organization) || null);
+      if (membersData && membersData.length > 0) {
+        const memberships = membersData.map((m: any) => {
+          const { organizations, ...memberOnly } = m;
+          return { member: memberOnly as Member, organization: organizations as Organization };
+        });
+        setAllMemberships(memberships);
+
+        // Determine active org: saved preference > first membership
+        const savedOrgId = selectedOrgId || (typeof window !== 'undefined' ? localStorage.getItem('socialgo_active_org') : null);
+        const active = memberships.find((m: any) => m.member.org_id === savedOrgId) || memberships[0];
+
+        setMember(active.member);
+        setOrganization(active.organization);
       } else {
         setMember(null);
         setOrganization(null);
+        setAllMemberships([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedOrgId]);
 
   useEffect(() => {
     fetchAll();
@@ -95,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, member, organization, loading, error, refetch: fetchAll }}
+      value={{ user, member, organization, allMemberships, loading, error, refetch: fetchAll, switchOrg }}
     >
       {children}
     </AuthContext.Provider>

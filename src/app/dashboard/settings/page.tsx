@@ -307,6 +307,7 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [editingAssignments, setEditingAssignments] = useState<string | null>(null);
   const [assignmentsByMember, setAssignmentsByMember] = useState<Record<string, string[]>>({});
   const [assignmentDraft, setAssignmentDraft] = useState<string[]>([]);
@@ -464,6 +465,31 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
       alert(message);
     } finally {
       setDeletingMember(null);
+    }
+  };
+
+  const handleResendInvite = async (memberUserId: string, memberEmail: string | null) => {
+    if (!memberEmail) {
+      alert('No se encontró el email de este miembro');
+      return;
+    }
+    setResendingInvite(memberUserId);
+    try {
+      const res = await fetch('/api/invite-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: memberEmail, role: 'member' }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 409) {
+        throw new Error(json?.error || 'Error al reenviar invitación');
+      }
+      alert(res.status === 409 ? 'Este usuario ya está activo en tu equipo.' : `Invitación reenviada a ${memberEmail}`);
+    } catch (err) {
+      console.error('Error resending invite:', err);
+      alert(err instanceof Error ? err.message : 'Error al reenviar invitación');
+    } finally {
+      setResendingInvite(null);
     }
   };
 
@@ -652,6 +678,15 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
                         <option value="admin">Administrador</option>
                         <option value="client_viewer">Cliente (ver)</option>
                       </select>
+                      <button
+                        onClick={() => handleResendInvite(member.user_id, null)}
+                        disabled={resendingInvite === member.user_id}
+                        className="px-2 py-1 rounded text-sm border transition-colors text-xs disabled:opacity-50"
+                        style={{ background: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.3)', color: '#1E40AF' }}
+                        title="Reenviar invitación por email"
+                      >
+                        {resendingInvite === member.user_id ? '...' : '📧'}
+                      </button>
                       <button
                         onClick={() => handleDeleteMember(member.id, member.full_name)}
                         disabled={deletingMember === member.id}
