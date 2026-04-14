@@ -220,8 +220,9 @@ export async function GET(request: Request) {
   });
 
   if (sendError) {
+    console.error("Weekly alert send error:", sendError);
     return NextResponse.json(
-      { ok: false, error: sendError.message, counts: { pastDue: pastDue.length, trialsEnding: trialsEnding.length, newSignups: newSignups.length, churned: churned.length } },
+      { ok: false, error: "Failed to send weekly alert email" },
       { status: 500 }
     );
   }

@@ -10,19 +10,19 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^3.0.0",
-    "@supabase/ssr": "^0.0.10",
+    "@stripe/stripe-js": "3.5.0",
+    "@supabase/ssr": "0.0.10",
     "@supabase/supabase-js": "^2.38.0",
     "autoprefixer": "^10.4.0",
     "clsx": "^2.0.0",
-    "next": "^14.2.0",
+    "exceljs": "^4.4.0",
+    "next": "14.2.35",
     "postcss": "^8.4.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "resend": "^4.0.0",
-    "stripe": "^14.0.0",
+    "stripe": "14.25.0",
     "tailwindcss": "^3.4.0",
-    "xlsx": "^0.18.5",
     "zustand": "^4.4.0"
   },
   "devDependencies": {

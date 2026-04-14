@@ -8,7 +8,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // Define protected routes that require authentication
-const PROTECTED_ROUTES = ["/dashboard"];
+const PROTECTED_ROUTES = ["/dashboard", "/platform"];
 
 // Define public routes that should not redirect authenticated users
 const PUBLIC_AUTH_ROUTES = ["/auth/login", "/auth/signup", "/auth/reset-password"];

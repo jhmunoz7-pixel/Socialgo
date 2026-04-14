@@ -94,7 +94,8 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     .eq("org_id", targetMember.org_id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to fetch client assignments:", error);
+    return NextResponse.json({ error: "Failed to fetch client assignments" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -122,8 +123,9 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       .in("id", incoming);
 
     if (validErr) {
+      console.error("Failed to validate clients:", validErr);
       return NextResponse.json(
-        { error: validErr.message },
+        { error: "Failed to validate clients" },
         { status: 500 }
       );
     }
@@ -148,7 +150,8 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     .eq("org_id", targetMember.org_id);
 
   if (delErr) {
-    return NextResponse.json({ error: delErr.message }, { status: 500 });
+    console.error("Failed to update assignments:", delErr);
+    return NextResponse.json({ error: "Failed to update assignments" }, { status: 500 });
   }
 
   if (incoming.length > 0) {
@@ -159,7 +162,8 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     }));
     const { error: insErr } = await service.from("client_members").insert(rows);
     if (insErr) {
-      return NextResponse.json({ error: insErr.message }, { status: 500 });
+      console.error("Failed to update assignments:", insErr);
+      return NextResponse.json({ error: "Failed to update assignments" }, { status: 500 });
     }
   }
 

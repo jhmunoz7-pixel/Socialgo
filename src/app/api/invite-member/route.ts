@@ -140,7 +140,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Invite member error:", error);
-    const message = error instanceof Error ? error.message : "Error al invitar miembro";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al invitar miembro. Intente de nuevo." },
+      { status: 500 }
+    );
   }
 }

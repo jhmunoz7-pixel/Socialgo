@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useStats, useClients, usePosts, usePackages } from '@/lib/hooks';
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export default function ReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
@@ -253,34 +253,46 @@ export default function ReportsPage() {
               className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
             />
             <button
-              onClick={() => {
+              onClick={async () => {
                 try {
-                  const wb = XLSX.utils.book_new();
+                  const wb = new ExcelJS.Workbook();
 
                   // Sheet 1: Resumen
-                  const summaryData = [
+                  const ws1 = wb.addWorksheet('Resumen');
+                  ws1.addRows([
                     ['Métrica', 'Valor'],
                     ['Mes', selectedMonth],
                     ['Clientes activos', computedStats.activeClients],
                     ['MRR total', computedStats.totalMRR],
                     ['Posts del mes', computedStats.postsThisMonth],
                     ['Pagos pendientes', computedStats.pendingPayments],
-                  ];
-                  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Resumen');
+                  ]);
 
                   // Sheet 2: Rendimiento por cliente
-                  const clientHeaders = ['Cliente', 'Posts', 'AI Score Prom.', 'Tasa aprobación %', 'Status pago', 'Status cuenta'];
-                  const clientRows = clientPerformance.map(c => [
-                    `${c.emoji} ${c.name}`, c.postsCount, c.avgAiScore, c.approvalRate, c.payStatus, c.accountStatus,
+                  const ws2 = wb.addWorksheet('Clientes');
+                  ws2.addRows([
+                    ['Cliente', 'Posts', 'AI Score Prom.', 'Tasa aprobación %', 'Status pago', 'Status cuenta'],
+                    ...clientPerformance.map(c => [
+                      `${c.emoji} ${c.name}`, c.postsCount, c.avgAiScore, c.approvalRate, c.payStatus, c.accountStatus,
+                    ]),
                   ]);
-                  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([clientHeaders, ...clientRows]), 'Clientes');
 
                   // Sheet 3: Distribución por tipo
-                  const typeHeaders = ['Tipo', 'Cantidad', 'Porcentaje %'];
-                  const typeRows = postTypeDistribution.map(t => [t.label, t.count, Math.round(t.percentage)]);
-                  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([typeHeaders, ...typeRows]), 'Tipos');
+                  const ws3 = wb.addWorksheet('Tipos');
+                  ws3.addRows([
+                    ['Tipo', 'Cantidad', 'Porcentaje %'],
+                    ...postTypeDistribution.map(t => [t.label, t.count, Math.round(t.percentage)]),
+                  ]);
 
-                  XLSX.writeFile(wb, `socialgo-reporte-${selectedMonth}.xlsx`);
+                  // Download via Blob
+                  const buffer = await wb.xlsx.writeBuffer();
+                  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `socialgo-reporte-${selectedMonth}.xlsx`;
+                  a.click();
+                  URL.revokeObjectURL(url);
                 } catch (err) {
                   console.error('Error exportando:', err);
                   alert('Error al exportar el reporte');

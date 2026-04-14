@@ -26,6 +26,7 @@ import {
   createServerSupabaseClient,
   createServiceRoleClient,
 } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import type { MemberRole } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,15 @@ export async function POST(request: NextRequest) {
 
   if (!user || userError) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit: 10 requests per 60 seconds per user
+  const rl = rateLimit({ name: "member-invite", limit: 10, windowSeconds: 60 }, user.id);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
   }
 
   // Caller must be owner/admin of an org.
@@ -129,14 +139,24 @@ export async function POST(request: NextRequest) {
   let targetUserId: string | null = null;
   let invitedNow = false;
   {
-    const { data: list } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    const existing = list?.users?.find(
-      (u) => (u.email ?? "").toLowerCase() === email
-    );
-    if (existing) targetUserId = existing.id;
+    let page = 1;
+    const perPage = 50;
+    let done = false;
+    while (!done) {
+      const { data: list } = await admin.auth.admin.listUsers({ page, perPage });
+      if (!list?.users?.length) break;
+      const match = list.users.find(
+        (u) => (u.email ?? "").toLowerCase() === email
+      );
+      if (match) {
+        targetUserId = match.id;
+        done = true;
+      } else if (list.users.length < perPage) {
+        break;
+      } else {
+        page++;
+      }
+    }
   }
 
   const origin =
@@ -151,8 +171,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (inviteError || !invited?.user) {
+      console.error("Failed to send invitation:", inviteError);
       return NextResponse.json(
-        { error: inviteError?.message ?? "Failed to send invitation" },
+        { error: "Error al enviar la invitación" },
         { status: 500 }
       );
     }
@@ -177,7 +198,8 @@ export async function POST(request: NextRequest) {
         .update({ role, full_name: fullName })
         .eq("id", existingMember.id);
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("Member invite DB error:", error);
+        return NextResponse.json({ error: "Error al procesar la invitación" }, { status: 500 });
       }
     } else {
       // Move to this org (overwrites their previous auto-org).
@@ -186,7 +208,8 @@ export async function POST(request: NextRequest) {
         .update({ org_id: orgId, role, full_name: fullName })
         .eq("id", existingMember.id);
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("Member invite DB error:", error);
+        return NextResponse.json({ error: "Error al procesar la invitación" }, { status: 500 });
       }
     }
   } else {
@@ -197,7 +220,8 @@ export async function POST(request: NextRequest) {
       full_name: fullName,
     });
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Member invite DB error:", error);
+        return NextResponse.json({ error: "Error al procesar la invitación" }, { status: 500 });
     }
   }
 
@@ -218,7 +242,8 @@ export async function POST(request: NextRequest) {
       }));
       const { error: insErr } = await service.from("client_members").insert(rows);
       if (insErr) {
-        return NextResponse.json({ error: insErr.message }, { status: 500 });
+        console.error("Failed to assign clients:", insErr);
+        return NextResponse.json({ error: "Error al asignar clientes" }, { status: 500 });
       }
     }
   } else {

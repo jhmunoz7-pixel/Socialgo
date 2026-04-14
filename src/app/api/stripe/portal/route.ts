@@ -46,11 +46,8 @@ export async function POST(_request: NextRequest) {
   } catch (error) {
     console.error("Portal session error:", error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to create portal session";
-
     return NextResponse.json(
-      { error: errorMessage },
+      { error: "Failed to create portal session. Please try again." },
       { status: 500 }
     );
   }

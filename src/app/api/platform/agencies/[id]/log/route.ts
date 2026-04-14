@@ -29,8 +29,9 @@ export async function GET(
     .limit(20);
 
   if (error) {
+    console.error("Platform log fetch error:", error);
     return NextResponse.json(
-      { error: "log_fetch_failed", detail: error.message },
+      { error: "log_fetch_failed" },
       { status: 500 }
     );
   }

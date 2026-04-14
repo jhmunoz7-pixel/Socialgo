@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,7 +40,6 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      // Diagnostic: log cookie names server sees so we can debug 401s
       const cookieHeader = request.headers.get("cookie") || "";
       const sbCookies = cookieHeader
         .split(";")
@@ -53,6 +53,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Rate limit: 5 requests per 60 seconds per user
+    const rl = rateLimit({ name: "stripe-checkout", limit: 5, windowSeconds: 60 }, user.id);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
       );
     }
 
@@ -108,11 +117,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Checkout session error:", error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to create checkout session";
-
     return NextResponse.json(
-      { error: errorMessage },
+      { error: "Failed to create checkout session. Please try again." },
       { status: 500 }
     );
   }

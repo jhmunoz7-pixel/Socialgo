@@ -104,27 +104,34 @@ export default function ClientsPage() {
 
   const handleExportXLS = async () => {
     try {
-      // @ts-ignore
-      const XLSX = (await import('xlsx')).default;
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Clientes');
 
-      const exportData = filteredClients.map((client) => ({
-        Marca: client.name,
-        Paquete: client.package?.name || 'Sin paquete',
-        Tipo: client.package_type || '-',
-        'Meses Activos': calculateMonthsActive(client.start_date),
-        'Pago Mensual': getMonthlyPayment(client),
-        Ciudad: client.city || '-',
-        Instagram: client.instagram || '-',
-        Status: getStatusLabel(
-          client.pay_status === 'pendiente' ? 'pago_pendiente' : (client.account_status as AccountStatus)
-        ),
-      }));
+      ws.addRow(['Marca', 'Paquete', 'Tipo', 'Meses Activos', 'Pago Mensual', 'Ciudad', 'Instagram', 'Status']);
+      filteredClients.forEach((client) => {
+        ws.addRow([
+          client.name,
+          client.package?.name || 'Sin paquete',
+          client.package_type || '-',
+          calculateMonthsActive(client.start_date),
+          getMonthlyPayment(client),
+          client.city || '-',
+          client.instagram || '-',
+          getStatusLabel(
+            client.pay_status === 'pendiente' ? 'pago_pendiente' : (client.account_status as AccountStatus)
+          ),
+        ]);
+      });
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Clientes');
-
-      XLSX.writeFile(workbook, `clientes-${new Date().toISOString().split('T')[0]}.xlsx`);
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clientes-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting XLS:', error);
       alert('Error al exportar archivo');
