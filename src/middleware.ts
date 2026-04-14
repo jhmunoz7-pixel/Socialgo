@@ -11,7 +11,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 const PROTECTED_ROUTES = ["/dashboard"];
 
 // Define public routes that should not redirect authenticated users
-const PUBLIC_AUTH_ROUTES = ["/auth/login", "/auth/signup"];
+const PUBLIC_AUTH_ROUTES = ["/auth/login", "/auth/signup", "/auth/reset-password"];
 
 export async function middleware(request: NextRequest) {
   // Update Supabase session

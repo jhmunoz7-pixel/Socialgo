@@ -101,11 +101,9 @@ function PricingPageInner() {
     return `MXN ${price.toLocaleString('es-MX')}`;
   };
 
-  const getMonthlyPrice = (price: number) => {
-    if (billingCycle === 'monthly') return price;
-    if (billingCycle === 'quarterly') return Math.round(price / 3);
-    return Math.round(price / 12);
-  };
+  // Prices in the `prices` object are already monthly equivalents,
+  // so just return as-is regardless of billing cycle.
+  const getMonthlyPrice = (price: number) => price;
 
   const billingLabels = {
     monthly: '/mes',

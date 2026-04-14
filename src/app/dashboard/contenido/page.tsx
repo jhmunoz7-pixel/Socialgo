@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useClients, usePosts, updatePost, createPostComment, usePostComments, uploadAndAttachAsset } from '@/lib/hooks';
+import { useClients, usePosts, updatePost, createPostComment, usePostComments, uploadAndAttachAsset, useCurrentUser } from '@/lib/hooks';
 import { POST_TYPE_CONFIG, FORMAT_CONFIG } from '@/types';
 import type { Post, Client, PostType, PostFormat, ApprovalStatus } from '@/types';
 
@@ -51,6 +51,7 @@ interface CommentSectionProps {
 
 function CommentSection({ postId }: CommentSectionProps) {
   const { data: comments, refetch: refetchComments } = usePostComments(postId);
+  const { data: currentUserData } = useCurrentUser();
   const [newComment, setNewComment] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -62,9 +63,9 @@ function CommentSection({ postId }: CommentSectionProps) {
         post_id: postId,
         content: newComment.trim(),
         is_client_comment: false,
-        author_name: null,
+        author_name: currentUserData?.member?.full_name || null,
         author_email: null,
-        author_member_id: null,
+        author_member_id: currentUserData?.member?.id || null,
       });
       setNewComment('');
       await refetchComments();
