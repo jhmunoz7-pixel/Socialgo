@@ -31,6 +31,13 @@ export type PlatformAgencyRow = {
   created_at: string;
   trial_ends_at: string | null;
   internal_notes: string | null;
+  stripe: {
+    status: string;
+    currentPeriodEnd: number | null;
+    latestInvoiceStatus: string | null;
+    latestInvoiceHostedUrl: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
 };
 
 type PlanFilter = "all" | PlanKey;
@@ -69,6 +76,9 @@ export default function AgenciesTable({
         "plan",
         "status",
         "mrr_mxn",
+        "stripe_status",
+        "latest_invoice_status",
+        "next_billing",
         "clients",
         "posts_this_month",
         "created_at",
@@ -81,6 +91,11 @@ export default function AgenciesTable({
         a.plan,
         a.plan_status,
         String(a.mrr),
+        a.stripe?.status ?? "",
+        a.stripe?.latestInvoiceStatus ?? "",
+        a.stripe?.currentPeriodEnd
+          ? new Date(a.stripe.currentPeriodEnd * 1000).toISOString()
+          : "",
         String(a.clientsCount),
         String(a.postsThisMonth),
         a.created_at,
@@ -238,6 +253,8 @@ export default function AgenciesTable({
                 "Agencia",
                 "Plan",
                 "MRR",
+                "Pago",
+                "Próximo cobro",
                 "# Clientes",
                 "Posts (mes)",
                 "Creada",
@@ -254,7 +271,7 @@ export default function AgenciesTable({
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={10}
                   style={{
                     padding: "48px 22px",
                     textAlign: "center",
@@ -321,6 +338,16 @@ export default function AgenciesTable({
                   </td>
                   <td style={cellStyle("mono")}>
                     {a.mrr > 0 ? formatMXN(a.mrr) : "—"}
+                  </td>
+                  <td style={cellStyle()}>
+                    <PaymentPill stripe={a.stripe} />
+                  </td>
+                  <td style={{ ...cellStyle("mono"), color: "#6C7A83" }}>
+                    {a.stripe?.currentPeriodEnd
+                      ? a.stripe.cancelAtPeriodEnd
+                        ? `Termina ${formatDate(a.stripe.currentPeriodEnd)}`
+                        : formatDate(a.stripe.currentPeriodEnd)
+                      : "—"}
                   </td>
                   <td style={cellStyle("mono")}>{a.clientsCount}</td>
                   <td style={cellStyle("mono")}>{a.postsThisMonth}</td>
@@ -540,6 +567,97 @@ function formatMXN(v: number) {
     currency: "MXN",
     maximumFractionDigits: 0,
   }).format(v);
+}
+
+function formatDate(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function PaymentPill({
+  stripe,
+}: {
+  stripe: PlatformAgencyRow["stripe"];
+}) {
+  if (!stripe) {
+    return (
+      <span style={{ color: "#6C7A83", fontSize: 11 }}>—</span>
+    );
+  }
+
+  // Priority: subscription status > invoice status
+  let label = "—";
+  let fg = "#6C7A83";
+  let bg = "rgba(108,122,131,0.15)";
+
+  if (stripe.status === "active" && stripe.latestInvoiceStatus === "paid") {
+    label = "Pagado";
+    fg = "#8FD44C";
+    bg = "rgba(143,212,76,0.15)";
+  } else if (stripe.status === "trialing") {
+    label = "Trial";
+    fg = "#7DD3FC";
+    bg = "rgba(125,211,252,0.15)";
+  } else if (stripe.status === "past_due" || stripe.status === "unpaid") {
+    label = "Atrasado";
+    fg = "#FFC857";
+    bg = "rgba(255,200,87,0.15)";
+  } else if (
+    stripe.status === "canceled" ||
+    stripe.status === "incomplete_expired"
+  ) {
+    label = "Cancelado";
+    fg = "#F87171";
+    bg = "rgba(248,113,113,0.15)";
+  } else if (stripe.latestInvoiceStatus === "open") {
+    label = "Pendiente";
+    fg = "#FFC857";
+    bg = "rgba(255,200,87,0.15)";
+  } else if (stripe.latestInvoiceStatus === "uncollectible") {
+    label = "Fallido";
+    fg = "#F87171";
+    bg = "rgba(248,113,113,0.15)";
+  } else if (stripe.status === "active") {
+    label = "Activo";
+    fg = "#8FD44C";
+    bg = "rgba(143,212,76,0.15)";
+  }
+
+  const pill = (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "3px 9px",
+        borderRadius: 12,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        background: bg,
+        color: fg,
+        border: `1px solid ${bg.replace("0.15", "0.35")}`,
+      }}
+    >
+      {label}
+    </span>
+  );
+
+  if (stripe.latestInvoiceHostedUrl) {
+    return (
+      <a
+        href={stripe.latestInvoiceHostedUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ textDecoration: "none" }}
+        title="Ver última factura en Stripe"
+      >
+        {pill}
+      </a>
+    );
+  }
+  return pill;
 }
 
 function timeAgo(iso: string) {
