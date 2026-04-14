@@ -66,7 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           // Redirect platform admin to /platform (skip if impersonating)
           const imp = document.cookie.includes('x-impersonate-org=');
           if (isAdmin && pathname === '/dashboard' && !imp) {
-            router.replace('/platform');
+            window.location.href = '/platform';
           }
         }
       })
