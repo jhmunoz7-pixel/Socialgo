@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useClient, usePackages, useMembers, updatePost, useCurrentUser } from '@/lib/hooks';
+import { useClient, usePackages, useMembers, updatePost, createPost, useCurrentUser } from '@/lib/hooks';
 import { Client, Post, POST_TYPE_CONFIG, PostType, calculateMonthlyPayment } from '@/types';
 import { PostModal } from '@/components/posts/PostModal';
 import { EditClientModal } from '@/components/clients/EditClientModal';
@@ -27,6 +27,7 @@ export default function ClientDetailPage() {
   // State for month navigation, post selection, active tab, and edit modal
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [createPostOpen, setCreatePostOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'parrilla' | 'feed' | 'instagram' | 'brandkit'>('parrilla');
   const [editClientOpen, setEditClientOpen] = useState(false);
 
@@ -280,7 +281,7 @@ export default function ClientDetailPage() {
             <button onClick={() => setEditClientOpen(true)} className="btn btn-ghost">Editar</button>
 
             {/* Add Post Button */}
-            <button className="btn btn-primary">+ Agregar post</button>
+            <button onClick={() => setCreatePostOpen(true)} className="btn btn-primary">+ Agregar post</button>
           </div>
         </div>
 
@@ -450,6 +451,23 @@ export default function ClientDetailPage() {
           refetch();
           setSelectedPostId(null);
         }}
+      />
+
+      {/* Create Post Modal */}
+      <PostModal
+        post={null}
+        client={client}
+        isOpen={createPostOpen}
+        onClose={() => setCreatePostOpen(false)}
+        onSave={async (_postId, data) => {
+          await createPost({
+            ...data,
+            client_id: clientId,
+          } as any);
+          refetch();
+          setCreatePostOpen(false);
+        }}
+        mode="create"
       />
 
       {/* Edit Client Modal */}

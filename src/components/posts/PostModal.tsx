@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Post, Client, PostType, PostFormat, Platform, POST_TYPE_CONFIG, FORMAT_CONFIG, ApprovalStatus } from '@/types';
-import { usePostComments, createPostComment, updatePost, useMembers } from '@/lib/hooks';
+import { usePostComments, createPostComment, updatePost, useMembers, useCurrentUser } from '@/lib/hooks';
 
 interface PostModalProps {
   post: Post | null;
@@ -125,6 +125,7 @@ export const PostModal: React.FC<PostModalProps> = ({
 
   const { data: comments, refetch: refetchComments } = usePostComments(post?.id || null);
   const { data: members } = useMembers();
+  const { data: currentUserData } = useCurrentUser();
 
   // Initialize edit state
   useEffect(() => {
@@ -195,9 +196,9 @@ export const PostModal: React.FC<PostModalProps> = ({
     try {
       await createPostComment({
         post_id: post.id,
-        author_name: 'Team Member',
+        author_name: currentUserData?.member?.full_name || 'Team Member',
         author_email: null,
-        author_member_id: null,
+        author_member_id: currentUserData?.member?.id || null,
         content: newComment,
         is_client_comment: false,
       });

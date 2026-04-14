@@ -207,7 +207,7 @@ export function useClient(
           *,
           package:packages(*),
           manager:members(*),
-          posts (*)
+          posts (*, assigned_member:members!assigned_to(*))
         `
         )
         .eq('id', clientId)
