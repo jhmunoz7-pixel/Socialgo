@@ -56,18 +56,35 @@ export async function middleware(request: NextRequest) {
 
   // If user is authenticated and tries to access auth pages, redirect
   if (isPublicAuthRoute && hasSession) {
-    // Platform admin goes to /platform, everyone else to /dashboard
-    const isImpersonating = request.cookies.get("x-impersonate-org")?.value;
-    if (isPlatformAdminEmail(user?.email) && !isImpersonating) {
-      return NextResponse.redirect(new URL("/platform", request.url));
-    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Platform admin auto-redirect: if admin lands on /dashboard (exact) without
   // impersonation, send them to /platform
   if (pathname === "/dashboard" && hasSession && !request.cookies.get("x-impersonate-org")?.value) {
-    if (isPlatformAdminEmail(user?.email)) {
+    // Try user from getUser() first, fallback to decoding cookie JWT
+    let email = user?.email ?? null;
+    if (!email) {
+      try {
+        const authCookie = request.cookies.getAll().find(
+          (c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+        );
+        if (authCookie?.value) {
+          let raw = authCookie.value;
+          try { raw = decodeURIComponent(raw); } catch {}
+          if (raw.startsWith("base64-")) {
+            raw = atob(raw.slice(7));
+          }
+          const session = JSON.parse(raw);
+          const token = session?.access_token;
+          if (token) {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            email = payload?.email ?? null;
+          }
+        }
+      } catch {}
+    }
+    if (isPlatformAdminEmail(email)) {
       return NextResponse.redirect(new URL("/platform", request.url));
     }
   }
