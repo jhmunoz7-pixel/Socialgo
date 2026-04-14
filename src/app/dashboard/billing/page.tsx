@@ -1,12 +1,21 @@
 'use client';
 
 import { useOrganization } from '@/lib/hooks';
+import PermissionGate from '@/components/auth/PermissionGate';
 
 /**
  * Billing page — SocialGo glassmorphism
  * Shows current plan info and links to Stripe portal
  */
 export default function BillingPage() {
+  return (
+    <PermissionGate requires="manage_billing">
+      <BillingPageInner />
+    </PermissionGate>
+  );
+}
+
+function BillingPageInner() {
   const { data: org, loading } = useOrganization();
 
   const planLabels: Record<string, string> = {

@@ -5,8 +5,17 @@ import { useStats, useClients, usePosts, usePackages } from '@/lib/hooks';
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
 import * as XLSX from 'xlsx';
+import PermissionGate from '@/components/auth/PermissionGate';
 
 export default function ReportsPage() {
+  return (
+    <PermissionGate requires="view_reports">
+      <ReportsPageInner />
+    </PermissionGate>
+  );
+}
+
+function ReportsPageInner() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
   const { loading: statsLoading } = useStats();
   const { data: clients, loading: clientsLoading } = useClients();

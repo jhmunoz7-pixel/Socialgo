@@ -8,23 +8,27 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
+import { usePermissions, Permission } from '@/lib/permissions';
 
 interface NavItem {
   label: string;
   icon: string;
   href: string;
   section: 'principal' | 'workspace' | 'config';
+  /** Permission required to see this nav item. If omitted, visible to all. */
+  requiredPermission?: Permission;
 }
 
 const navItems: NavItem[] = [
-  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal' },
-  { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal' },
-  { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal' },
-  { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace' },
-  { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace' },
-  { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace' },
-  { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace' },
-  { label: 'Agencia', icon: '⚙️', href: '/dashboard/settings', section: 'config' },
+  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal', requiredPermission: 'view_all_clients' },
+  { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal', requiredPermission: 'manage_packages' },
+  { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal', requiredPermission: 'view_reports' },
+  { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace', requiredPermission: 'view_posts' },
+  { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace', requiredPermission: 'view_posts' },
+  { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace', requiredPermission: 'create_posts' },
+  { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace', requiredPermission: 'use_ai_studio' },
+  { label: 'Facturación', icon: '💳', href: '/dashboard/billing', section: 'config', requiredPermission: 'manage_billing' },
+  { label: 'Agencia', icon: '⚙️', href: '/dashboard/settings', section: 'config', requiredPermission: 'manage_members' },
 ];
 
 const sectionLabels = {
@@ -38,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const user = useCurrentUser();
   const org = useOrganization();
+  const permissions = usePermissions();
 
   // Sidebar state: collapsed (icons only) and mobile open/close
   const [collapsed, setCollapsed] = useState(false);
@@ -102,10 +107,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
+  // Filter nav items by the user's role permissions
+  const visibleNavItems = navItems.filter(
+    (item) => !item.requiredPermission || permissions.can(item.requiredPermission)
+  );
+
   const groupedNavItems = {
-    principal: navItems.filter((item) => item.section === 'principal'),
-    workspace: navItems.filter((item) => item.section === 'workspace'),
-    config: navItems.filter((item) => item.section === 'config'),
+    principal: visibleNavItems.filter((item) => item.section === 'principal'),
+    workspace: visibleNavItems.filter((item) => item.section === 'workspace'),
+    config: visibleNavItems.filter((item) => item.section === 'config'),
   };
 
   const isActiveLink = (href: string) => {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useClients, usePosts } from '@/lib/hooks';
 import { PostType, POST_TYPE_CONFIG, Platform } from '@/types';
+import PermissionGate from '@/components/auth/PermissionGate';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ScoreResult {
@@ -108,6 +109,14 @@ const generateHashtags = (topic: string) => {
 
 // ─── AI Studio Page ─────────────────────────────────────────────────────────
 export default function AIStudioPage() {
+  return (
+    <PermissionGate requires="use_ai_studio">
+      <AIStudioPageInner />
+    </PermissionGate>
+  );
+}
+
+function AIStudioPageInner() {
   const { data: clients } = useClients();
   const { data: posts } = usePosts();
 
