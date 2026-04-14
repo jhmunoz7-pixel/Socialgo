@@ -310,76 +310,24 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
     setInviteMessage(null);
 
     try {
-      const supabase = createSupabaseClient();
+      const res = await fetch('/api/invite-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          full_name: inviteName.trim() || null,
+          role: inviteRole,
+        }),
+      });
 
-      // First check if a user with this email already exists in profiles
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', inviteEmail.trim().toLowerCase())
-        .maybeSingle();
+      const data = await res.json();
 
-      if (existingProfile) {
-        // User exists — check if already a member of this org
-        const { data: existingMember } = await supabase
-          .from('members')
-          .select('id')
-          .eq('org_id', orgId)
-          .eq('user_id', existingProfile.id)
-          .maybeSingle();
-
-        if (existingMember) {
-          setInviteMessage({ type: 'error', text: 'Este usuario ya es miembro de tu organización.' });
-          return;
-        }
-
-        // Add existing user to org
-        const { error: memberError } = await supabase
-          .from('members')
-          .insert({
-            org_id: orgId,
-            user_id: existingProfile.id,
-            role: inviteRole,
-            full_name: inviteName.trim() || null,
-          });
-
-        if (memberError) throw memberError;
-
-        setInviteMessage({ type: 'success', text: `${inviteEmail} agregado como ${getRoleLabel(inviteRole)}.` });
-      } else {
-        // User doesn't exist — create a placeholder member and show signup instructions
-        // We'll use Supabase signUp to create the account, then update the member
-        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: inviteEmail.trim().toLowerCase(),
-          password: tempPassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              full_name: inviteName.trim() || null,
-            },
-          },
-        });
-
-        if (signUpError) throw signUpError;
-
-        if (signUpData.user) {
-          // Update the auto-created member to belong to THIS org with the right role
-          // The trigger created a member in a new auto-org, so we need to update it
-          const { error: updateError } = await supabase
-            .from('members')
-            .update({ org_id: orgId, role: inviteRole, full_name: inviteName.trim() || null })
-            .eq('user_id', signUpData.user.id);
-
-          if (updateError) throw updateError;
-        }
-
-        setInviteMessage({
-          type: 'success',
-          text: `Invitación enviada a ${inviteEmail}. El usuario recibirá un email para confirmar su cuenta.`,
-        });
+      if (!res.ok) {
+        setInviteMessage({ type: 'error', text: data.error || 'Error al invitar miembro' });
+        return;
       }
 
+      setInviteMessage({ type: 'success', text: data.message });
       setInviteEmail('');
       setInviteName('');
       setInviteRole('member');
