@@ -1,13 +1,22 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClients, useStats, usePackages, useMembers, deleteClient, updateClient } from '@/lib/hooks';
 import { Client, PayStatus, AccountStatus, calculateMonthlyPayment } from '@/types';
 import { AddClientModal } from '@/components/clients/AddClientModal';
+import { usePermissions } from '@/lib/permissions';
 
 export default function ClientsPage() {
   const router = useRouter();
+  const { can, loading: permLoading } = usePermissions();
+
+  // Redirect roles without view_all_clients to contenido
+  useEffect(() => {
+    if (!permLoading && !can('view_all_clients')) {
+      router.replace('/dashboard/contenido');
+    }
+  }, [permLoading, can, router]);
   const { data: clients, loading: clientsLoading, refetch: refetchClients } = useClients();
   const { data: stats, loading: statsLoading } = useStats();
   const { data: packages } = usePackages();

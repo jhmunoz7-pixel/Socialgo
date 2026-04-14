@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // 6. User doesn't exist — invite via magic link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    const { data: inviteData, error: inviteError } =
+    const { error: inviteError } =
       await serviceClient.auth.admin.inviteUserByEmail(normalizedEmail, {
         redirectTo: `${appUrl}/auth/callback`,
         data: {
@@ -103,35 +103,10 @@ export async function POST(request: NextRequest) {
 
     if (inviteError) throw inviteError;
 
-    // The handle_new_user trigger will create a default org for this user.
-    // We need to move them to the correct org after the invite is accepted.
-    // We do this by inserting the member record now (the user will be linked
-    // when they confirm the invite via the trigger's profiles insert).
-    if (inviteData.user) {
-      // Delete the auto-created org + member from the trigger
-      // and insert the correct membership
-      const { data: autoMember } = await serviceClient
-        .from("members")
-        .select("id, org_id")
-        .eq("user_id", inviteData.user.id)
-        .single();
-
-      if (autoMember) {
-        // Delete the auto-created org (cascade deletes the member too)
-        await serviceClient
-          .from("organizations")
-          .delete()
-          .eq("id", autoMember.org_id);
-      }
-
-      // Insert the correct membership
-      await serviceClient.from("members").insert({
-        org_id: orgId,
-        user_id: inviteData.user.id,
-        role: memberRole,
-        full_name: full_name?.trim() || null,
-      });
-    }
+    // The updated handle_new_user trigger (migration 008) checks for
+    // invited_org_id/invited_role in user metadata and skips auto-org
+    // creation, adding the user to the correct org instead.
+    // No manual cleanup needed here.
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePackages, createPackage, updatePackage, deletePackage } from '@/lib/hooks';
 import { Package } from '@/types';
+import PermissionGate from '@/components/auth/PermissionGate';
 
 const Plus = () => <span className="text-lg leading-none">+</span>;
 const X = () => <span className="font-bold">✕</span>;
@@ -11,6 +12,14 @@ const Edit = () => <span>✏️</span>;
 const Trash = () => <span>🗑️</span>;
 
 export default function PackagesPage() {
+  return (
+    <PermissionGate requires="manage_packages">
+      <PackagesPageInner />
+    </PermissionGate>
+  );
+}
+
+function PackagesPageInner() {
   const { data: packages, loading, error, refetch } = usePackages();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);

@@ -117,7 +117,8 @@ export function useMembers(): HookResultArray<Member> {
 }
 
 /**
- * Fetches all clients for the current organization
+ * Fetches clients for the current organization.
+ * For creative/client_viewer roles, only returns clients assigned via client_members.
  * @param accountStatus - Optional filter by account_status (activo/onboarding/pausado)
  */
 export function useClients(
@@ -127,6 +128,9 @@ export function useClients(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { data: currentUser } = useCurrentUser();
+
+  const role = currentUser?.member?.role;
+  const needsScoping = role === 'creative' || role === 'client_viewer';
 
   const fetchClients = useCallback(async () => {
     try {
@@ -139,31 +143,56 @@ export function useClients(
       }
 
       const supabase = createSupabaseClient();
-      let query = supabase
-        .from('clients')
-        .select('*, package:packages(*), manager:members(*)')
-        .eq('org_id', currentUser.member.org_id);
 
-      if (accountStatus) {
-        query = query.eq('account_status', accountStatus);
-      }
+      if (needsScoping) {
+        // Scoped: get assigned client IDs first, then fetch those clients
+        const { data: assignments, error: assignError } = await supabase
+          .from('client_members')
+          .select('client_id')
+          .eq('user_id', currentUser.user.id);
 
-      const { data: clientsData, error: clientsError } = await query.order(
-        'name',
-        {
-          ascending: true,
+        if (assignError) throw assignError;
+
+        const assignedIds = (assignments || []).map((a: { client_id: string }) => a.client_id);
+
+        if (assignedIds.length === 0) {
+          setData([]);
+          return;
         }
-      );
 
-      if (clientsError) throw clientsError;
+        let query = supabase
+          .from('clients')
+          .select('*, package:packages(*), manager:members(*)')
+          .in('id', assignedIds);
 
-      setData(clientsData || []);
+        if (accountStatus) {
+          query = query.eq('account_status', accountStatus);
+        }
+
+        const { data: clientsData, error: clientsError } = await query.order('name', { ascending: true });
+        if (clientsError) throw clientsError;
+        setData(clientsData || []);
+      } else {
+        // Full access: all org clients
+        let query = supabase
+          .from('clients')
+          .select('*, package:packages(*), manager:members(*)')
+          .eq('org_id', currentUser.member.org_id);
+
+        if (accountStatus) {
+          query = query.eq('account_status', accountStatus);
+        }
+
+        const { data: clientsData, error: clientsError } = await query.order('name', { ascending: true });
+        if (clientsError) throw clientsError;
+        setData(clientsData || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.member?.org_id, accountStatus]);
+  }, [currentUser?.member?.org_id, currentUser?.user?.id, needsScoping, accountStatus]);
 
   useEffect(() => {
     fetchClients();
@@ -283,7 +312,8 @@ export function usePackages(): HookResultArray<Package> {
 }
 
 /**
- * Fetches posts, optionally filtered by client
+ * Fetches posts, optionally filtered by client.
+ * For creative/client_viewer roles, only returns posts for assigned clients.
  * @param clientId - Optional client ID to filter by
  */
 export function usePosts(clientId?: string | null): HookResultArray<Post> {
@@ -291,6 +321,9 @@ export function usePosts(clientId?: string | null): HookResultArray<Post> {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { data: currentUser } = useCurrentUser();
+
+  const role = currentUser?.member?.role;
+  const needsScoping = role === 'creative' || role === 'client_viewer';
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -303,6 +336,24 @@ export function usePosts(clientId?: string | null): HookResultArray<Post> {
       }
 
       const supabase = createSupabaseClient();
+
+      // For scoped roles, get assigned client IDs first
+      let scopedClientIds: string[] | null = null;
+      if (needsScoping && !clientId) {
+        const { data: assignments, error: assignError } = await supabase
+          .from('client_members')
+          .select('client_id')
+          .eq('user_id', currentUser.user.id);
+
+        if (assignError) throw assignError;
+        scopedClientIds = (assignments || []).map((a: { client_id: string }) => a.client_id);
+
+        if (scopedClientIds.length === 0) {
+          setData([]);
+          return;
+        }
+      }
+
       let query = supabase
         .from('posts')
         .select('*')
@@ -310,13 +361,13 @@ export function usePosts(clientId?: string | null): HookResultArray<Post> {
 
       if (clientId) {
         query = query.eq('client_id', clientId);
+      } else if (scopedClientIds) {
+        query = query.in('client_id', scopedClientIds);
       }
 
       const { data: postsData, error: postsError } = await query.order(
         'scheduled_date',
-        {
-          ascending: false,
-        }
+        { ascending: false }
       );
 
       if (postsError) throw postsError;
@@ -327,7 +378,7 @@ export function usePosts(clientId?: string | null): HookResultArray<Post> {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.member?.org_id, clientId]);
+  }, [currentUser?.member?.org_id, currentUser?.user?.id, needsScoping, clientId]);
 
   useEffect(() => {
     fetchPosts();

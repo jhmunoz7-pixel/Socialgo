@@ -5,6 +5,7 @@ import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/h
 import { usePermissions, getRoleLabel, getRoleColor, Permission, getPermissionLabel } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
+import PermissionGate from '@/components/auth/PermissionGate';
 
 // ============================================================================
 // PERMISSION MATRIX FOR DISPLAY
@@ -815,6 +816,14 @@ function PermisosTab() {
 // ============================================================================
 
 export default function SettingsPage() {
+  return (
+    <PermissionGate requires="manage_members">
+      <SettingsPageInner />
+    </PermissionGate>
+  );
+}
+
+function SettingsPageInner() {
   const { data: org, loading: orgLoading, refetch: refetchOrg } = useOrganization();
   const { data: members, loading: membersLoading, refetch: refetchMembers } = useMembers();
   const { data: _currentUserData } = useCurrentUser();
