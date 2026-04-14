@@ -3,15 +3,15 @@
 import { useState, useMemo } from 'react';
 import { useClients } from '@/lib/hooks';
 // Icon replacements (no external dependency)
-const Search = () => <span>🔍</span>;
-const Upload = () => <span>📤</span>;
-const Grid3x3 = () => <span>⊞</span>;
-const List = () => <span>☰</span>;
-const ImageIcon = () => <span>📸</span>;
-const Video = () => <span>🎬</span>;
-const LayoutTemplate = () => <span>📐</span>;
-const Package = () => <span>📦</span>;
-const FileText = () => <span>📄</span>;
+const Search = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>🔍</span>;
+const Upload = ({ className }: { className?: string }) => <span className={className}>📤</span>;
+const Grid3x3 = ({ className }: { className?: string }) => <span className={className}>⊞</span>;
+const List = ({ className }: { className?: string }) => <span className={className}>☰</span>;
+const ImageIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>📸</span>;
+const Video = ({ className }: { className?: string }) => <span className={className}>🎬</span>;
+const LayoutTemplate = ({ className }: { className?: string }) => <span className={className}>📐</span>;
+const Package = ({ className }: { className?: string }) => <span className={className}>📦</span>;
+const FileText = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>📄</span>;
 
 type AssetType = 'photo' | 'video' | 'template' | 'kit' | 'other';
 

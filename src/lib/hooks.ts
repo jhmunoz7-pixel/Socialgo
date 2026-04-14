@@ -9,7 +9,6 @@ import {
   Client,
   Package,
   Post,
-  Asset,
   BrandKit,
   PostComment,
   ContentWeek,
@@ -557,6 +556,17 @@ export async function createPost(
   }
   if (!memberData) {
     throw new Error('User is not a member of any organization');
+  }
+
+  // Block post creation if plan is canceled
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('plan_status')
+    .eq('id', memberData.org_id)
+    .single();
+
+  if (orgData?.plan_status === 'canceled') {
+    throw new Error('Tu plan ha sido cancelado. Reactiva tu suscripción para crear contenido.');
   }
 
   const { data: result, error } = await supabase

@@ -348,6 +348,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }
             }
           `}</style>
+
+          {/* Plan status banner */}
+          {org.data?.plan_status === 'canceled' && (
+            <div className="mx-4 mt-4 p-4 rounded-xl border flex items-center justify-between gap-4" style={{ background: 'rgba(255,100,100,0.08)', borderColor: 'rgba(255,100,100,0.3)' }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#8A1F35' }}>Tu suscripción ha sido cancelada</p>
+                <p className="text-xs mt-0.5" style={{ color: '#7A6560' }}>Tus datos siguen disponibles, pero no puedes crear nuevo contenido. Reactiva tu plan para continuar.</p>
+              </div>
+              <Link href="/pricing" className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}>
+                Reactivar plan
+              </Link>
+            </div>
+          )}
+          {org.data?.plan_status === 'past_due' && (
+            <div className="mx-4 mt-4 p-4 rounded-xl border flex items-center justify-between gap-4" style={{ background: 'rgba(255,180,50,0.08)', borderColor: 'rgba(255,180,50,0.3)' }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#8A5A00' }}>Tienes un pago pendiente</p>
+                <p className="text-xs mt-0.5" style={{ color: '#7A6560' }}>Actualiza tu método de pago para evitar la suspensión de tu cuenta.</p>
+              </div>
+              <button onClick={async () => { const res = await fetch('/api/stripe/portal', { method: 'POST' }); const data = await res.json(); if (data.url) window.location.href = data.url; }} className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}>
+                Actualizar pago
+              </button>
+            </div>
+          )}
+
           {children}
         </main>
       </div>

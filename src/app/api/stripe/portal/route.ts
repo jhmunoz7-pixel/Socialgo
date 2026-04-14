@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createPortalSession, getOrCreateCustomer } from "@/lib/stripe-helpers";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
