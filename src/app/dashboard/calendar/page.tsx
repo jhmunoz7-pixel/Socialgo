@@ -18,11 +18,10 @@ interface CalendarDay {
 
 type DayOfWeek = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom';
 
-// Helper: Get emoji for client (placeholder - can be customized)
-const getClientEmoji = (clientId: string): string => {
-  const emojis = ['🎨', '📱', '🚀', '💼', '🎯', '✨', '🌟', '💡', '🎪', '🏆'];
-  const hash = clientId.charCodeAt(0) || 0;
-  return emojis[hash % emojis.length];
+// Helper: Get emoji for client from clients array
+const getClientEmoji = (clientId: string, clients: any[]): string => {
+  const client = clients?.find((c: any) => c.id === clientId);
+  return client?.emoji || '📱';
 };
 
 // Helper: Generate calendar grid
@@ -103,10 +102,11 @@ const PostTypeLegend: React.FC = () => {
 // Day cell component
 interface DayCellProps {
   day: CalendarDay;
+  clients: any[];
   onSelectDay: (date: Date) => void;
 }
 
-const DayCell: React.FC<DayCellProps> = ({ day, onSelectDay }) => {
+const DayCell: React.FC<DayCellProps> = ({ day, clients, onSelectDay }) => {
   const { date, isCurrentMonth, posts } = day;
   const today = isToday(date);
 
@@ -136,7 +136,7 @@ const DayCell: React.FC<DayCellProps> = ({ day, onSelectDay }) => {
             }}
             title={`${post.post_type} - ${post.platform}`}
           >
-            {getClientEmoji(post.client_id).slice(0, 1)}
+            {getClientEmoji(post.client_id, clients || [])}
           </div>
         ))}
         {posts.length > 3 && (
@@ -164,7 +164,7 @@ export default function CalendarPage() {
 
     // Populate posts for each day
     posts?.forEach((post) => {
-      if (post.scheduled_date && post.status === 'scheduled') {
+      if (post.scheduled_date) {
         const postDate = formatDateKey(new Date(post.scheduled_date));
         const dayIndex = days.findIndex((d) => formatDateKey(d.date) === postDate);
 
@@ -194,7 +194,7 @@ export default function CalendarPage() {
     if (!selectedDate) return [];
     const dateKey = formatDateKey(selectedDate);
     return posts?.filter((p) => {
-      if (!p.scheduled_date || p.status !== 'scheduled') return false;
+      if (!p.scheduled_date) return false;
       const postDateKey = formatDateKey(new Date(p.scheduled_date));
       if (!selectedClientId) return postDateKey === dateKey;
       return postDateKey === dateKey && p.client_id === selectedClientId;
@@ -273,7 +273,7 @@ export default function CalendarPage() {
               <option value="">Todos los clientes</option>
               {clients?.map((client) => (
                 <option key={client.id} value={client.id}>
-                  {getClientEmoji(client.id)} {client.name}
+                  {client.emoji || '📱'} {client.name}
                 </option>
               ))}
             </select>
@@ -302,7 +302,7 @@ export default function CalendarPage() {
             {weeks.map((week, weekIndex) => (
               <div key={weekIndex} className="grid grid-cols-7 gap-2">
                 {week.map((day) => (
-                  <DayCell key={formatDateKey(day.date)} day={day} onSelectDay={setSelectedDate} />
+                  <DayCell key={formatDateKey(day.date)} day={day} clients={clients || []} onSelectDay={setSelectedDate} />
                 ))}
               </div>
             ))}
@@ -343,7 +343,7 @@ export default function CalendarPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm font-semibold text-[#2A1F1A]">
-                            {getClientEmoji(post.client_id)} {client?.name || 'Cliente'}
+                            {client?.emoji || '📱'} {client?.name || 'Cliente'}
                           </p>
                           <p className="text-xs text-gray-600 mt-1">{post.platform}</p>
                         </div>

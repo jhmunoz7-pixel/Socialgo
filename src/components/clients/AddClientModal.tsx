@@ -43,15 +43,15 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
 
   // Contacto
   const [nombreContacto, setNombreContacto] = useState(editClient?.contact_name || '');
-  const [telefono, setTelefono] = useState('');
+  const [telefono, setTelefono] = useState(editClient?.contact_phone || '');
   const [email, setEmail] = useState(editClient?.contact_email || '');
-  const [ciudad, setCiudad] = useState('');
+  const [ciudad, setCiudad] = useState(editClient?.city || '');
 
   // Redes sociales
-  const [instagramHandle, setInstagramHandle] = useState('');
-  const [tiktokHandle, setTiktokHandle] = useState('');
-  const [facebookHandle, setFacebookHandle] = useState('');
-  const [linkedinHandle, setLinkedinHandle] = useState('');
+  const [instagramHandle, setInstagramHandle] = useState(editClient?.instagram || '');
+  const [tiktokHandle, setTiktokHandle] = useState(editClient?.tiktok || '');
+  const [facebookHandle, setFacebookHandle] = useState(editClient?.facebook || '');
+  const [linkedinHandle, setLinkedinHandle] = useState(editClient?.linkedin || '');
 
   // Paquete y facturación
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(editClient?.package_id || '');
