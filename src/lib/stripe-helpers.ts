@@ -45,14 +45,13 @@ export const createCheckoutSession = async ({
       },
     };
 
-    // Add customer email if provided
-    if (email) {
-      sessionParams.customer_email = email;
-    }
-
-    // Link to existing customer if customerId provided
+    // Stripe only accepts ONE of (customer, customer_email). Prefer customer
+    // when we already have one — it links the subscription to an existing
+    // Stripe Customer record (required for portal + recurring billing).
     if (customerId) {
       sessionParams.customer = customerId;
+    } else if (email) {
+      sessionParams.customer_email = email;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
