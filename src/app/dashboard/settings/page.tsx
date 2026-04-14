@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useOrganization, useMembers, useCurrentUser } from '@/lib/hooks';
+import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/hooks';
 import { usePermissions, getRoleLabel, getRoleColor, Permission, getPermissionLabel } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
@@ -50,7 +50,9 @@ const PERMISSION_MATRIX: Record<MemberRole, Permission[]> = {
     'use_ai_studio', 'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
   ],
   creative: [
-    'view_all_clients', 'create_posts', 'edit_posts', 'view_posts',
+    // Creatives only see clients explicitly assigned via client_members.
+    // No access to packages, reports, or cross-client data.
+    'create_posts', 'edit_posts', 'view_posts',
     'use_ai_studio', 'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
   ],
   client_viewer: [
@@ -295,13 +297,57 @@ interface EquipoTabProps {
 }
 
 function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, orgId }: EquipoTabProps) {
+  const { data: clients } = useClients();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<MemberRole>('member');
+  const [inviteClientIds, setInviteClientIds] = useState<string[]>([]);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<string | null>(null);
+  const [editingAssignments, setEditingAssignments] = useState<string | null>(null);
+  const [assignmentsByMember, setAssignmentsByMember] = useState<Record<string, string[]>>({});
+  const [assignmentDraft, setAssignmentDraft] = useState<string[]>([]);
+  const [savingAssignments, setSavingAssignments] = useState(false);
+
+  // Load assignments for all creative members so we can show a summary
+  useEffect(() => {
+    const creatives = (members || []).filter((m) => m.role === 'creative');
+    if (creatives.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        creatives.map(async (m) => {
+          try {
+            const res = await fetch(`/api/members/${m.id}/clients`);
+            if (!res.ok) return [m.id, [] as string[]] as const;
+            const json = await res.json();
+            return [m.id, (json?.client_ids as string[]) ?? []] as const;
+          } catch {
+            return [m.id, [] as string[]] as const;
+          }
+        })
+      );
+      if (cancelled) return;
+      setAssignmentsByMember((prev) => {
+        const next = { ...prev };
+        for (const [id, ids] of entries) next[id] = ids;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [members]);
+
+  const toggleClientId = (
+    list: string[],
+    setter: (ids: string[]) => void,
+    id: string
+  ) => {
+    setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail || !orgId) return;
@@ -310,27 +356,34 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
     setInviteMessage(null);
 
     try {
-      const res = await fetch('/api/invite-member', {
+      const res = await fetch('/api/members/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: inviteEmail.trim(),
+          email: inviteEmail.trim().toLowerCase(),
           full_name: inviteName.trim() || null,
           role: inviteRole,
+          client_ids: inviteRole === 'creative' ? inviteClientIds : [],
         }),
       });
 
-      const data = await res.json();
+      const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setInviteMessage({ type: 'error', text: data.error || 'Error al invitar miembro' });
-        return;
+        throw new Error(json?.error || 'Error al invitar miembro');
       }
 
-      setInviteMessage({ type: 'success', text: data.message });
+      setInviteMessage({
+        type: 'success',
+        text: json?.invited
+          ? `Invitación enviada a ${inviteEmail}. Recibirá un email para definir su contraseña.`
+          : `${inviteEmail} fue agregado a tu equipo.`,
+      });
+
       setInviteEmail('');
       setInviteName('');
       setInviteRole('member');
+      setInviteClientIds([]);
       await refetchMembers();
     } catch (err: unknown) {
       console.error('Error inviting member:', err);
@@ -338,6 +391,35 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
       setInviteMessage({ type: 'error', text: message });
     } finally {
       setIsInviting(false);
+    }
+  };
+
+  const openAssignmentsEditor = (memberId: string) => {
+    setEditingAssignments(memberId);
+    setAssignmentDraft(assignmentsByMember[memberId] ?? []);
+  };
+
+  const saveAssignments = async () => {
+    if (!editingAssignments) return;
+    setSavingAssignments(true);
+    try {
+      const res = await fetch(`/api/members/${editingAssignments}/clients`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_ids: assignmentDraft }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || 'Error al guardar asignaciones');
+      setAssignmentsByMember((prev) => ({
+        ...prev,
+        [editingAssignments]: assignmentDraft,
+      }));
+      setEditingAssignments(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al guardar';
+      alert(message);
+    } finally {
+      setSavingAssignments(false);
     }
   };
 
@@ -440,6 +522,51 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
               </div>
             </div>
 
+            {inviteRole === 'creative' && (
+              <div className="p-4 rounded-lg bg-white/30 border border-white/30">
+                <label className="block text-sm font-medium text-text mb-1">
+                  ¿A qué clientes tendrá acceso?
+                </label>
+                <p className="text-xs text-text/60 mb-3">
+                  El creativo solo verá posts, brand kit y assets de los clientes que marques.
+                </p>
+                {(!clients || clients.length === 0) ? (
+                  <p className="text-xs text-text/50">
+                    Aún no tienes clientes. Crea un cliente primero para poder asignarlo.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {clients.map((c) => {
+                      const checked = inviteClientIds.includes(c.id);
+                      return (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() =>
+                            toggleClientId(inviteClientIds, setInviteClientIds, c.id)
+                          }
+                          className="px-3 py-1.5 rounded-full text-xs transition-all border"
+                          style={{
+                            background: checked
+                              ? 'var(--gradient)'
+                              : 'rgba(255,255,255,0.5)',
+                            color: checked ? 'white' : 'var(--text)',
+                            borderColor: checked
+                              ? 'transparent'
+                              : 'rgba(255,255,255,0.4)',
+                            fontWeight: checked ? 600 : 500,
+                          }}
+                        >
+                          {checked ? '✓ ' : ''}
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {inviteMessage && (
               <div
                 className={`p-3 rounded-lg text-sm ${
@@ -479,11 +606,18 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
           {membersLoading ? (
             <p className="text-text/60">Cargando miembros...</p>
           ) : members && members.length > 0 ? (
-            members.map((member) => (
+            members.map((member) => {
+              const assignedIds = assignmentsByMember[member.id] ?? [];
+              const assignedClients = (clients || []).filter((c) =>
+                assignedIds.includes(c.id)
+              );
+              const isEditing = editingAssignments === member.id;
+              return (
               <div
                 key={member.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-white/20 border border-white/30"
+                className="p-4 rounded-lg bg-white/20 border border-white/30 space-y-3"
               >
+                <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center font-semibold text-white"
@@ -527,8 +661,93 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
                     </div>
                   )}
                 </div>
+                </div>
+
+                {member.role === 'creative' && (
+                  <div className="pl-16 pr-2">
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-text/70 font-medium">
+                          Elige los clientes visibles para este creativo:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {(clients || []).map((c) => {
+                            const checked = assignmentDraft.includes(c.id);
+                            return (
+                              <button
+                                type="button"
+                                key={c.id}
+                                onClick={() =>
+                                  toggleClientId(assignmentDraft, setAssignmentDraft, c.id)
+                                }
+                                className="px-3 py-1.5 rounded-full text-xs transition-all border"
+                                style={{
+                                  background: checked
+                                    ? 'var(--gradient)'
+                                    : 'rgba(255,255,255,0.5)',
+                                  color: checked ? 'white' : 'var(--text)',
+                                  borderColor: checked
+                                    ? 'transparent'
+                                    : 'rgba(255,255,255,0.4)',
+                                  fontWeight: checked ? 600 : 500,
+                                }}
+                              >
+                                {checked ? '✓ ' : ''}
+                                {c.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveAssignments}
+                            disabled={savingAssignments}
+                            className="px-4 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+                            style={{ background: 'var(--gradient)' }}
+                          >
+                            {savingAssignments ? 'Guardando...' : 'Guardar acceso'}
+                          </button>
+                          <button
+                            onClick={() => setEditingAssignments(null)}
+                            disabled={savingAssignments}
+                            className="px-4 py-1.5 rounded-lg text-xs bg-white/40 border border-white/40 text-text"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className="text-xs text-text/60">Acceso a:</span>
+                        {assignedClients.length === 0 ? (
+                          <span className="text-xs text-text/50 italic">
+                            Sin clientes asignados (no verá ningún cliente)
+                          </span>
+                        ) : (
+                          assignedClients.map((c) => (
+                            <span
+                              key={c.id}
+                              className="px-2 py-0.5 rounded-full text-xs bg-white/50 border border-white/30 text-text"
+                            >
+                              {c.name}
+                            </span>
+                          ))
+                        )}
+                        {canManageMembers && (
+                          <button
+                            onClick={() => openAssignmentsEditor(member.id)}
+                            className="ml-auto px-3 py-1 rounded-lg text-xs bg-white/50 border border-white/40 text-text hover:bg-white/70 transition"
+                          >
+                            Editar acceso
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-text/60">No hay miembros en el equipo</p>
           )}
