@@ -9,6 +9,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { usePermissions, Permission } from '@/lib/permissions';
+import { OnboardingChecklist } from '@/components/layout/OnboardingChecklist';
 
 interface NavItem {
   label: string;
@@ -382,6 +383,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             </div>
           )}
+
+          <OnboardingChecklist />
 
           {children}
         </main>
