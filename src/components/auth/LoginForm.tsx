@@ -115,7 +115,7 @@ export function LoginForm() {
       </Button>
 
       <p className="text-body-xs text-aurometal text-center">
-        <a href="#" className="text-inchworm hover:underline">
+        <a href="/auth/reset-password" className="hover:underline" style={{ color: '#FF8FAD' }}>
           ¿Olvidaste tu contraseña?
         </a>
       </p>

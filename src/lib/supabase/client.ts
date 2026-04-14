@@ -12,6 +12,3 @@ export const createClient = () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 };
-
-// Export a singleton instance for convenience
-export const supabaseBrowser = createClient();
