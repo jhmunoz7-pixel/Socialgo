@@ -47,15 +47,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(authData.user);
 
+      // Check for impersonation cookie (platform admin viewing as agency)
+      const impersonateOrgId = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('x-impersonate-org='))
+        ?.split('=')[1] || null;
+
       // Fetch member + org in a single query using join
-      const { data: memberData, error: memberError } = await supabase
+      let memberQuery = supabase
         .from('members')
         .select(`
           *,
           organizations:org_id (*)
         `)
-        .eq('user_id', authData.user.id)
-        .single();
+        .eq('user_id', authData.user.id);
+
+      // When impersonating, scope to the target org
+      if (impersonateOrgId) {
+        memberQuery = memberQuery.eq('org_id', impersonateOrgId);
+      }
+
+      const { data: memberData, error: memberError } = await memberQuery.single();
 
       if (memberError && memberError.code !== 'PGRST116') {
         throw memberError;

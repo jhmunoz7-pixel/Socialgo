@@ -45,12 +45,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Platform admin status (Jorge's god-mode sidebar entry)
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+
+  // Impersonation state — read from cookie synchronously
+  const [impersonatingOrg, setImpersonatingOrg] = useState<string | null>(null);
+  useEffect(() => {
+    const cookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('x-impersonate-org='));
+    setImpersonatingOrg(cookie?.split('=')[1] || null);
+  }, [pathname]);
+
   useEffect(() => {
     let cancelled = false;
     fetch('/api/me/is-platform-admin', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { isAdmin: false }))
       .then((d) => {
-        if (!cancelled) setIsPlatformAdmin(Boolean(d?.isAdmin));
+        if (!cancelled) {
+          const isAdmin = Boolean(d?.isAdmin);
+          setIsPlatformAdmin(isAdmin);
+          // Auto-redirect platform admin to /platform when landing on root dashboard
+          // (skip if impersonating — they want to see the agency dashboard)
+          if (isAdmin && pathname === '/dashboard' && !impersonatingOrg) {
+            router.replace('/platform');
+          }
+        }
       })
       .catch(() => {
         /* non-admin → silently ignore */
@@ -58,7 +76,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname, router, impersonatingOrg]);
+
+  const handleExitImpersonation = async () => {
+    await fetch('/api/platform/impersonate', { method: 'DELETE' });
+    document.cookie = 'x-impersonate-org=; path=/; max-age=0';
+    setImpersonatingOrg(null);
+    router.push('/platform');
+    router.refresh();
+  };
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -348,6 +374,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }
             }
           `}</style>
+
+          {/* Impersonation banner */}
+          {impersonatingOrg && isPlatformAdmin && (
+            <div
+              className="mx-4 mt-4 p-3 rounded-xl border flex items-center justify-between gap-4"
+              style={{
+                background: 'rgba(180, 249, 101, 0.1)',
+                borderColor: 'rgba(180, 249, 101, 0.4)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">👁️</span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#B4F965' }}>
+                    Modo impersonar — {org.data?.name || 'Agencia'}
+                  </p>
+                  <p className="text-[11px]" style={{ color: '#6C7A83' }}>
+                    Estás viendo y operando como esta agencia. Los cambios son reales.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleExitImpersonation}
+                className="px-4 py-2 rounded-lg text-xs font-bold transition-opacity hover:opacity-80 flex-shrink-0"
+                style={{
+                  background: '#B4F965',
+                  color: '#0F1D27',
+                }}
+              >
+                ← Salir a Platform
+              </button>
+            </div>
+          )}
 
           {/* Plan status banner */}
           {org.data?.plan_status === 'canceled' && (
