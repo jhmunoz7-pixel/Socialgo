@@ -45,7 +45,15 @@ function PricingPageInner() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan, cycle: billingCycle }),
+        credentials: 'include',
       });
+
+      // If server says unauthorized, session is stale → force re-login
+      if (res.status === 401) {
+        window.location.href = `/auth/login?plan=${plan}&cycle=${billingCycle}`;
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok || !data.url) {
         throw new Error(data.error || 'No se pudo iniciar el checkout');

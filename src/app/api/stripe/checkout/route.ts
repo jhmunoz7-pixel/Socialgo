@@ -9,6 +9,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 import {
   createCheckoutSession,
   getOrCreateCustomer,
@@ -32,9 +35,21 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
     if (!user) {
+      // Diagnostic: log cookie names server sees so we can debug 401s
+      const cookieHeader = request.headers.get("cookie") || "";
+      const sbCookies = cookieHeader
+        .split(";")
+        .map((c) => c.trim().split("=")[0])
+        .filter((n) => n.startsWith("sb-"));
+      console.warn("[checkout] 401 — no user", {
+        userError: userError?.message,
+        sbCookieCount: sbCookies.length,
+        sbCookieNames: sbCookies,
+      });
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
