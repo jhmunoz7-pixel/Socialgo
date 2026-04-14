@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, useStats, usePackages, useMembers, deleteClient, updateClient } from '@/lib/hooks';
+import { useClients, useStats, usePackages, useMembers, deleteClient, updateClient, useCurrentUser } from '@/lib/hooks';
 import { Client, PayStatus, AccountStatus, calculateMonthlyPayment } from '@/types';
 import { AddClientModal } from '@/components/clients/AddClientModal';
 import { usePermissions } from '@/lib/permissions';
@@ -10,13 +10,15 @@ import { usePermissions } from '@/lib/permissions';
 export default function ClientsPage() {
   const router = useRouter();
   const { can, loading: permLoading } = usePermissions();
+  const { data: currentUser } = useCurrentUser();
 
-  // Redirect roles without view_all_clients to contenido
+  // Redirect scoped roles to their appropriate landing
   useEffect(() => {
     if (!permLoading && !can('view_all_clients')) {
-      router.replace('/dashboard/contenido');
+      const role = currentUser?.member?.role;
+      router.replace(role === 'client_viewer' ? '/dashboard/portal' : '/dashboard/contenido');
     }
-  }, [permLoading, can, router]);
+  }, [permLoading, can, router, currentUser?.member?.role]);
   const { data: clients, loading: clientsLoading, refetch: refetchClients } = useClients();
   const { data: stats, loading: statsLoading } = useStats();
   const { data: packages } = usePackages();

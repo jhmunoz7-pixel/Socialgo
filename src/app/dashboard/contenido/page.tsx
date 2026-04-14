@@ -378,7 +378,7 @@ export default function ContenidoPage() {
 
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: posts, loading: postsLoading, refetch: refetchPosts } = usePosts();
-  const { can } = usePermissions();
+  const { can, role: currentRole } = usePermissions();
   const canApprove = can('approve_posts');
   const canUpload = can('create_posts');
 
@@ -433,6 +433,19 @@ export default function ContenidoPage() {
           Revisa, aprueba y comenta los posts de la semana
         </p>
       </div>
+
+      {/* Creative: show assigned clients banner */}
+      {!clientsLoading && currentRole === 'creative' && clients.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap px-1">
+          <span className="text-xs font-semibold" style={{ color: 'var(--text-mid)' }}>Mis clientes:</span>
+          {clients.map((c) => (
+            <span key={c.id} className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={{ background: 'var(--glass-border)', color: 'var(--text-dark)' }}>
+              {c.emoji} {c.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       {(clientsLoading || postsLoading) ? (
         <div className="space-y-4 animate-pulse">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser, useOrganization } from '@/lib/hooks';
+import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
@@ -18,14 +19,17 @@ interface NavItem {
   section: 'principal' | 'workspace' | 'config';
   /** Permission required to see this nav item. If omitted, visible to all. */
   requiredPermission?: Permission;
+  /** Hide this item for specific roles (even if they have the permission) */
+  hideForRoles?: string[];
 }
 
 const navItems: NavItem[] = [
   { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal', requiredPermission: 'view_all_clients' },
   { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal', requiredPermission: 'manage_packages' },
   { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal', requiredPermission: 'view_reports' },
-  { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace', requiredPermission: 'view_posts' },
-  { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace', requiredPermission: 'view_posts' },
+  { label: 'Mi Portal', icon: '📋', href: '/dashboard/portal', section: 'principal', requiredPermission: 'approve_posts', hideForRoles: ['owner', 'admin', 'member', 'creative'] },
+  { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace', requiredPermission: 'view_posts', hideForRoles: ['client_viewer'] },
+  { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace', requiredPermission: 'view_posts', hideForRoles: ['client_viewer'] },
   { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace', requiredPermission: 'create_posts' },
   { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace', requiredPermission: 'use_ai_studio' },
   { label: 'Facturación', icon: '💳', href: '/dashboard/billing', section: 'config', requiredPermission: 'manage_billing' },
@@ -44,6 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const user = useCurrentUser();
   const org = useOrganization();
   const permissions = usePermissions();
+  const { allMemberships, switchOrg } = useAuth();
+  const hasMultipleOrgs = allMemberships.length > 1;
 
   // Sidebar state: collapsed (icons only) and mobile open/close
   const [collapsed, setCollapsed] = useState(false);
@@ -108,10 +114,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
-  // Filter nav items by the user's role permissions
-  const visibleNavItems = navItems.filter(
-    (item) => !item.requiredPermission || permissions.can(item.requiredPermission)
-  );
+  // Filter nav items by the user's role permissions and role-specific visibility
+  const currentRole = user.data?.member?.role;
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.requiredPermission && !permissions.can(item.requiredPermission)) return false;
+    if (item.hideForRoles && currentRole && item.hideForRoles.includes(currentRole)) return false;
+    return true;
+  });
 
   const groupedNavItems = {
     principal: visibleNavItems.filter((item) => item.section === 'principal'),
@@ -155,14 +164,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </div>
 
-        {/* Agency Name + Role */}
+        {/* Agency Name + Role (with org switcher for multi-org) */}
         {showLabels && (
           <div className="px-5 pb-3">
-            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-dark)' }}>
-              {org.data?.name || 'Mi Agencia'}
-            </p>
+            {hasMultipleOrgs ? (
+              <select
+                value={org.data?.id || ''}
+                onChange={(e) => { switchOrg(e.target.value); window.location.reload(); }}
+                className="w-full text-xs font-semibold truncate bg-transparent border-none outline-none cursor-pointer"
+                style={{ color: 'var(--text-dark)' }}
+              >
+                {allMemberships.map((m) => (
+                  <option key={m.organization.id} value={m.organization.id}>
+                    {m.organization.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-dark)' }}>
+                {org.data?.name || 'Mi Agencia'}
+              </p>
+            )}
             <p className="text-[10px] capitalize truncate" style={{ color: 'var(--text-light)' }}>
-              {user.data?.member?.role === 'owner' ? 'Admin' : user.data?.member?.role === 'creative' ? 'Creativo' : user.data?.member?.role || 'Miembro'}
+              {user.data?.member?.role === 'owner' ? 'Admin' : user.data?.member?.role === 'creative' ? 'Creativo' : user.data?.member?.role === 'client_viewer' ? 'Cliente' : user.data?.member?.role || 'Miembro'}
             </p>
           </div>
         )}
