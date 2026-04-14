@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const supabase = createSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (_event, _session) => {
         // Re-fetch user/member/org whenever auth state changes
         // (login, logout, token refresh, password recovery)
         fetchAll();

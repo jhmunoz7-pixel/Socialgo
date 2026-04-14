@@ -142,7 +142,7 @@ export const cancelSubscription = async (
   const stripe = getStripeServer();
 
   try {
-    await stripe.subscriptions.del(subscriptionId);
+    await stripe.subscriptions.cancel(subscriptionId);
   } catch (error) {
     console.error("Error canceling subscription:", error);
     throw error;
