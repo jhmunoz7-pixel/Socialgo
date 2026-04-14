@@ -9,6 +9,7 @@ import {
   Client,
   Package,
   Post,
+  Asset,
   BrandKit,
   PostComment,
   ContentWeek,
@@ -951,7 +952,120 @@ export function useBrandKit(clientId: string | null): HookResult<BrandKit> {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Asset Upload
+// Assets — Media Library
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Fetches assets for the current organization
+ */
+export function useAssets(clientId?: string | null): HookResultArray<Asset> {
+  const [data, setData] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const fetchAssets = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!currentUser?.member?.org_id) {
+        setData([]);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      let query = supabase
+        .from('assets')
+        .select('*')
+        .eq('org_id', currentUser.member.org_id);
+
+      if (clientId) {
+        query = query.eq('client_id', clientId);
+      }
+
+      const { data: assetsData, error: assetsError } = await query.order('created_at', { ascending: false });
+      if (assetsError) throw assetsError;
+      setData(assetsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.member?.org_id, clientId]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  return { data, loading, error, refetch: fetchAssets };
+}
+
+/**
+ * Uploads a file to Supabase Storage and creates an asset record in the DB.
+ */
+export async function createAsset(
+  file: File,
+  orgId: string,
+  clientId?: string | null,
+  category: Asset['category'] = 'general'
+): Promise<Asset> {
+  const supabase = createSupabaseClient();
+
+  const ext = file.name.split('.').pop() || 'bin';
+  const filePath = `${orgId}/assets/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  // Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from('post-assets')
+    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage.from('post-assets').getPublicUrl(filePath);
+
+  // Detect file type
+  let fileType: Asset['file_type'] = 'other';
+  if (file.type.startsWith('image/')) fileType = 'photo';
+  else if (file.type.startsWith('video/')) fileType = 'video';
+
+  // Insert DB record
+  const { data: result, error: insertError } = await supabase
+    .from('assets')
+    .insert({
+      org_id: orgId,
+      client_id: clientId || null,
+      name: file.name,
+      file_url: urlData.publicUrl,
+      file_type: fileType,
+      file_size: file.size,
+      category,
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+  return result as Asset;
+}
+
+/**
+ * Deletes an asset (storage file + DB record)
+ */
+export async function deleteAsset(assetId: string, fileUrl: string): Promise<void> {
+  const supabase = createSupabaseClient();
+
+  // Extract storage path from URL
+  const urlParts = fileUrl.split('/post-assets/');
+  if (urlParts.length === 2) {
+    await supabase.storage.from('post-assets').remove([urlParts[1]]);
+  }
+
+  const { error } = await supabase.from('assets').delete().eq('id', assetId);
+  if (error) throw error;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Asset Upload (for posts)
 // ═══════════════════════════════════════════════════════════════
 
 /**
