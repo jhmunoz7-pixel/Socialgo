@@ -8,8 +8,6 @@ import {
   Client,
   AccountStatus,
   PackageType,
-  calculateMonthlyPayment,
-  calculateTotalWithIVA,
 } from '@/types';
 
 interface AddClientModalProps {
@@ -61,7 +59,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
   const [fechaVigencia, setFechaVigencia] = useState('');
   const [requiereIVA, setRequiereIVA] = useState(false);
   const [ivaOption, setIvaOption] = useState<'incluido' | 'sumado'>('incluido');
-  const [showIVAPopup, setShowIVAPopup] = useState(false);
+  const [_showIVAPopup, setShowIVAPopup] = useState(false);
 
   // Status
   const [accountManager, setAccountManager] = useState(editClient?.manager_id || '');
@@ -547,7 +545,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
                           name="iva-option"
                           value="incluido"
                           checked={ivaOption === 'incluido'}
-                          onChange={(e) => setIvaOption('incluido')}
+                          onChange={() => setIvaOption('incluido')}
                           className="w-4 h-4"
                         />
                         <span className="text-sm text-gray-700">El precio ya incluye IVA</span>
@@ -558,7 +556,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
                           name="iva-option"
                           value="sumado"
                           checked={ivaOption === 'sumado'}
-                          onChange={(e) => setIvaOption('sumado')}
+                          onChange={() => setIvaOption('sumado')}
                           className="w-4 h-4"
                         />
                         <span className="text-sm text-gray-700">Sumar 16% extra</span>

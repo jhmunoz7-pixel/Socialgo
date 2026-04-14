@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 // Icon replacements (no external dependency)
-const Check = () => <span className="text-green-600 font-bold">✓</span>;
-const X = () => <span className="text-red-400 font-bold">✕</span>;
+const Check = ({ className }: { className?: string }) => <span className={`text-green-600 font-bold ${className || ''}`}>✓</span>;
+const X = ({ className }: { className?: string }) => <span className={`text-red-400 font-bold ${className || ''}`}>✕</span>;
 const ChevronDown = ({ className }: { className?: string }) => (
   <span className={className} style={{ display: 'inline-block', fontSize: '14px' }}>▼</span>
 );
