@@ -140,6 +140,7 @@ function PostCard({ post, client, onStatusChange, canApprove, canUpload }: PostC
   const [showComments, setShowComments] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { data: currentUserData } = useCurrentUser();
   const typeConfig = POST_TYPE_CONFIG[post.post_type as PostType];
   const formatConfig = FORMAT_CONFIG[post.format as PostFormat];
   const approvalConfig = APPROVAL_CONFIG[post.approval_status as ApprovalStatus] || APPROVAL_CONFIG.pending;
@@ -167,6 +168,19 @@ function PostCard({ post, client, onStatusChange, canApprove, canUpload }: PostC
         ...(status === 'approved' ? { approved_at: new Date().toISOString() } : {}),
       });
       onStatusChange();
+
+      // Send email notification (fire-and-forget)
+      fetch('/api/notify-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: post.id,
+          new_status: status,
+          post_name: post.name,
+          client_name: client?.name,
+          changed_by: currentUserData?.member?.full_name,
+        }),
+      }).catch(() => {/* silent */});
     } catch (err) {
       console.error('Error updating approval:', err);
     } finally {
