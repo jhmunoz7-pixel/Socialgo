@@ -60,15 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetch('/api/me/is-platform-admin', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { isAdmin: false }))
       .then((d) => {
-        if (!cancelled) {
-          const isAdmin = Boolean(d?.isAdmin);
-          setIsPlatformAdmin(isAdmin);
-          // Auto-redirect platform admin to /platform when landing on root dashboard
-          // (skip if impersonating — they want to see the agency dashboard)
-          if (isAdmin && pathname === '/dashboard' && !impersonatingOrg) {
-            router.replace('/platform');
-          }
-        }
+        if (!cancelled) setIsPlatformAdmin(Boolean(d?.isAdmin));
       })
       .catch(() => {
         /* non-admin → silently ignore */
@@ -76,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       cancelled = true;
     };
-  }, [pathname, router, impersonatingOrg]);
+  }, []);
 
   const handleExitImpersonation = async () => {
     await fetch('/api/platform/impersonate', { method: 'DELETE' });

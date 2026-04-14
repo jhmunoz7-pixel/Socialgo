@@ -46,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   // This refreshes the auth token if needed and keeps cookies in sync
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  return response;
+  return { response, user };
 }
