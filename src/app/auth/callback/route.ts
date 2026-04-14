@@ -37,27 +37,23 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Check if user profile exists, create if not
-      const { data: profile } = await supabase
+      // The handle_new_user() DB trigger already creates profile + org + member
+      // for new users. We only need to upsert the profile for OAuth users
+      // whose metadata (name, avatar) may have changed since last login.
+      const { error: profileError } = await supabase
         .from("profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile) {
-        // Create profile for new user
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
+        .upsert(
+          {
             id: user.id,
             email: user.email,
             full_name: user.user_metadata?.full_name || null,
             avatar_url: user.user_metadata?.avatar_url || null,
-          });
+          },
+          { onConflict: "id" }
+        );
 
-        if (profileError) {
-          console.error("Failed to create user profile:", profileError);
-        }
+      if (profileError) {
+        console.error("Failed to upsert user profile:", profileError);
       }
 
       // Redirect to dashboard

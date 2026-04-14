@@ -382,21 +382,20 @@ export function useStats(): HookResult<{
       // Fetch all clients with package info (not just activo — pending payments span all statuses)
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select('pay_status, package_type, custom_price, package_id, account_status')
+        .select('pay_status, package_type, custom_price, package_id, account_status, package:packages(price)')
         .eq('org_id', orgId);
 
       if (clientsError) throw clientsError;
 
       const activeClientsCount = clientsData?.filter((c: any) => c.account_status === 'activo').length || 0;
 
-      // Calculate pending payments (MRR calculation needs packages, simplified here)
       let totalMRR = 0;
       let pendingPayments = 0;
 
       clientsData?.forEach((client: any) => {
-        if (client.custom_price) {
-          totalMRR += client.custom_price;
-        }
+        // Use custom_price if set, otherwise fall back to package price
+        const price = client.custom_price ?? client.package?.price ?? 0;
+        totalMRR += Number(price);
         if (client.pay_status === 'pendiente' || client.pay_status === 'vencido') {
           pendingPayments++;
         }

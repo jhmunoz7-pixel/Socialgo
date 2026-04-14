@@ -88,7 +88,7 @@ async function handleCheckoutSessionCompleted(
 
   // Find organization by finding the user member and getting the org_id
   const { data: members, error: memberError } = await supabase
-    .from("organization_members")
+    .from("members")
     .select("org_id")
     .eq("user_id", userId)
     .limit(1);
