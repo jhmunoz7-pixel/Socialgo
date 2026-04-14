@@ -15,6 +15,8 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const message = searchParams.get("message");
+  const planParam = searchParams.get("plan");
+  const cycleParam = searchParams.get("cycle");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +42,12 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      // If user came from pricing with a plan selection, go start checkout
+      if (planParam && cycleParam) {
+        router.push(`/pricing?auto=1&plan=${planParam}&cycle=${cycleParam}`);
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
     } catch (err) {
       const errorMessage =

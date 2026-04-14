@@ -201,7 +201,7 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-text mb-2">Teléfono</label>
             <input
@@ -454,7 +454,7 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
           <h3 className="text-xl font-serif font-bold text-text mb-4">Agregar miembro</h3>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text mb-2">Nombre</label>
                 <input
@@ -596,10 +596,11 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
 
 function PermisosTab() {
   return (
-    <div className="glass-card p-8 rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 shadow-lg overflow-x-auto">
-      <h2 className="text-2xl font-serif font-bold text-text mb-6">Matriz de Permisos</h2>
+    <div className="glass-card p-4 md:p-8 rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 shadow-lg">
+      <h2 className="text-2xl font-serif font-bold text-text mb-4">Matriz de Permisos</h2>
+      <p className="text-xs text-text/50 mb-4 md:hidden">Desliza horizontalmente para ver todos los roles →</p>
 
-      <div className="min-w-full">
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin' }}>
         <table className="w-full text-sm">
           <thead>
             <tr>

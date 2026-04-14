@@ -2,6 +2,9 @@
  * Stripe checkout session API endpoint
  * Creates a checkout session for subscription purchases
  * POST /api/stripe/checkout
+ *
+ * Body: { plan: "pro" | "full_access", cycle: "monthly" | "quarterly" | "annual" }
+ *   — OR legacy: { priceId: string }
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -10,9 +13,17 @@ import {
   createCheckoutSession,
   getOrCreateCustomer,
 } from "@/lib/stripe-helpers";
+import {
+  getPriceId,
+  type PlanKey,
+  type BillingCycle,
+  SOCIALGO_PLANS,
+} from "@/lib/pricing-config";
 
 interface CheckoutRequest {
-  priceId: string;
+  priceId?: string;
+  plan?: PlanKey;
+  cycle?: BillingCycle;
 }
 
 export async function POST(request: NextRequest) {
@@ -31,11 +42,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { priceId } = (await request.json()) as CheckoutRequest;
+    const body = (await request.json()) as CheckoutRequest;
+
+    // Resolve priceId from either (plan, cycle) or direct priceId
+    let priceId: string | null = body.priceId ?? null;
+    if (!priceId && body.plan && body.cycle) {
+      // Validate plan is paid
+      if (!SOCIALGO_PLANS[body.plan] || body.plan === "free") {
+        return NextResponse.json(
+          { error: "Invalid or free plan — nothing to charge" },
+          { status: 400 }
+        );
+      }
+      priceId = getPriceId(body.plan, body.cycle);
+    }
 
     if (!priceId) {
       return NextResponse.json(
-        { error: "Price ID is required" },
+        {
+          error:
+            "Missing priceId (or plan+cycle pair). Check STRIPE_PRICE_* env vars.",
+        },
         { status: 400 }
       );
     }

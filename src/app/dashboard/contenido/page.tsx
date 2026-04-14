@@ -298,7 +298,7 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
           <button
             onClick={() => handleApproval('approved')}
             disabled={isUpdating || post.approval_status === 'approved'}
-            className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
             style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#065F46' }}
           >
             ✅ Aprobar
@@ -306,7 +306,7 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
           <button
             onClick={() => handleApproval('approved_with_changes')}
             disabled={isUpdating}
-            className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
             style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#1E40AF' }}
           >
             📝 Con cambios
@@ -314,7 +314,7 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
           <button
             onClick={() => handleApproval('rejected')}
             disabled={isUpdating}
-            className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
             style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#991B1B' }}
           >
             ❌ Rechazar
@@ -450,7 +450,7 @@ export default function ContenidoPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Total', value: stats.total, color: 'var(--text-dark)' },
           { label: 'Pendientes', value: stats.pending, color: '#D97706' },

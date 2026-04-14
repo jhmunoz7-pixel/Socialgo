@@ -258,8 +258,63 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="pb-8">
+      {/* Mobile Card View — visible on small screens only */}
+      <div className="md:hidden space-y-3 pb-8">
+        {filteredClients.map((client) => (
+          <div
+            key={client.id}
+            onClick={() => handleEditClient(client.id)}
+            className="glass-card rounded-xl p-4 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-10 h-10 rounded-sm flex items-center justify-center text-lg flex-shrink-0"
+                style={{ backgroundColor: client.color }}
+              >
+                {client.emoji}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-body-md font-semibold text-sg-text truncate">{client.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="package-tag text-xs">{client.package?.name ?? 'Sin paquete'}</span>
+                  <span className="text-body-xs text-sg-text-mid">{client.package_type || ''}</span>
+                </div>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (client.pay_status === 'pendiente') handleTogglePayStatus(client); }}
+                className={`badge ${getStatusBadgeClass(client.pay_status === 'pendiente' ? 'pago_pendiente' : client.account_status)} text-xs flex-shrink-0`}
+              >
+                {client.pay_status === 'pendiente' ? 'Pago Pendiente' : getStatusLabel(client.account_status)}
+              </button>
+            </div>
+            <div className="flex items-center justify-between text-body-xs text-sg-text-mid">
+              <span>Mes {calculateMonthsActive(client.start_date)}</span>
+              <span className="font-mono font-semibold text-sg-text">{formatCurrency(getMonthlyPayment(client))}</span>
+              <span>{client.city || '-'}</span>
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                {client.instagram && (
+                  <a href={client.instagram} target="_blank" rel="noopener noreferrer" className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center">📷</a>
+                )}
+                <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar">✏️</button>
+                <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar">🗑️</button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {filteredClients.length === 0 && clients.length > 0 && (
+          <div className="p-12 text-center">
+            <p className="text-body-md text-sg-text-mid">No se encontraron clientes que coincidan con tu búsqueda</p>
+          </div>
+        )}
+
+        <div className="mt-4 px-4">
+          <p className="text-body-sm text-sg-text-mid">Mostrando {filteredClients.length} de {clients.length} clientes</p>
+        </div>
+      </div>
+
+      {/* Desktop Table View — hidden on small screens */}
+      <div className="hidden md:block pb-8">
         <div className="overflow-x-auto glass-card rounded-lg">
           <table className="w-full">
             <thead>
@@ -297,7 +352,8 @@ export default function ClientsPage() {
                 {filteredClients.map((client) => (
                   <tr
                     key={client.id}
-                    className="border-b border-sg-border hover:bg-[rgba(255,181,200,0.07)] transition-colors"
+                    onClick={() => handleEditClient(client.id)}
+                    className="border-b border-sg-border hover:bg-[rgba(255,181,200,0.07)] transition-colors cursor-pointer"
                   >
                     {/* Marca */}
                     <td className="p-4">
@@ -358,6 +414,7 @@ export default function ClientsPage() {
                           rel="noopener noreferrer"
                           className="text-rose hover:text-rose-deep transition-colors text-lg"
                           title="Abrir Instagram"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           📷
                         </a>
@@ -369,7 +426,8 @@ export default function ClientsPage() {
                     {/* Status */}
                     <td className="p-4 text-center">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (client.pay_status === 'pendiente') {
                             handleTogglePayStatus(client);
                           }
@@ -388,14 +446,14 @@ export default function ClientsPage() {
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-3">
                         <button
-                          onClick={() => handleEditClient(client.id)}
+                          onClick={(e) => { e.stopPropagation(); handleEditClient(client.id); }}
                           className="text-rose hover:text-rose-deep transition-colors text-lg"
                           title="Editar cliente"
                         >
                           ✏️
                         </button>
                         <button
-                          onClick={() => handleDeleteClient(client.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
                           className="text-sg-text-light hover:text-sg-danger-text transition-colors text-lg"
                           title="Eliminar cliente"
                         >

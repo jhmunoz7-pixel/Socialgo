@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SocialGo Platform Admin — /platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ls-navy: #0F1D27;
+    --ls-charcoal: #354654;
+    --ls-aurometal: #6C7A83;
+    --ls-seashell: #E5E5E3;
+    --ls-inchworm: #B4F965;
+    --ls-red: #FF6B6B;
+    --ls-amber: #FFC857;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Mont', 'Nunito', sans-serif;
+    background: var(--ls-navy);
+    color: var(--ls-seashell);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  /* === TOP NAV === */
+  .topbar {
+    background: rgba(53, 70, 84, 0.4);
+    border-bottom: 1px solid rgba(108, 122, 131, 0.3);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 800; font-size: 18px; letter-spacing: -0.3px;
+  }
+  .brand-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ls-inchworm);
+    box-shadow: 0 0 12px rgba(180, 249, 101, 0.6);
+  }
+  .brand small {
+    display: block; font-size: 10px; font-weight: 600;
+    color: var(--ls-aurometal); letter-spacing: 1.5px; margin-top: 2px;
+  }
+  .admin-badge {
+    background: var(--ls-inchworm); color: var(--ls-navy);
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 10px; font-weight: 800; letter-spacing: 1px;
+    margin-left: 8px;
+  }
+  .user-menu {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 13px; color: var(--ls-aurometal);
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--ls-inchworm), #8FD44C);
+    color: var(--ls-navy); font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  /* === LAYOUT === */
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px; }
+
+  .page-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+  }
+  .page-header p {
+    color: var(--ls-aurometal); font-size: 13px; margin-top: 4px;
+  }
+  .sublinks {
+    display: flex; gap: 6px;
+  }
+  .sublink {
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700;
+    color: var(--ls-aurometal);
+    background: transparent; border: 1px solid rgba(108,122,131,0.3);
+    cursor: pointer; text-decoration: none;
+  }
+  .sublink.active { color: var(--ls-navy); background: var(--ls-inchworm); border-color: var(--ls-inchworm); }
+
+  /* === TILES === */
+  .tiles {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-bottom: 32px;
+  }
+  .tile {
+    background: var(--ls-charcoal);
+    border: 1px solid rgba(108,122,131,0.2);
+    border-radius: 12px;
+    padding: 16px 18px;
+    min-width: 0;
+  }
+  .tile-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    color: var(--ls-aurometal); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .tile-value {
+    font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+    color: var(--ls-seashell);
+    line-height: 1.1;
+  }
+  .tile-value .unit { font-size: 13px; color: var(--ls-aurometal); font-weight: 600; margin-left: 4px; }
+  .tile-delta {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px; font-size: 11px; font-weight: 700;
+    padding: 3px 7px; border-radius: 5px;
+  }
+  .delta-up   { background: rgba(180,249,101,0.15); color: var(--ls-inchworm); }
+  .delta-down { background: rgba(255,107,107,0.15); color: var(--ls-red); }
+  .delta-flat { background: rgba(108,122,131,0.2); color: var(--ls-aurometal); }
+
+  .tile.alert { border-color: rgba(255,107,107,0.4); }
+  .tile.alert .tile-value { color: var(--ls-red); }
+
+  /* === TABLE === */
+  .panel {
+    background: var(--ls-charcoal);
+    border: 1px solid rgba(108,122,131,0.2);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll table { min-width: 880px; }
+  .panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 22px; border-bottom: 1px solid rgba(108,122,131,0.2);
+  }
+  .panel-title { font-size: 16px; font-weight: 800; }
+  .filters { display: flex; gap: 8px; }
+  .filter-chip {
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+    background: rgba(180,249,101,0.08); color: var(--ls-inchworm);
+    border: 1px solid rgba(180,249,101,0.25);
+    cursor: pointer;
+  }
+  .filter-chip.plain {
+    background: rgba(108,122,131,0.15); color: var(--ls-aurometal);
+    border-color: rgba(108,122,131,0.3);
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 10px; font-weight: 800;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--ls-aurometal);
+    padding: 14px 22px;
+    border-bottom: 1px solid rgba(108,122,131,0.2);
+    background: rgba(15,29,39,0.4);
+  }
+  tbody td {
+    padding: 16px 22px; font-size: 13px;
+    border-bottom: 1px solid rgba(108,122,131,0.1);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: rgba(180,249,101,0.03); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .agency-cell {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .agency-logo {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, #8FD44C, var(--ls-inchworm));
+    color: var(--ls-navy); font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .agency-name { font-weight: 700; color: var(--ls-seashell); }
+  .agency-handle { font-size: 11px; color: var(--ls-aurometal); }
+
+  .plan-badge {
+    padding: 3px 9px; border-radius: 6px;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+    display: inline-block;
+  }
+  .plan-starter { background: rgba(208,232,255,0.15); color: #A8D0F5; border: 1px solid rgba(168,208,245,0.3); }
+  .plan-pro     { background: rgba(180,249,101,0.15); color: var(--ls-inchworm); border: 1px solid rgba(180,249,101,0.3); }
+  .plan-elite   { background: rgba(232,213,255,0.15); color: #D4B8FF; border: 1px solid rgba(212,184,255,0.3); }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .ok .status-dot   { background: var(--ls-inchworm); box-shadow: 0 0 6px rgba(180,249,101,0.6); }
+  .warn .status-dot { background: var(--ls-amber); }
+  .bad .status-dot  { background: var(--ls-red); }
+  .ok   { color: var(--ls-inchworm); }
+  .warn { color: var(--ls-amber); }
+  .bad  { color: var(--ls-red); }
+
+  .mono { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  .actions-btn {
+    background: transparent; border: 1px solid rgba(108,122,131,0.3);
+    color: var(--ls-aurometal); width: 32px; height: 32px;
+    border-radius: 8px; cursor: pointer; font-size: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .actions-btn:hover { color: var(--ls-inchworm); border-color: var(--ls-inchworm); }
+
+  .footer-note {
+    margin-top: 24px; text-align: center; font-size: 11px;
+    color: var(--ls-aurometal); letter-spacing: 1px;
+  }
+
+  @media (max-width: 1100px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .topbar { padding: 12px 16px; }
+    .brand { font-size: 15px; gap: 8px; }
+    .brand small { font-size: 9px; letter-spacing: 1px; }
+    .admin-badge { font-size: 9px; padding: 3px 7px; margin-left: 4px; }
+    .user-menu span { display: none; }
+    .container { padding: 16px 12px; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .page-header h1 { font-size: 22px; }
+    .tiles { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .tile { padding: 12px 14px; border-radius: 10px; }
+    .tile-value { font-size: 20px; }
+    .tile-value .unit { font-size: 11px; }
+    .tile-label { font-size: 9px; margin-bottom: 6px; }
+    .tile-delta { font-size: 10px; margin-top: 6px; padding: 2px 6px; }
+    .panel-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+    .filters { flex-wrap: wrap; }
+    .footer-note { font-size: 10px; padding: 0 10px; }
+  }
+  @media (max-width: 420px) {
+    .tiles { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-dot"></span>
+    <div>
+      SocialGo
+      <small>LOONSHOT LABS</small>
+    </div>
+    <span class="admin-badge">PLATFORM ADMIN</span>
+  </div>
+  <div class="user-menu">
+    <span>jhmunoz7@gmail.com</span>
+    <div class="avatar">JM</div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="page-header">
+    <div>
+      <h1>Platform Overview</h1>
+      <p>Salud del negocio SocialGo · Abril 2026</p>
+    </div>
+    <div class="sublinks">
+      <a class="sublink active" href="#">Dashboard</a>
+      <a class="sublink" href="#">Agencias</a>
+      <a class="sublink" href="#">Audit Log</a>
+    </div>
+  </div>
+
+  <!-- === HEALTH TILES === -->
+  <section class="tiles">
+    <div class="tile">
+      <div class="tile-label">MRR</div>
+      <div class="tile-value">$14,320<span class="unit">/mes</span></div>
+      <span class="tile-delta delta-up">▲ 12.4% MoM</span>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Agencias activas</div>
+      <div class="tile-value">47<span class="unit">/ 52</span></div>
+      <span class="tile-delta delta-flat">Login últimos 30d</span>
+    </div>
+    <div class="tile">
+      <div class="tile-label">New MRR este mes</div>
+      <div class="tile-value" style="color: var(--ls-inchworm);">+$1,580</div>
+      <span class="tile-delta delta-up">New + Expansion − Churn</span>
+    </div>
+    <div class="tile alert">
+      <div class="tile-label">Churn rate 30d</div>
+      <div class="tile-value">5.8%</div>
+      <span class="tile-delta delta-down">▲ Por encima del threshold (5%)</span>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Clientes bajo gestión</div>
+      <div class="tile-value">418</div>
+      <span class="tile-delta delta-up">▲ 23 este mes</span>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Posts creados (mes)</div>
+      <div class="tile-value">3,142</div>
+      <span class="tile-delta delta-up">▲ 18.7% vs mes anterior</span>
+    </div>
+  </section>
+
+  <!-- === AGENCIES TABLE === -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Agencias</div>
+      <div class="filters">
+        <button class="filter-chip">Plan: Todos</button>
+        <button class="filter-chip plain">Pago: Todos</button>
+        <button class="filter-chip plain">Actividad: Todos</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Agencia</th>
+          <th>Plan</th>
+          <th>MRR</th>
+          <th># Clientes</th>
+          <th>Posts (mes)</th>
+          <th>Último login</th>
+          <th>Pago</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo">AC</div>
+              <div>
+                <div class="agency-name">Acme Creative</div>
+                <div class="agency-handle">@acmecreative</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-elite">ELITE</span></td>
+          <td class="mono">$499</td>
+          <td class="mono">24</td>
+          <td class="mono">287</td>
+          <td>hace 2h</td>
+          <td><span class="status-pill ok"><span class="status-dot"></span>Al día</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo" style="background: linear-gradient(135deg, #FFBA8A, #FF8FAD);">BR</div>
+              <div>
+                <div class="agency-name">Brío Studio</div>
+                <div class="agency-handle">@briostudio</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-pro">PRO</span></td>
+          <td class="mono">$299</td>
+          <td class="mono">12</td>
+          <td class="mono">143</td>
+          <td>hace 4h</td>
+          <td><span class="status-pill ok"><span class="status-dot"></span>Al día</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo" style="background: linear-gradient(135deg, #D0E8FF, #A8D0F5);">CM</div>
+              <div>
+                <div class="agency-name">Cumbre Media</div>
+                <div class="agency-handle">@cumbremedia</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-pro">PRO</span></td>
+          <td class="mono">$299</td>
+          <td class="mono">18</td>
+          <td class="mono">201</td>
+          <td>hace 1d</td>
+          <td><span class="status-pill warn"><span class="status-dot"></span>Retry pago</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo" style="background: linear-gradient(135deg, #E8D5FF, #C8A8FF);">DH</div>
+              <div>
+                <div class="agency-name">Dahlia House</div>
+                <div class="agency-handle">@dahliahouse</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-starter">STARTER</span></td>
+          <td class="mono">$99</td>
+          <td class="mono">4</td>
+          <td class="mono">38</td>
+          <td>hace 6d</td>
+          <td><span class="status-pill ok"><span class="status-dot"></span>Al día</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo" style="background: linear-gradient(135deg, #FF8FAD, #FF6B8E);">EV</div>
+              <div>
+                <div class="agency-name">Evo Digital</div>
+                <div class="agency-handle">@evodigital</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-elite">ELITE</span></td>
+          <td class="mono">$499</td>
+          <td class="mono">31</td>
+          <td class="mono">412</td>
+          <td>hace 30min</td>
+          <td><span class="status-pill ok"><span class="status-dot"></span>Al día</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+        <tr style="opacity: 0.6;">
+          <td>
+            <div class="agency-cell">
+              <div class="agency-logo" style="background: var(--ls-aurometal);">FL</div>
+              <div>
+                <div class="agency-name">Flora & Co</div>
+                <div class="agency-handle">@floraandco</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="plan-badge plan-starter">STARTER</span></td>
+          <td class="mono">$99</td>
+          <td class="mono">2</td>
+          <td class="mono">7</td>
+          <td>hace 42d</td>
+          <td><span class="status-pill bad"><span class="status-dot"></span>Cancelado</span></td>
+          <td><button class="actions-btn">···</button></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    SOCIALGO PLATFORM ADMIN · WIREFRAME PREVIEW · Data mock, botones no funcionales
+  </div>
+</main>
+
+</body>
+</html>
