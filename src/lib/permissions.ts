@@ -81,7 +81,8 @@ const PERMISSION_MATRIX: Record<MemberRole, Permission[]> = {
     'comment_on_posts',
   ],
   creative: [
-    'view_all_clients',
+    // NO 'view_all_clients' — creatives only see clients assigned via
+    // client_members. NO 'manage_packages', NO 'view_reports'.
     'create_posts',
     'edit_posts',
     'view_posts',
