@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useClients, usePosts, updatePost, createPostComment, usePostComments, uploadAndAttachAsset, useCurrentUser } from '@/lib/hooks';
 import { POST_TYPE_CONFIG, FORMAT_CONFIG } from '@/types';
 import type { Post, Client, PostType, PostFormat, ApprovalStatus } from '@/types';
+import { usePermissions } from '@/lib/permissions';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -130,9 +131,11 @@ interface PostCardProps {
   post: Post;
   client: Client | undefined;
   onStatusChange: () => void;
+  canApprove: boolean;
+  canUpload: boolean;
 }
 
-function PostCard({ post, client, onStatusChange }: PostCardProps) {
+function PostCard({ post, client, onStatusChange, canApprove, canUpload }: PostCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -193,16 +196,18 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
             alt={post.name || 'Post'}
             className="w-full h-48 object-cover"
           />
-          {/* Replace asset overlay */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1"
-          >
-            {isUploading ? '⏳ Subiendo...' : '🔄 Cambiar asset'}
-          </button>
+          {/* Replace asset overlay — only for users who can upload */}
+          {canUpload && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1"
+            >
+              {isUploading ? '⏳ Subiendo...' : '🔄 Cambiar asset'}
+            </button>
+          )}
         </div>
-      ) : (
+      ) : canUpload ? (
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
@@ -226,6 +231,18 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
             </>
           )}
         </button>
+      ) : (
+        <div
+          className="w-full h-32 flex items-center justify-center"
+          style={{ background: `${typeConfig?.color || '#D0D0D0'}15` }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+            style={{ backgroundColor: typeConfig?.color || '#D0D0D0' }}
+          >
+            {typeConfig?.letter || '?'}
+          </div>
+        </div>
       )}
 
       <div className="p-4 space-y-3">
@@ -294,33 +311,35 @@ function PostCard({ post, client, onStatusChange }: PostCardProps) {
           )}
         </div>
 
-        {/* Approval Actions — visible to everyone */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
-          <button
-            onClick={() => handleApproval('approved')}
-            disabled={isUpdating || post.approval_status === 'approved'}
-            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
-            style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#065F46' }}
-          >
-            ✅ Aprobar
-          </button>
-          <button
-            onClick={() => handleApproval('approved_with_changes')}
-            disabled={isUpdating}
-            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
-            style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#1E40AF' }}
-          >
-            📝 Con cambios
-          </button>
-          <button
-            onClick={() => handleApproval('rejected')}
-            disabled={isUpdating}
-            className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
-            style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#991B1B' }}
-          >
-            ❌ Rechazar
-          </button>
-        </div>
+        {/* Approval Actions — only for roles with approve_posts */}
+        {canApprove && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+            <button
+              onClick={() => handleApproval('approved')}
+              disabled={isUpdating || post.approval_status === 'approved'}
+              className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+              style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#065F46' }}
+            >
+              ✅ Aprobar
+            </button>
+            <button
+              onClick={() => handleApproval('approved_with_changes')}
+              disabled={isUpdating}
+              className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+              style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#1E40AF' }}
+            >
+              📝 Con cambios
+            </button>
+            <button
+              onClick={() => handleApproval('rejected')}
+              disabled={isUpdating}
+              className="flex-1 min-h-[44px] py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
+              style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#991B1B' }}
+            >
+              ❌ Rechazar
+            </button>
+          </div>
+        )}
 
         {/* Comments toggle */}
         <button
@@ -345,6 +364,9 @@ export default function ContenidoPage() {
 
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: posts, loading: postsLoading, refetch: refetchPosts } = usePosts();
+  const { can } = usePermissions();
+  const canApprove = can('approve_posts');
+  const canUpload = can('create_posts');
 
   const weekEnd = useMemo(() => {
     const end = new Date(currentWeekStart);
@@ -493,6 +515,8 @@ export default function ContenidoPage() {
               post={post}
               client={clientMap.get(post.client_id)}
               onStatusChange={refetchPosts}
+              canApprove={canApprove}
+              canUpload={canUpload}
             />
           ))}
         </div>

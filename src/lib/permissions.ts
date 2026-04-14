@@ -95,6 +95,7 @@ const PERMISSION_MATRIX: Record<MemberRole, Permission[]> = {
     'view_posts',
     'view_brand_kits',
     'comment_on_posts',
+    'approve_posts',
   ],
 };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useClients, usePosts } from '@/lib/hooks';
+import { useClients, usePosts, updatePost } from '@/lib/hooks';
 import { PostType, POST_TYPE_CONFIG, Platform } from '@/types';
 import PermissionGate from '@/components/auth/PermissionGate';
 
@@ -147,6 +147,11 @@ function AIStudioPageInner() {
   const [generatedHashtags, setGeneratedHashtags] = useState<ReturnType<typeof generateHashtags> | null>(null);
   const [copiedHashtag, setCopiedHashtag] = useState<string | null>(null);
 
+  // Apply to post state
+  const [applyPostId, setApplyPostId] = useState<string>('');
+  const [applying, setApplying] = useState(false);
+  const [applySuccess, setApplySuccess] = useState<string | null>(null);
+
   // Recent scores from posts
   const recentScored = (posts || [])
     .filter((p) => p.ai_score !== null && p.ai_score !== undefined)
@@ -239,6 +244,24 @@ function AIStudioPageInner() {
   const handleUseCopy = (copyText: string) => {
     setCopy(copyText);
     setActiveTab('analizar');
+  };
+
+  const handleApplyToPost = async (copyText: string) => {
+    if (!applyPostId) {
+      alert('Selecciona un post primero');
+      return;
+    }
+    setApplying(true);
+    try {
+      await updatePost(applyPostId, { copy: copyText });
+      setApplySuccess(applyPostId);
+      setTimeout(() => setApplySuccess(null), 3000);
+    } catch (err) {
+      console.error('Error applying copy:', err);
+      alert('Error al aplicar el copy al post');
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleGenerateHashtags = () => {
@@ -694,9 +717,37 @@ function AIStudioPageInner() {
               {/* Generated Copys */}
               {generatedCopies.length > 0 && (
                 <div className="space-y-4 animate-[fadeIn_0.3s]">
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-mid)' }}>
-                    Opciones generadas
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-mid)' }}>
+                      Opciones generadas
+                    </p>
+                  </div>
+
+                  {/* Post selector for applying copy */}
+                  <div className="p-3 rounded-xl border" style={{ borderColor: 'var(--glass-border)', background: 'var(--bg)' }}>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
+                      Aplicar a un post existente (opcional)
+                    </label>
+                    <select
+                      value={applyPostId}
+                      onChange={(e) => setApplyPostId(e.target.value)}
+                      className="w-full text-sm px-3 py-2 rounded-lg border"
+                      style={{ borderColor: 'var(--glass-border)', background: 'var(--surface)', color: 'var(--text-dark)' }}
+                    >
+                      <option value="">Seleccionar post...</option>
+                      {(posts || []).filter(p => !genClient || p.client_id === genClient).slice(0, 30).map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name || p.copy?.slice(0, 40) || 'Post sin título'} — {p.scheduled_date || 'sin fecha'}
+                        </option>
+                      ))}
+                    </select>
+                    {applySuccess && (
+                      <p className="text-xs mt-1 font-semibold" style={{ color: '#059669' }}>
+                        ✅ Copy aplicado al post
+                      </p>
+                    )}
+                  </div>
+
                   {generatedCopies.map((gen, idx) => (
                     <div
                       key={gen.id}
@@ -717,16 +768,23 @@ function AIStudioPageInner() {
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-dark)' }}>
                         {gen.text}
                       </p>
-                      <button
-                        onClick={() => handleUseCopy(gen.text)}
-                        className="w-full py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-                        style={{
-                          background: 'var(--primary)',
-                          color: 'white',
-                        }}
-                      >
-                        Usar este copy
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUseCopy(gen.text)}
+                          className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                          style={{ background: 'var(--glass-border)', color: 'var(--text-dark)' }}
+                        >
+                          Analizar copy
+                        </button>
+                        <button
+                          onClick={() => handleApplyToPost(gen.text)}
+                          disabled={!applyPostId || applying}
+                          className="flex-1 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-40"
+                          style={{ background: 'var(--gradient)' }}
+                        >
+                          {applying ? '...' : '📌 Aplicar a post'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
