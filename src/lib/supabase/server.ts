@@ -1,6 +1,9 @@
 /**
  * Supabase server-side client
  * Used for server components and API routes with proper cookie handling
+ *
+ * NOTE: pinned to @supabase/ssr@0.0.10 which uses get/set/remove (NOT getAll/setAll).
+ * If you upgrade @supabase/ssr, switch to the newer API.
  */
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
@@ -14,17 +17,22 @@ export const createServerSupabaseClient = async () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-        setAll(cookiesToSet) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options as CookieOptions);
-            });
+            cookieStore.set(name, value, options);
           } catch {
-            // Cookies middleware may throw if response headers already sent
-            // This is expected in some cases, just silently fail
+            // Cookies may not be settable here (e.g. Server Component).
+            // Middleware refreshes the session, so silently ignore.
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set(name, "", { ...options, maxAge: 0 });
+          } catch {
+            // same as above
           }
         },
       },
@@ -44,17 +52,18 @@ export const createServiceRoleClient = async () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-        setAll(cookiesToSet) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options as CookieOptions);
-            });
-          } catch {
-            // Cookies middleware may throw if response headers already sent
-          }
+            cookieStore.set(name, value, options);
+          } catch {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set(name, "", { ...options, maxAge: 0 });
+          } catch {}
         },
       },
     }

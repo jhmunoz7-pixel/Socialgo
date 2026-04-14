@@ -1,6 +1,8 @@
 /**
  * Supabase middleware helper
  * Used by Next.js middleware to update Supabase session from cookies
+ *
+ * NOTE: pinned to @supabase/ssr@0.0.10 which uses get/set/remove.
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -18,25 +20,32 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
+        get(name: string) {
+          return request.cookies.get(name)?.value;
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            });
-            response.cookies.set(name, value, options as CookieOptions);
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
           });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: "", ...options });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({ name, value: "", ...options });
         },
       },
     }
   );
 
-  // This refreshes the auth token if needed
+  // This refreshes the auth token if needed and keeps cookies in sync
   await supabase.auth.getUser();
 
   return response;
