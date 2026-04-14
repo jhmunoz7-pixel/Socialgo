@@ -46,7 +46,14 @@ export function LoginForm() {
       if (planParam && cycleParam) {
         router.push(`/pricing?auto=1&plan=${planParam}&cycle=${cycleParam}`);
       } else {
-        router.push("/dashboard");
+        // Check if platform admin — redirect to /platform instead of /dashboard
+        try {
+          const adminRes = await fetch('/api/me/is-platform-admin', { cache: 'no-store' });
+          const adminData = adminRes.ok ? await adminRes.json() : { isAdmin: false };
+          router.push(adminData.isAdmin ? '/platform' : '/dashboard');
+        } catch {
+          router.push('/dashboard');
+        }
       }
       router.refresh();
     } catch (err) {

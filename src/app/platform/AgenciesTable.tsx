@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SOCIALGO_PLANS, type PlanKey } from "@/lib/pricing-config";
 import AgencyActionsModal, {
@@ -50,10 +51,29 @@ export default function AgenciesTable({
   agencies: PlatformAgencyRow[];
   pastDueCount: number;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [plan, setPlan] = useState<PlanFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [activeAgency, setActiveAgency] = useState<AgencyForModal | null>(null);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+
+  const handleImpersonate = async (orgId: string) => {
+    setImpersonatingId(orgId);
+    try {
+      const res = await fetch("/api/platform/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      if (res.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } finally {
+      setImpersonatingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -376,7 +396,23 @@ export default function AgenciesTable({
                       {statusColors.label}
                     </span>
                   </td>
-                  <td style={cellStyle()}>
+                  <td style={{ ...cellStyle(), whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => handleImpersonate(a.id)}
+                      disabled={impersonatingId === a.id}
+                      style={{
+                        ...rowActionBtn(),
+                        background: "transparent",
+                        color: "#B4F965",
+                        border: "1px solid rgba(180,249,101,0.4)",
+                        marginRight: 6,
+                        opacity: impersonatingId === a.id ? 0.5 : 1,
+                        cursor: impersonatingId === a.id ? "wait" : "pointer",
+                      }}
+                      title="Entrar como esta agencia"
+                    >
+                      {impersonatingId === a.id ? "..." : "👁️"}
+                    </button>
                     <button
                       onClick={() =>
                         setActiveAgency({
