@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useClient, usePackages, useMembers, updatePost, createPost, useCurrentUser } from '@/lib/hooks';
-import { Client, Post, POST_TYPE_CONFIG, PostType, calculateMonthlyPayment } from '@/types';
+import { Post, POST_TYPE_CONFIG, PostType, calculateMonthlyPayment } from '@/types';
 import { PostModal } from '@/components/posts/PostModal';
 import { EditClientModal } from '@/components/clients/EditClientModal';
 import BrandKitPanel from '@/components/clients/BrandKitPanel';
@@ -107,21 +107,7 @@ export default function ClientDetailPage() {
     return labels[status] || status;
   };
 
-  const formatDate = (dateStr: string | null): string => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-MX', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const formatPostDate = (dateStr: string | null): string => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' });
-  };
+  // formatDate and formatPostDate available in PostCard component below
 
   // Loading skeleton
   if (loading) {

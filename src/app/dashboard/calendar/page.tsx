@@ -31,7 +31,7 @@ const generateCalendarDays = (date: Date): CalendarDay[] => {
 
   // First day of the month and day of week it falls on
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  // lastDay used implicitly by the 42-day grid generation
 
   // Starting Monday (1) instead of Sunday (0)
   const startDate = new Date(firstDay);

@@ -10,7 +10,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const state = requestUrl.searchParams.get("state");
+  // const state = requestUrl.searchParams.get("state"); // reserved for future OAuth state validation
 
   if (code) {
     try {

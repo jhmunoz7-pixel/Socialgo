@@ -9,7 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/Button";
+// Button not used here — UserMenu renders its own styled buttons
 import type { AuthUser } from "@/types";
 
 interface UserMenuProps {

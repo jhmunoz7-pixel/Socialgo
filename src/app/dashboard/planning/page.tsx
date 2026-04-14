@@ -40,7 +40,7 @@ const generateCalendarDays = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  // lastDay not needed — grid always generates 35-42 cells
   const startDate = new Date(firstDay);
   startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
 
