@@ -11,6 +11,58 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripeServer, getStripeWebhookSecret } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { SOCIALGO_PLANS, type PlanKey, type BillingCycle } from "@/lib/pricing-config";
+
+/**
+ * Resolve plan + billing cycle from a Stripe price by matching against
+ * pricing-config env-var-backed price IDs. Falls back to lookup_key if
+ * price.id doesn't match any configured plan.
+ */
+function resolvePlanFromPrice(
+  price: Stripe.Price
+): { plan: PlanKey; billingCycle: BillingCycle; clientLimit: number } | null {
+  const priceId = price.id;
+
+  const paidPlans: PlanKey[] = ["pro", "full_access"];
+  for (const planKey of paidPlans) {
+    const planConfig = SOCIALGO_PLANS[planKey];
+    const ids = planConfig.stripePriceIds;
+    for (const cycle of ["monthly", "quarterly", "annual"] as const) {
+      const configured = ids?.[cycle];
+      if (configured && configured === priceId) {
+        return {
+          plan: planKey,
+          billingCycle: cycle,
+          clientLimit: planConfig.clientMax,
+        };
+      }
+    }
+  }
+
+  // Fallback: lookup_key-based matching (legacy)
+  const lookupKey = (price.lookup_key || "").toLowerCase();
+  let plan: PlanKey | null = null;
+  let clientLimit = 1;
+  if (lookupKey.includes("pro")) {
+    plan = "pro";
+    clientLimit = 5;
+  } else if (lookupKey.includes("full")) {
+    plan = "full_access";
+    clientLimit = 20;
+  }
+
+  if (!plan) return null;
+
+  let billingCycle: BillingCycle = "monthly";
+  if (price.recurring) {
+    const interval = price.recurring.interval;
+    const intervalCount = price.recurring.interval_count || 1;
+    if (interval === "month" && intervalCount === 3) billingCycle = "quarterly";
+    else if (interval === "year") billingCycle = "annual";
+  }
+
+  return { plan, billingCycle, clientLimit };
+}
 
 /**
  * Handler for different Stripe webhook events
@@ -50,9 +102,9 @@ async function handleCheckoutSessionCompleted(
 
   // Get subscription details from Stripe to determine the plan
   const stripe = getStripeServer();
-  let plan: "free" | "pro" | "full_access" = "free";
+  let plan: PlanKey = "free";
   let clientLimit = 1;
-  let billingCycle: "monthly" | "quarterly" | "annual" = "monthly";
+  let billingCycle: BillingCycle = "monthly";
 
   try {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
@@ -61,29 +113,15 @@ async function handleCheckoutSessionCompleted(
 
     if (subscription.items.data.length > 0) {
       const price = subscription.items.data[0].price;
-      const lookupKey = price.lookup_key || "";
-
-      // Determine plan based on lookup_key
-      if (lookupKey.toLowerCase().includes("pro")) {
-        plan = "pro";
-        clientLimit = 5;
-      } else if (lookupKey.toLowerCase().includes("full")) {
-        plan = "full_access";
-        clientLimit = 20;
-      }
-
-      // Determine billing cycle
-      if (price.recurring) {
-        const interval = price.recurring.interval;
-        const intervalCount = price.recurring.interval_count || 1;
-
-        if (interval === "month" && intervalCount === 1) {
-          billingCycle = "monthly";
-        } else if (interval === "month" && intervalCount === 3) {
-          billingCycle = "quarterly";
-        } else if (interval === "year") {
-          billingCycle = "annual";
-        }
+      const resolved = resolvePlanFromPrice(price);
+      if (resolved) {
+        plan = resolved.plan;
+        billingCycle = resolved.billingCycle;
+        clientLimit = resolved.clientLimit;
+      } else {
+        console.warn(
+          `Could not resolve plan from price ${price.id} (lookup_key: ${price.lookup_key}) — defaulting to free`
+        );
       }
     }
   } catch (stripeError) {
@@ -123,35 +161,17 @@ async function handleCustomerSubscriptionUpdated(
     | "canceled";
 
   // Determine if plan or billing_cycle changed
-  let plan: "free" | "pro" | "full_access" | undefined;
-  let billingCycle: "monthly" | "quarterly" | "annual" | undefined;
+  let plan: PlanKey | undefined;
+  let billingCycle: BillingCycle | undefined;
   let clientLimit: number | undefined;
 
   if (subscription.items.data.length > 0) {
     const price = subscription.items.data[0].price;
-    const lookupKey = price.lookup_key || "";
-
-    // Determine plan based on lookup_key
-    if (lookupKey.toLowerCase().includes("pro")) {
-      plan = "pro";
-      clientLimit = 5;
-    } else if (lookupKey.toLowerCase().includes("full")) {
-      plan = "full_access";
-      clientLimit = 20;
-    }
-
-    // Determine billing cycle
-    if (price.recurring) {
-      const interval = price.recurring.interval;
-      const intervalCount = price.recurring.interval_count || 1;
-
-      if (interval === "month" && intervalCount === 1) {
-        billingCycle = "monthly";
-      } else if (interval === "month" && intervalCount === 3) {
-        billingCycle = "quarterly";
-      } else if (interval === "year") {
-        billingCycle = "annual";
-      }
+    const resolved = resolvePlanFromPrice(price);
+    if (resolved) {
+      plan = resolved.plan;
+      billingCycle = resolved.billingCycle;
+      clientLimit = resolved.clientLimit;
     }
   }
 
@@ -197,29 +217,53 @@ async function handleCustomerSubscriptionDeleted(
   }
 }
 
-async function handleChargeSucceeded(event: Stripe.ChargeSucceededEvent) {
-  const charge = event.data.object;
+async function handleInvoicePaymentSucceeded(
+  event: Stripe.InvoicePaymentSucceededEvent
+) {
+  const invoice = event.data.object;
+  const subscriptionId =
+    typeof invoice.subscription === "string" ? invoice.subscription : null;
 
-  // Optional: Log successful charges for analytics
-  console.log("Charge succeeded:", {
-    chargeId: charge.id,
-    amount: charge.amount,
-    currency: charge.currency,
-    customerId: charge.customer,
-  });
+  if (!subscriptionId) return;
+
+  const supabase = await createServiceRoleClient();
+
+  // Restore to active on successful payment (covers past_due → active recovery)
+  const { error } = await supabase
+    .from("organizations")
+    .update({ plan_status: "active" })
+    .eq("stripe_subscription_id", subscriptionId);
+
+  if (error) {
+    console.error(
+      "Failed to mark org active on invoice.payment_succeeded:",
+      error
+    );
+  }
 }
 
-async function handleChargeFailed(event: Stripe.ChargeFailedEvent) {
-  const charge = event.data.object;
+async function handleInvoicePaymentFailed(
+  event: Stripe.InvoicePaymentFailedEvent
+) {
+  const invoice = event.data.object;
+  const subscriptionId =
+    typeof invoice.subscription === "string" ? invoice.subscription : null;
 
-  console.error("Charge failed:", {
-    chargeId: charge.id,
-    failureMessage: charge.failure_message,
-    customerId: charge.customer,
-  });
+  if (!subscriptionId) return;
 
-  // Optional: Send email notification to user
-  // Optional: Update subscription status to past_due if recurring
+  const supabase = await createServiceRoleClient();
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ plan_status: "past_due" })
+    .eq("stripe_subscription_id", subscriptionId);
+
+  if (error) {
+    console.error(
+      "Failed to mark org past_due on invoice.payment_failed:",
+      error
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -267,12 +311,16 @@ export async function POST(request: NextRequest) {
         );
         break;
 
-      case "charge.succeeded":
-        await handleChargeSucceeded(event as Stripe.ChargeSucceededEvent);
+      case "invoice.payment_succeeded":
+        await handleInvoicePaymentSucceeded(
+          event as Stripe.InvoicePaymentSucceededEvent
+        );
         break;
 
-      case "charge.failed":
-        await handleChargeFailed(event as Stripe.ChargeFailedEvent);
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(
+          event as Stripe.InvoicePaymentFailedEvent
+        );
         break;
 
       default:

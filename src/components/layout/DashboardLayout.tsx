@@ -43,6 +43,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Platform admin status (Jorge's god-mode sidebar entry)
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/me/is-platform-admin', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((d) => {
+        if (!cancelled) setIsPlatformAdmin(Boolean(d?.isAdmin));
+      })
+      .catch(() => {
+        /* non-admin → silently ignore */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
@@ -182,6 +199,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
+        {/* Platform Admin link (Jorge's god-mode, only shown to admins) */}
+        {isPlatformAdmin && (
+          <div className="px-3 pt-3 pb-1">
+            <Link
+              href="/platform"
+              className={`flex items-center gap-3 rounded-lg transition-all duration-200 ${
+                showLabels ? 'px-3 py-2' : 'px-0 py-2 justify-center'
+              }`}
+              style={{
+                background: 'rgba(180, 249, 101, 0.12)',
+                border: '1px solid rgba(180, 249, 101, 0.4)',
+                color: '#0F1D27',
+              }}
+              title={!showLabels ? 'Platform Admin' : undefined}
+            >
+              <span className="text-lg flex-shrink-0">🛠️</span>
+              {showLabels && (
+                <span className="text-xs font-semibold uppercase tracking-wide">
+                  Platform Admin
+                </span>
+              )}
+            </Link>
+          </div>
+        )}
+
         {/* User Chip + Sign Out */}
         <div className="px-3 py-3 border-t space-y-2" style={{ borderTopColor: 'var(--glass-border)' }}>
           <div className={`flex items-center ${showLabels ? 'gap-3' : 'justify-center'}`}>
@@ -229,7 +271,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           <button
             onClick={() => setMobileOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--surface)', color: 'var(--text-dark)' }}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

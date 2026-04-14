@@ -4,6 +4,12 @@
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://socialgo.app"
   },
+  "crons": [
+    {
+      "path": "/api/cron/weekly-alerts",
+      "schedule": "0 15 * * 1"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

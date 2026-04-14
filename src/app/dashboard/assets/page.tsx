@@ -288,10 +288,10 @@ export default function AssetsPage() {
             >
               {filteredAssets.length} asset{filteredAssets.length !== 1 ? 's' : ''}
             </p>
-            <div className="flex items-center gap-2 rounded-2xl p-1" style={{ background: 'rgba(255,181,200,0.1)' }}>
+            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: 'rgba(255,181,200,0.1)' }}>
               <button
                 onClick={() => setViewMode('grid')}
-                className="p-2 rounded-xl transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors"
                 style={{
                   background:
                     viewMode === 'grid'
@@ -304,7 +304,7 @@ export default function AssetsPage() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className="p-2 rounded-xl transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors"
                 style={{
                   background:
                     viewMode === 'list'

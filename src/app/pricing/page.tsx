@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 // Icon replacements (no external dependency)
 const Check = () => <span className="text-green-600 font-bold">✓</span>;
 const X = () => <span className="text-red-400 font-bold">✕</span>;
@@ -10,8 +12,65 @@ const ChevronDown = ({ className }: { className?: string }) => (
 );
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: '#FFF8F3' }} />}>
+      <PricingPageInner />
+    </Suspense>
+  );
+}
+
+function PricingPageInner() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<'pro' | 'full_access' | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const autoTriggered = useRef(false);
+
+  const handleSelectPlan = async (plan: 'pro' | 'full_access') => {
+    setCheckoutError(null);
+    setCheckoutLoading(plan);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Not logged in → send to signup with plan+cycle preserved
+      if (!user) {
+        window.location.href = `/auth/signup?plan=${plan}&cycle=${billingCycle}`;
+        return;
+      }
+
+      // Logged in → start Stripe checkout directly
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, cycle: billingCycle }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'No se pudo iniciar el checkout');
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setCheckoutError(err instanceof Error ? err.message : 'Error desconocido');
+      setCheckoutLoading(null);
+    }
+  };
+
+  // Auto-trigger checkout if returning from login with ?auto=1&plan=...&cycle=...
+  useEffect(() => {
+    if (autoTriggered.current) return;
+    const auto = searchParams?.get('auto');
+    const plan = searchParams?.get('plan');
+    const cycle = searchParams?.get('cycle') as 'monthly' | 'quarterly' | 'annual' | null;
+    if (auto === '1' && (plan === 'pro' || plan === 'full_access') && cycle) {
+      autoTriggered.current = true;
+      setBillingCycle(cycle);
+      handleSelectPlan(plan);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const prices = {
     monthly: {
@@ -190,6 +249,15 @@ export default function PricingPage() {
         )}
       </section>
 
+      {/* Checkout error banner */}
+      {checkoutError && (
+        <section className="max-w-3xl mx-auto px-6 mb-8">
+          <div className="rounded-xl p-4 bg-red-50 border border-red-200 text-sm text-red-700">
+            {checkoutError}
+          </div>
+        </section>
+      )}
+
       {/* Pricing Cards */}
       <section className="max-w-7xl mx-auto px-6 mb-20">
         <div className="grid md:grid-cols-3 gap-8">
@@ -249,12 +317,13 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <Link
-              href="/auth/signup?plan=pro"
-              className="w-full block text-center px-6 py-3 rounded-lg bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white font-semibold hover:shadow-lg transition mb-8"
+            <button
+              onClick={() => handleSelectPlan('pro')}
+              disabled={checkoutLoading !== null}
+              className="w-full block text-center px-6 py-3 rounded-lg bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white font-semibold hover:shadow-lg transition mb-8 disabled:opacity-60"
             >
-              Iniciar prueba gratis
-            </Link>
+              {checkoutLoading === 'pro' ? 'Cargando...' : 'Iniciar prueba gratis'}
+            </button>
 
             <div className="space-y-4">
               {features.pro.map((feature, idx) => (
@@ -284,12 +353,13 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <Link
-              href="/auth/signup?plan=full_access"
-              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#FF8FAD] font-semibold hover:bg-gray-50 transition mb-8 border border-[#FFB5C8]"
+            <button
+              onClick={() => handleSelectPlan('full_access')}
+              disabled={checkoutLoading !== null}
+              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#FF8FAD] font-semibold hover:bg-gray-50 transition mb-8 border border-[#FFB5C8] disabled:opacity-60"
             >
-              Iniciar prueba gratis
-            </Link>
+              {checkoutLoading === 'full_access' ? 'Cargando...' : 'Iniciar prueba gratis'}
+            </button>
 
             <div className="space-y-4">
               {features.fullAccess.map((feature, idx) => (

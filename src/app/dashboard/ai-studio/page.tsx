@@ -330,7 +330,7 @@ export default function AIStudioPage() {
               </h2>
 
               {/* Client + Post Type row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-mid)' }}>
                     Cliente
@@ -380,7 +380,7 @@ export default function AIStudioPage() {
               </div>
 
               {/* Platform + Objective row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-mid)' }}>
                     Plataforma
@@ -544,7 +544,7 @@ export default function AIStudioPage() {
               </h2>
 
               {/* Client + Post Type row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-mid)' }}>
                     Cliente (opcional)
@@ -594,7 +594,7 @@ export default function AIStudioPage() {
               </div>
 
               {/* Platform + Tone row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-mid)' }}>
                     Plataforma

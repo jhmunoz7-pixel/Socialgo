@@ -61,5 +61,9 @@ export const config = {
     "/auth/:path*",
     // API routes
     "/api/:path*",
+    // Platform admin (Jorge's god mode). Auth and admin check live in the
+    // /platform layout — middleware runs here only to refresh the Supabase
+    // session cookies so the layout gets a fresh user.
+    "/platform/:path*",
   ],
 };

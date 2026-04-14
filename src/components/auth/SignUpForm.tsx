@@ -6,13 +6,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 export function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planParam = searchParams?.get("plan") || "";
+  const cycleParam = searchParams?.get("cycle") || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -59,7 +62,11 @@ export function SignUpForm() {
         return;
       }
 
-      router.push("/auth/login?message=check_email");
+      // Preserve plan selection through email-confirmation step
+      const qs = new URLSearchParams({ message: "check_email" });
+      if (planParam) qs.set("plan", planParam);
+      if (cycleParam) qs.set("cycle", cycleParam);
+      router.push(`/auth/login?${qs.toString()}`);
       router.refresh();
     } catch (err) {
       const errorMessage =
