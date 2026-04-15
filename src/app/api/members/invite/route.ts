@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
   if (!targetUserId) {
     const { data: invited, error: inviteError } =
       await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: `${origin}/auth/set-password`,
         data: { full_name: fullName },
       });
 
