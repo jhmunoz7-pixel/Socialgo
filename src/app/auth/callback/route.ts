@@ -56,9 +56,19 @@ export async function GET(request: NextRequest) {
         console.error("Failed to upsert user profile:", profileError);
       }
 
-      // Redirect to `next` param (e.g. /auth/set-password for invites) or dashboard
-      const next = requestUrl.searchParams.get("next");
-      const destination = next && next.startsWith("/") ? next : "/dashboard";
+      // Detect invited users who need to set a password.
+      // invited_at is set by inviteUserByEmail; if present and this is their
+      // first or second sign-in (the invite click counts as first), send them
+      // to set-password. After they set a password, subsequent logins skip this.
+      const invitedAt = user.app_metadata?.invited_at;
+      const signInCount =
+        typeof user.app_metadata?.sign_in_count === "number"
+          ? user.app_metadata.sign_in_count
+          : null;
+      const isInvitedUser =
+        invitedAt && (signInCount === null || signInCount <= 1);
+
+      const destination = isInvitedUser ? "/auth/set-password" : "/dashboard";
       return NextResponse.redirect(new URL(destination, request.url));
     } catch (error) {
       console.error("Unexpected error in auth callback:", error);

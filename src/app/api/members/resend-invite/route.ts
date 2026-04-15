@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     // Resend the invitation
     const { error: inviteError } =
       await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${appUrl}/auth/callback?next=/auth/set-password`,
+        redirectTo: `${appUrl}/auth/callback`,
         data: {
           full_name: targetMember.full_name,
           invited_org_id: callerMember.org_id,
