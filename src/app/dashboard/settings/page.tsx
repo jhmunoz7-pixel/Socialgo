@@ -2,67 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/hooks';
-import { usePermissions, getRoleLabel, getRoleColor, Permission, getPermissionLabel } from '@/lib/permissions';
+import { usePermissions, getRoleLabel, getRoleColor } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
 
-// ============================================================================
-// PERMISSION MATRIX FOR DISPLAY
-// ============================================================================
-
-const ALL_ROLES: MemberRole[] = ['owner', 'admin', 'member', 'creative', 'client_viewer'];
-
-const ALL_PERMISSIONS: Permission[] = [
-  'manage_organization',
-  'manage_billing',
-  'manage_members',
-  'manage_packages',
-  'view_all_clients',
-  'manage_clients',
-  'create_posts',
-  'edit_posts',
-  'delete_posts',
-  'approve_posts',
-  'view_posts',
-  'view_reports',
-  'use_ai_studio',
-  'manage_brand_kits',
-  'view_brand_kits',
-  'comment_on_posts',
-];
-
-const PERMISSION_MATRIX: Record<MemberRole, Permission[]> = {
-  owner: [
-    'manage_organization', 'manage_billing', 'manage_members', 'manage_packages',
-    'view_all_clients', 'manage_clients', 'create_posts', 'edit_posts',
-    'delete_posts', 'approve_posts', 'view_posts', 'view_reports',
-    'use_ai_studio', 'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
-  ],
-  admin: [
-    'manage_billing', 'manage_members', 'manage_packages', 'view_all_clients',
-    'manage_clients', 'create_posts', 'edit_posts', 'delete_posts',
-    'approve_posts', 'view_posts', 'view_reports', 'use_ai_studio',
-    'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
-  ],
-  member: [
-    'view_all_clients', 'manage_clients', 'create_posts', 'edit_posts',
-    'delete_posts', 'approve_posts', 'view_posts', 'view_reports',
-    'use_ai_studio', 'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
-  ],
-  creative: [
-    // Creatives only see clients explicitly assigned via client_members.
-    // No access to packages, reports, or cross-client data.
-    'create_posts', 'edit_posts', 'view_posts',
-    'use_ai_studio', 'manage_brand_kits', 'view_brand_kits', 'comment_on_posts',
-  ],
-  client_viewer: [
-    'view_posts', 'view_brand_kits', 'comment_on_posts',
-  ],
-};
-
-function hasPermission(role: MemberRole, permission: Permission): boolean {
-  return PERMISSION_MATRIX[role]?.includes(permission) ?? false;
-}
 
 // ============================================================================
 // TAB: AGENCIA (Organization Settings)
@@ -789,54 +732,6 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
 // TAB: PERMISOS (Permissions Overview)
 // ============================================================================
 
-function PermisosTab() {
-  return (
-    <div className="glass-card p-4 md:p-8 rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 shadow-lg">
-      <h2 className="text-2xl font-serif font-bold text-text mb-4">Matriz de Permisos</h2>
-      <p className="text-xs text-text/50 mb-4 md:hidden">Desliza horizontalmente para ver todos los roles →</p>
-
-      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin' }}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              <th className="text-left py-2 px-4 text-text font-semibold border-b border-white/20">Permiso</th>
-              {ALL_ROLES.map((role) => (
-                <th
-                  key={role}
-                  className="text-center py-2 px-4 text-text font-semibold border-b border-white/20"
-                  style={{ minWidth: '120px' }}
-                >
-                  <div className="text-xs">{getRoleLabel(role)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {ALL_PERMISSIONS.map((permission) => (
-              <tr key={permission} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                <td className="py-3 px-4 text-text/80">{getPermissionLabel(permission)}</td>
-                {ALL_ROLES.map((role) => (
-                  <td key={`${permission}-${role}`} className="text-center py-3 px-4">
-                    {hasPermission(role, permission) ? (
-                      <span className="text-lg">✅</span>
-                    ) : (
-                      <span className="text-lg text-text/30">❌</span>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="text-xs text-text/60 mt-6 pt-6 border-t border-white/20">
-        Esta tabla muestra todos los permisos disponibles por rol. Los Propietarios tienen acceso completo a todas las
-        funciones.
-      </p>
-    </div>
-  );
-}
 
 // ============================================================================
 // MAIN PAGE
@@ -848,7 +743,7 @@ export default function SettingsPage() {
   const { data: _currentUserData } = useCurrentUser();
   const { role: _role, loading: permLoading, can } = usePermissions();
 
-  const [activeTab, setActiveTab] = useState<'agencia' | 'equipo' | 'permisos'>('agencia');
+  const [activeTab, setActiveTab] = useState<'agencia' | 'equipo'>('agencia');
 
   const canManageOrg = can('manage_organization');
   const canManageMembers = can('manage_members');
@@ -859,7 +754,7 @@ export default function SettingsPage() {
         {/* Sticky Header */}
         <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
           <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>⚙️ Configuración</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Gestiona tu agencia, equipo y permisos</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Gestiona tu agencia y equipo</p>
         </div>
 
         {permLoading ? (
@@ -875,7 +770,6 @@ export default function SettingsPage() {
           {[
             { id: 'agencia', label: 'Agencia' },
             { id: 'equipo', label: 'Equipo' },
-            { id: 'permisos', label: 'Permisos' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -945,7 +839,6 @@ export default function SettingsPage() {
               </div>
             ))}
 
-          {activeTab === 'permisos' && <PermisosTab />}
         </div>
         </>
         )}

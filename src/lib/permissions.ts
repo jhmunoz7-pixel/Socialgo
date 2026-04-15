@@ -127,9 +127,9 @@ export function getRolePermissions(role: MemberRole): Permission[] {
 
 export function getRoleLabel(role: MemberRole): string {
   const labels: Record<MemberRole, string> = {
-    owner: 'Propietario',
+    owner: 'Administrador',
     admin: 'Administrador',
-    member: 'Miembro',
+    member: 'Administrador',
     creative: 'Creativo',
     client_viewer: 'Visor de Cliente',
   };
@@ -139,8 +139,8 @@ export function getRoleLabel(role: MemberRole): string {
 export function getRoleColor(role: MemberRole): string {
   const colors: Record<MemberRole, string> = {
     owner: '#FF8FAD', // rose deep
-    admin: '#FFBA8A', // peach
-    member: '#B8E8C8', // green
+    admin: '#FF8FAD', // same as owner
+    member: '#FF8FAD', // same as owner
     creative: '#E8D5FF', // accent/lavender
     client_viewer: '#D0E8FF', // blue
   };
