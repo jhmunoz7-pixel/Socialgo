@@ -67,7 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         memberQuery = memberQuery.eq('org_id', impersonateOrgId);
       }
 
-      const { data: memberData, error: memberError } = await memberQuery.single();
+      // Use maybeSingle + order so duplicate member rows don't break auth
+      const { data: memberData, error: memberError } = await memberQuery
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
       if (memberError && memberError.code !== 'PGRST116') {
         throw memberError;
