@@ -41,31 +41,16 @@ export const createServerSupabaseClient = async () => {
 };
 
 /**
- * Create a Supabase service role client for admin operations
- * IMPORTANT: Only use this on the server side with proper auth checks
+ * Create a Supabase service role client for admin operations.
+ * Uses createClient directly (NOT createServerClient from SSR) because
+ * @supabase/ssr@0.0.10 ignores the service role key and uses cookies instead.
+ * IMPORTANT: Only use this on the server side with proper auth checks.
  */
 export const createServiceRoleClient = async () => {
-  const cookieStore = await cookies();
-
-  return createServerClient(
+  const { createClient } = await import("@supabase/supabase-js");
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set(name, value, options);
-          } catch {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set(name, "", { ...options, maxAge: 0 });
-          } catch {}
-        },
-      },
-    }
+    { auth: { persistSession: false } }
   );
 };
