@@ -1,13 +1,16 @@
 /**
  * SetPasswordForm — used on /auth/set-password after an invited user
- * clicks the invitation email link. Their Supabase session is already
- * valid (PKCE exchange happened on the callback), they just need to
- * define a real password.
+ * clicks the invitation email link.
+ *
+ * Supabase inviteUserByEmail sends a link that lands on this page with
+ * hash fragments (#access_token=...&type=invite). We need to let the
+ * Supabase client process those tokens to establish a session before
+ * the user can set their password.
  */
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +22,36 @@ export function SetPasswordForm() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // On mount, wait for Supabase to process the hash tokens from the invite link
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Listen for the auth state change that happens when Supabase
+    // processes the #access_token hash fragment from the invite email
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setSessionReady(true);
+        setCheckingSession(false);
+      }
+    });
+
+    // Also check if there's already a valid session (e.g. page refresh)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setSessionReady(true);
+      }
+      setCheckingSession(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +70,6 @@ export function SetPasswordForm() {
     try {
       const supabase = createClient();
 
-      // Require an active session — invite callback should have established it.
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -65,6 +97,27 @@ export function SetPasswordForm() {
       setIsLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="py-8 text-center" style={{ color: "#B8A9A4" }}>
+        Verificando invitación...
+      </div>
+    );
+  }
+
+  if (!sessionReady) {
+    return (
+      <div className="space-y-4 text-center">
+        <p className="text-body-sm" style={{ color: "#E74C3C" }}>
+          Tu sesión de invitación expiró o el enlace es inválido.
+        </p>
+        <p className="text-body-xs" style={{ color: "#7A6560" }}>
+          Pide a tu administrador que te reenvíe la invitación desde el panel de equipo.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-lg">
