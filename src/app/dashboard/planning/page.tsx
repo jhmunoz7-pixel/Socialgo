@@ -276,15 +276,64 @@ interface PostReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApprove: (postId: string) => void;
-  currentUser: { name: string | null; email: string | null; memberId: string | null };
+  onSave: (postId: string, data: Partial<Post>) => Promise<void>;
+  orgId: string | null;
+  currentUser: { name: string | null; email: string | null; memberId: string | null; role: string | null };
 }
 
-function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser }: PostReviewModalProps) {
+function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, orgId, currentUser }: PostReviewModalProps) {
   const { data: comments, refetch: refetchComments } = usePostComments(post?.id ?? null);
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
+  const isClientViewer = currentUser.role === 'client_viewer';
+  const canEdit = !isClientViewer;
+
+  // Editable fields
+  const [editName, setEditName] = useState('');
+  const [editCopy, setEditCopy] = useState('');
+  const [editCta, setEditCta] = useState('');
+  const [editExplanation, setEditExplanation] = useState('');
+  const [editPostType, setEditPostType] = useState<PostType>('educativo');
+  const [editPlatform, setEditPlatform] = useState<Platform>('instagram');
+  const [saving, setSaving] = useState(false);
+  const [assetFile, setAssetFile] = useState<File | null>(null);
+
+  // Sync fields when post changes
+  React.useEffect(() => {
+    if (post) {
+      setEditName(post.name || '');
+      setEditCopy(post.copy || '');
+      setEditCta(post.cta || '');
+      setEditExplanation(post.explanation || '');
+      setEditPostType((post.post_type as PostType) || 'educativo');
+      setEditPlatform(post.platform || 'instagram');
+      setAssetFile(null);
+    }
+  }, [post]);
 
   if (!isOpen || !post) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(post.id, {
+        name: editName.trim() || null,
+        copy: editCopy.trim() || null,
+        cta: editCta.trim() || null,
+        explanation: editExplanation.trim() || null,
+        post_type: editPostType,
+        platform: editPlatform,
+      });
+      if (assetFile && orgId) {
+        await uploadAndAttachAsset(assetFile, orgId, post.id);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Error saving post:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSendComment = async () => {
     if (!newComment.trim() || !post) return;
@@ -292,11 +341,11 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser
     try {
       await createPostComment({
         post_id: post.id,
-        author_name: currentUser.name || 'Cliente',
+        author_name: currentUser.name || (isClientViewer ? 'Cliente' : 'Equipo'),
         author_email: currentUser.email,
         author_member_id: currentUser.memberId,
         content: newComment.trim(),
-        is_client_comment: true,
+        is_client_comment: isClientViewer,
       });
       setNewComment('');
       await refetchComments();
@@ -316,6 +365,8 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser
       a.click();
     }
   };
+
+  const inputStyle = { background: '#FAFAFA', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' };
 
   return (
     <>
@@ -340,62 +391,99 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser
                   </button>
                 </div>
               ) : (
-                <div className="w-full h-64 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,180,150,0.1)' }}>
+                <div className="w-full h-48 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,180,150,0.1)' }}>
                   <p className="text-sm" style={{ color: '#8A7A75' }}>Sin asset cargado</p>
+                </div>
+              )}
+              {/* Upload/change asset (non-client only) */}
+              {canEdit && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>
+                    {post.image_url ? 'Cambiar asset' : 'Subir asset'}
+                  </label>
+                  <input type="file" accept="image/*,video/*" onChange={(e) => setAssetFile(e.target.files?.[0] ?? null)} className="w-full text-xs" />
+                  {assetFile && <p className="text-xs mt-1" style={{ color: '#10B981' }}>Archivo seleccionado: {assetFile.name}</p>}
                 </div>
               )}
             </div>
 
             {/* Right: Info + actions */}
             <div className="p-6 space-y-4">
-              {/* Post info */}
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Fecha</p>
-                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.scheduled_date || '—'}</p>
-                </div>
-                {post.explanation && <div>
-                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Explicación</p>
-                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.explanation}</p>
-                </div>}
-                <div className="flex gap-4">
+              {/* Editable or read-only fields */}
+              {canEdit ? (
+                <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Tipo</p>
-                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type}</p>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Nombre</label>
+                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-3 py-1.5 rounded-lg text-sm border" style={inputStyle} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Plataforma</p>
-                    <p className="text-sm capitalize" style={{ color: '#2A1F1A' }}>{post.platform}</p>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Explicación</label>
+                    <textarea value={editExplanation} onChange={(e) => setEditExplanation(e.target.value)} rows={2} className="w-full px-3 py-1.5 rounded-lg text-sm border resize-none" style={inputStyle} />
                   </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Tipo</label>
+                      <select value={editPostType} onChange={(e) => setEditPostType(e.target.value as PostType)} className="w-full px-2 py-1.5 rounded-lg text-xs border" style={inputStyle}>
+                        {(Object.entries(POST_TYPE_CONFIG) as [PostType, (typeof POST_TYPE_CONFIG)[PostType]][]).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Plataforma</label>
+                      <select value={editPlatform} onChange={(e) => setEditPlatform(e.target.value as Platform)} className="w-full px-2 py-1.5 rounded-lg text-xs border" style={inputStyle}>
+                        {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'youtube'] as Platform[]).map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>CTA</label>
+                    <input type="text" value={editCta} onChange={(e) => setEditCta(e.target.value)} className="w-full px-3 py-1.5 rounded-lg text-sm border" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</label>
+                    <textarea value={editCopy} onChange={(e) => setEditCopy(e.target.value)} rows={3} className="w-full px-3 py-1.5 rounded-lg text-sm border resize-none" style={inputStyle} />
+                  </div>
+                  <button onClick={handleSave} disabled={saving} className="w-full py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+                    {saving ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
                 </div>
-                {post.cta && <div>
-                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>CTA</p>
-                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.cta}</p>
-                </div>}
-              </div>
-
-              {/* Copy */}
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(255,180,150,0.08)' }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</p>
-                <p className="text-sm whitespace-pre-wrap" style={{ color: '#2A1F1A' }}>{post.copy || '(sin copy)'}</p>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { onApprove(post.id); onClose(); }}
-                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
-                  style={{ background: '#10B981' }}
-                >
-                  ✓ Aprobar
-                </button>
-              </div>
+              ) : (
+                /* Read-only for client_viewer */
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Fecha</p>
+                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.scheduled_date || '—'}</p>
+                  </div>
+                  {post.explanation && <div>
+                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Explicación</p>
+                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.explanation}</p>
+                  </div>}
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Tipo</p>
+                      <p className="text-sm" style={{ color: '#2A1F1A' }}>{POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Plataforma</p>
+                      <p className="text-sm capitalize" style={{ color: '#2A1F1A' }}>{post.platform}</p>
+                    </div>
+                  </div>
+                  {post.cta && <div>
+                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>CTA</p>
+                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.cta}</p>
+                  </div>}
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(255,180,150,0.08)' }}>
+                    <p className="text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: '#2A1F1A' }}>{post.copy || '(sin copy)'}</p>
+                  </div>
+                  <button onClick={() => { onApprove(post.id); onClose(); }} className="w-full py-2.5 rounded-xl font-semibold text-sm text-white" style={{ background: '#10B981' }}>
+                    ✓ Aprobar
+                  </button>
+                </div>
+              )}
 
               {/* Comments section */}
               <div className="border-t pt-4" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
                 <p className="text-xs font-semibold mb-3" style={{ color: '#8A7A75' }}>Comentarios</p>
-
-                {/* Existing comments */}
                 <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
                   {comments.length === 0 ? (
                     <p className="text-xs" style={{ color: '#B8A9A4' }}>Sin comentarios aún</p>
@@ -410,24 +498,9 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser
                     ))
                   )}
                 </div>
-
-                {/* New comment input */}
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Escribe un comentario..."
-                    className="flex-1 px-3 py-2 rounded-xl text-sm border"
-                    style={{ background: 'var(--surface)', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
-                  />
-                  <button
-                    onClick={handleSendComment}
-                    disabled={sending || !newComment.trim()}
-                    className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}
-                  >
+                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribe un comentario..." className="flex-1 px-3 py-2 rounded-xl text-sm border" style={{ background: '#FAFAFA', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }} />
+                  <button onClick={handleSendComment} disabled={sending || !newComment.trim()} className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
                     {sending ? '...' : 'Enviar'}
                   </button>
                 </div>
@@ -579,8 +652,8 @@ export default function PlanningPage() {
       {/* Month Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Posts del mes', value: monthStats.total, color: 'var(--text-dark)' },
-          { label: 'Pendientes', value: monthStats.pending, color: 'var(--primary)' },
+          { label: 'Posts planeados', value: monthStats.total, color: 'var(--text-dark)' },
+          { label: 'Pendientes por aprobar', value: monthStats.pending, color: 'var(--primary)' },
           { label: 'Aprobados', value: monthStats.approved, color: 'var(--primary-deep)' },
         ].map((stat) => (
           <div key={stat.label} className="p-3 rounded-2xl border" style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}>
@@ -756,10 +829,13 @@ export default function PlanningPage() {
         isOpen={!!reviewPost}
         onClose={() => setReviewPost(null)}
         onApprove={handleApprove}
+        onSave={async (postId, data) => { await updatePost(postId, data); refetchPosts(); }}
+        orgId={org?.id ?? null}
         currentUser={{
           name: currentUser?.member?.full_name ?? null,
           email: currentUser?.user?.email ?? null,
           memberId: currentUser?.member?.id ?? null,
+          role: role ?? null,
         }}
       />
       </>

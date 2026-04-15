@@ -398,8 +398,8 @@ export default function ReportsPage() {
           background: 'var(--surface)',
           borderColor: 'var(--glass-border)',
           backdropFilter: 'blur(16px)',
-        }} className="p-8 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold mb-6">Rendimiento por Cliente</h2>
+        }} className="p-5 rounded-2xl border">
+          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Rendimiento por Cliente</h2>
 
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -464,13 +464,16 @@ export default function ReportsPage() {
           </div>
         </div>
 
+        {/* Distribution Charts - 2 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         {/* Content Distribution */}
         <div style={{
           background: 'var(--surface)',
           borderColor: 'var(--glass-border)',
           backdropFilter: 'blur(16px)',
-        }} className="p-8 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold mb-6">Distribución de Contenido por Tipo</h2>
+        }} className="p-5 rounded-2xl border">
+          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribución por Tipo</h2>
 
           {postsLoading ? (
             <div className="space-y-4">
@@ -484,7 +487,7 @@ export default function ReportsPage() {
               ))}
             </div>
           ) : postTypeDistribution.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-3">
               {postTypeDistribution.map((item) => (
                 <div key={item.type}>
                   <div className="flex items-center justify-between mb-2">
@@ -510,8 +513,8 @@ export default function ReportsPage() {
           background: 'var(--surface)',
           borderColor: 'var(--glass-border)',
           backdropFilter: 'blur(16px)',
-        }} className="p-8 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold mb-6">Distribución por Plataforma</h2>
+        }} className="p-5 rounded-2xl border">
+          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribución por Plataforma</h2>
 
           {postsLoading ? (
             <div className="space-y-4">
@@ -525,7 +528,7 @@ export default function ReportsPage() {
               ))}
             </div>
           ) : platformDistribution.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-3">
               {platformDistribution.map((item) => (
                 <div key={item.platform}>
                   <div className="flex items-center justify-between mb-2">
@@ -545,19 +548,23 @@ export default function ReportsPage() {
             <p style={{ color: 'var(--text-light)' }}>No hay datos de plataforma en este período</p>
           )}
         </div>
+        </div>{/* end distribution grid */}
+
+        {/* Pipeline + Trend - 2 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Approval Pipeline */}
         <div style={{
           background: 'var(--surface)',
           borderColor: 'var(--glass-border)',
           backdropFilter: 'blur(16px)',
-        }} className="p-8 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold mb-8">Pipeline de Aprobación</h2>
+        }} className="p-5 rounded-2xl border">
+          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Pipeline de Aprobación</h2>
 
           {postsLoading ? (
             <Skeleton height="h-20" />
           ) : (
-            <div className="flex items-end justify-between gap-3 h-40">
+            <div className="flex items-end justify-between gap-3 h-28">
               <PipelineStage label="Borrador" count={approvalPipeline.draft} color="var(--text-light)" />
               <PipelineStage label="Planeado" count={approvalPipeline.planned} color="var(--secondary)" />
               <PipelineStage label="En Prod." count={approvalPipeline.in_production} color="var(--primary)" />
@@ -573,16 +580,16 @@ export default function ReportsPage() {
           background: 'var(--surface)',
           borderColor: 'var(--glass-border)',
           backdropFilter: 'blur(16px)',
-        }} className="p-8 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold mb-8">Tendencia Últimos 6 Meses</h2>
+        }} className="p-5 rounded-2xl border">
+          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Tendencia Últimos 6 Meses</h2>
 
           {postsLoading ? (
             <Skeleton height="h-40" />
           ) : monthlyTrend.length > 0 ? (
-            <div className="flex items-end justify-between gap-2 h-48">
+            <div className="flex items-end justify-between gap-2 h-32">
               {monthlyTrend.map((month) => (
                 <div key={month.monthStr} className="flex-1 flex flex-col items-center">
-                  <div className="flex items-end justify-center h-40 w-full">
+                  <div className="flex items-end justify-center h-24 w-full">
                     <div
                       className="w-full rounded-t transition-all duration-300"
                       style={{
@@ -601,6 +608,7 @@ export default function ReportsPage() {
             <p style={{ color: 'var(--text-light)' }}>No hay datos de posts en los últimos 6 meses</p>
           )}
         </div>
+        </div>{/* end pipeline+trend grid */}
 
       </div>
     </div>
