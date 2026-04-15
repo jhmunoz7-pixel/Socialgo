@@ -1,32 +1,40 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const supabase = await createServiceRoleClient();
-    const { data, error, count } = await supabase
+    // Test 1: Using createServiceRoleClient (SSR client with cookies)
+    const ssrClient = await createServiceRoleClient();
+    const ssrResult = await ssrClient
       .from("organizations")
-      .select("id, name, plan", { count: "exact" });
+      .select("id, name", { count: "exact" });
+
+    // Test 2: Using createClient directly (no cookies, pure service role)
+    const directClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
+    const directResult = await directClient
+      .from("organizations")
+      .select("id, name", { count: "exact" });
 
     return NextResponse.json({
-      success: true,
-      count,
-      orgs: data,
-      error: error ? { message: error.message, code: error.code } : null,
-      envCheck: {
-        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-        urlPrefix: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").slice(0, 30),
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        keyPrefix: (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").slice(0, 10),
-        keyLength: (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").length,
+      ssrClient: {
+        count: ssrResult.count,
+        orgs: ssrResult.data,
+        error: ssrResult.error?.message ?? null,
+      },
+      directClient: {
+        count: directResult.count,
+        orgs: directResult.data,
+        error: directResult.error?.message ?? null,
       },
     });
   } catch (e) {
-    return NextResponse.json({
-      success: false,
-      error: String(e),
-    });
+    return NextResponse.json({ error: String(e) });
   }
 }
