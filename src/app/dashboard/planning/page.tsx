@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useClients, usePosts, useCurrentUser, usePostComments, createPost, updatePost, createPostComment } from '@/lib/hooks';
+import { useClients, usePosts, useCurrentUser, usePostComments, createPost, updatePost, createPostComment, uploadAndAttachAsset } from '@/lib/hooks';
+import { useOrganization } from '@/lib/hooks';
 import { POST_TYPE_CONFIG, FORMAT_CONFIG } from '@/types';
 import type { Client, Post, PostType, PostFormat, Platform } from '@/types';
 
@@ -55,10 +56,11 @@ interface NewPostModalProps {
   onClose: () => void;
   clients: Client[];
   defaultDate: string;
+  orgId: string | null;
   onPostCreated: () => void;
 }
 
-function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: NewPostModalProps) {
+function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCreated }: NewPostModalProps) {
   const [clientId, setClientId] = useState('');
   const [name, setName] = useState('');
   const [scheduledDate, setScheduledDate] = useState(defaultDate);
@@ -70,8 +72,21 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: 
   const [cta, setCta] = useState('');
   const [copy, setCopy] = useState('');
   const [scheduledTime, setScheduledTime] = useState('10:00');
+  const [assetFile, setAssetFile] = useState<File | null>(null);
+  const [assetPreview, setAssetPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setAssetFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAssetPreview(url);
+    } else {
+      setAssetPreview(null);
+    }
+  };
 
   React.useEffect(() => {
     if (defaultDate) setScheduledDate(defaultDate);
@@ -83,7 +98,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: 
     setIsSaving(true);
     setError(null);
     try {
-      await createPost({
+      const newPost = await createPost({
         client_id: clientId,
         name: name.trim() || null,
         copy: copy.trim() || null,
@@ -108,9 +123,16 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: 
         approved_at: null,
         approved_by: null,
       });
+
+      // Upload asset if selected
+      if (assetFile && orgId && newPost?.id) {
+        await uploadAndAttachAsset(assetFile, orgId, newPost.id);
+      }
+
       // Reset & close
       setClientId(''); setName(''); setCopy(''); setCta(''); setExplanation(''); setInspoUrl('');
       setPostType('educativo'); setFormat('reel'); setPlatform('instagram'); setScheduledTime('10:00');
+      setAssetFile(null); setAssetPreview(null);
       onPostCreated();
       onClose();
     } catch (err: unknown) {
@@ -173,7 +195,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: 
             {/* Link de inspo */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Link de inspiración</label>
-              <input type="url" value={inspoUrl} onChange={(e) => setInspoUrl(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+              <input type="text" value={inspoUrl} onChange={(e) => setInspoUrl(e.target.value)} placeholder="link o referencia de inspiración" className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
             </div>
 
             {/* Tipo + Formato + Plataforma */}
@@ -215,6 +237,24 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: 
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Copy</label>
               <textarea value={copy} onChange={(e) => setCopy(e.target.value)} rows={4} placeholder="Escribe el texto del post..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
               <p className="text-xs mt-1" style={{ color: '#8A7A75' }}>{copy.length} caracteres</p>
+            </div>
+
+            {/* Asset Upload */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Asset (imagen o video)</label>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleFileChange}
+                className="w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:text-white file:cursor-pointer"
+                style={{ color: '#5A4A45' }}
+              />
+              {assetPreview && (
+                <div className="mt-2 relative">
+                  <img src={assetPreview} alt="Preview" className="w-full max-h-40 object-cover rounded-xl" />
+                  <button type="button" onClick={() => { setAssetFile(null); setAssetPreview(null); }} className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full text-xs flex items-center justify-center">×</button>
+                </div>
+              )}
             </div>
 
             {/* Submit */}
@@ -452,6 +492,7 @@ export default function PlanningPage() {
   const [reviewPost, setReviewPost] = useState<Post | null>(null);
 
   const { data: currentUser } = useCurrentUser();
+  const { data: org } = useOrganization();
   const role = currentUser?.member?.role;
   const isClientViewer = role === 'client_viewer';
 
@@ -704,6 +745,7 @@ export default function PlanningPage() {
         onClose={() => setNewPostOpen(false)}
         clients={clients || []}
         defaultDate={selectedDate ? formatDateKey(selectedDate) : formatDateKey(new Date())}
+        orgId={org?.id ?? null}
         onPostCreated={handlePostCreated}
       />
 
