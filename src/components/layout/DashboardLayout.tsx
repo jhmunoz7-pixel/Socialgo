@@ -129,11 +129,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
+  const roleLoading = user?.loading ?? true;
   const currentRole: MemberRole | null = user?.data?.member?.role ?? null;
-  const isAdmin = currentRole ? ADMIN_ROLES.includes(currentRole) : false;
+  // While loading, assume admin so all items are visible (prevents flash of restricted UI)
+  const isAdmin = roleLoading || !currentRole ? true : ADMIN_ROLES.includes(currentRole);
 
   const visibleNavItems = navItems.filter(
-    (item) => !item.roles || (currentRole && item.roles.includes(currentRole))
+    (item) => !item.roles || roleLoading || !currentRole || item.roles.includes(currentRole)
   );
 
   const groupedNavItems = {
