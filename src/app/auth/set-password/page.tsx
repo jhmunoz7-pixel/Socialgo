@@ -11,6 +11,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { SetPasswordForm } from "@/components/auth/SetPasswordForm";
+import { InviteTokenHandler } from "@/components/auth/InviteTokenHandler";
 
 export default function SetPasswordPage() {
   return (
@@ -18,6 +19,8 @@ export default function SetPasswordPage() {
       className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{ background: "#FFF8F3" }}
     >
+      {/* Process invite hash tokens if arriving directly from Supabase */}
+      <InviteTokenHandler />
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div
           className="absolute top-0 right-1/4 w-96 h-96 rounded-full opacity-30 blur-3xl"

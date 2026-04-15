@@ -5,10 +5,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { InviteTokenHandler } from "@/components/auth/InviteTokenHandler";
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#FFF8F3' }}>
+      {/* Intercept invite hash tokens that Supabase appends to this page */}
+      <InviteTokenHandler />
       {/* Background decoration */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full opacity-30 blur-3xl" style={{ background: '#FFB5C8' }} />
