@@ -42,6 +42,14 @@ const sectionLabels = {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </AuthProvider>
+  );
+}
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useCurrentUser();
@@ -297,7 +305,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <AuthProvider>
     <ThemeProvider>
       <div className="flex h-screen" style={{ backgroundColor: 'var(--bg)' }}>
 
@@ -448,6 +455,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
     </ThemeProvider>
-    </AuthProvider>
   );
 }
