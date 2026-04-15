@@ -56,8 +56,10 @@ export async function GET(request: NextRequest) {
         console.error("Failed to upsert user profile:", profileError);
       }
 
-      // Redirect to dashboard
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      // Redirect to `next` param (e.g. /auth/set-password for invites) or dashboard
+      const next = requestUrl.searchParams.get("next");
+      const destination = next && next.startsWith("/") ? next : "/dashboard";
+      return NextResponse.redirect(new URL(destination, request.url));
     } catch (error) {
       console.error("Unexpected error in auth callback:", error);
       return NextResponse.redirect(
