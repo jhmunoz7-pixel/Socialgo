@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useClients, usePosts, createPost, updatePost } from '@/lib/hooks';
+import { useClients, usePosts, useCurrentUser, usePostComments, createPost, updatePost, createPostComment } from '@/lib/hooks';
 import { POST_TYPE_CONFIG, FORMAT_CONFIG } from '@/types';
 import type { Client, Post, PostType, PostFormat, Platform } from '@/types';
-import { PostModal } from '@/components/posts/PostModal';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-/** Parse a date string as local time (avoids UTC offset issues with date-only strings) */
 const parseLocalDate = (dateStr: string): Date => {
-  // "2026-04-20" → new Date(2026, 3, 20) in LOCAL timezone (not UTC)
   const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
   return new Date(y, m - 1, d);
 };
@@ -24,33 +21,24 @@ const formatDateKey = (date: Date): string => {
 
 const isToday = (date: Date): boolean => {
   const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
+  return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
 };
 
 const isSameDay = (a: Date, b: Date): boolean =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 const generateCalendarDays = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1);
-  // lastDay not needed — grid always generates 35-42 cells
   const startDate = new Date(firstDay);
   startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
-
   const days: { date: Date; isCurrentMonth: boolean }[] = [];
   const current = new Date(startDate);
   for (let i = 0; i < 42; i++) {
     days.push({ date: new Date(current), isCurrentMonth: current.getMonth() === month });
     current.setDate(current.getDate() + 1);
   }
-  // Trim trailing weeks if entirely outside month
   while (days.length > 35 && days.slice(-7).every((d) => !d.isCurrentMonth)) {
     days.splice(-7, 7);
   }
@@ -60,52 +48,48 @@ const generateCalendarDays = (date: Date) => {
 const getPostTypeColor = (type: string): string =>
   POST_TYPE_CONFIG[type as PostType]?.color || '#D0D0D0';
 
-// ─── Post Creator Panel ────────────────────────────────────────────────────
+// ─── New Post Modal ────────────────────────────────────────────────────────
 
-interface PostCreatorProps {
+interface NewPostModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   clients: Client[];
-  selectedDate: Date | null;
+  defaultDate: string;
   onPostCreated: () => void;
 }
 
-function PostCreator({ clients, selectedDate, onPostCreated }: PostCreatorProps) {
+function NewPostModal({ isOpen, onClose, clients, defaultDate, onPostCreated }: NewPostModalProps) {
   const [clientId, setClientId] = useState('');
   const [name, setName] = useState('');
-  const [copy, setCopy] = useState('');
-  const [cta, setCta] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(defaultDate);
   const [explanation, setExplanation] = useState('');
+  const [inspoUrl, setInspoUrl] = useState('');
   const [postType, setPostType] = useState<PostType>('educativo');
   const [format, setFormat] = useState<PostFormat>('reel');
   const [platform, setPlatform] = useState<Platform>('instagram');
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [cta, setCta] = useState('');
+  const [copy, setCopy] = useState('');
   const [scheduledTime, setScheduledTime] = useState('10:00');
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sync selected date from calendar
   React.useEffect(() => {
-    if (selectedDate) {
-      setScheduledDate(formatDateKey(selectedDate));
-    }
-  }, [selectedDate]);
+    if (defaultDate) setScheduledDate(defaultDate);
+  }, [defaultDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId || !copy.trim()) {
-      setSaveMessage({ type: 'error', text: 'Selecciona un cliente y escribe el copy.' });
-      return;
-    }
-
+    if (!clientId) { setError('Selecciona un cliente'); return; }
     setIsSaving(true);
-    setSaveMessage(null);
-
+    setError(null);
     try {
       await createPost({
         client_id: clientId,
         name: name.trim() || null,
-        copy: copy.trim(),
+        copy: copy.trim() || null,
         cta: cta.trim() || null,
         explanation: explanation.trim() || null,
+        inspo_url: inspoUrl.trim() || null,
         post_type: postType,
         format,
         platform,
@@ -117,7 +101,6 @@ function PostCreator({ clients, selectedDate, onPostCreated }: PostCreatorProps)
         ai_insights: [] as Record<string, unknown>[],
         image_url: null,
         media_urls: [] as string[],
-        inspo_url: null,
         internal_comments: null,
         assigned_to: null,
         approval_token: null,
@@ -125,240 +108,295 @@ function PostCreator({ clients, selectedDate, onPostCreated }: PostCreatorProps)
         approved_at: null,
         approved_by: null,
       });
-
-      setSaveMessage({ type: 'success', text: 'Post creado exitosamente' });
-      // Reset form
-      setName('');
-      setCopy('');
-      setCta('');
-      setExplanation('');
-      setPostType('educativo');
-      setFormat('reel');
-      setPlatform('instagram');
-      setScheduledTime('10:00');
+      // Reset & close
+      setClientId(''); setName(''); setCopy(''); setCta(''); setExplanation(''); setInspoUrl('');
+      setPostType('educativo'); setFormat('reel'); setPlatform('instagram'); setScheduledTime('10:00');
       onPostCreated();
-
-      setTimeout(() => setSaveMessage(null), 3000);
+      onClose();
     } catch (err: unknown) {
-      console.error('Error creating post:', err);
-      let message = 'Error al crear post';
-      if (err instanceof Error) {
-        message = err.message;
-      } else if (err && typeof err === 'object' && 'message' in err) {
-        message = String((err as { message: string }).message);
-      }
-      setSaveMessage({ type: 'error', text: message });
+      setError(err instanceof Error ? err.message : 'Error al crear post');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const postTypes = Object.entries(POST_TYPE_CONFIG) as [PostType, typeof POST_TYPE_CONFIG[PostType]][];
-  const formats = Object.entries(FORMAT_CONFIG) as [PostFormat, typeof FORMAT_CONFIG[PostFormat]][];
-  const platforms: Platform[] = ['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'youtube'];
+  if (!isOpen) return null;
+
+  const inputStyle = { background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Client Select */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-          Cliente
-        </label>
-        <select
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          required
-          className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
-          style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--glass-border)',
-            color: 'var(--text-dark)',
-          }}
-        >
-          <option value="">Seleccionar cliente...</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.emoji} {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(255,180,150,0.3)' }}>
+          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
+            <h2 className="font-serif text-lg font-bold" style={{ color: '#2A1F1A' }}>Nuevo Post Planeado</h2>
+            <button onClick={onClose} className="text-xl hover:opacity-60">×</button>
+          </div>
 
-      {/* Name */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-          Nombre del post
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="ej: Promo Mayo, Tip #3..."
-          className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
-          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-        />
-      </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {error && <div className="p-3 rounded-xl text-sm text-red-800" style={{ background: 'rgba(255,100,100,0.15)' }}>{error}</div>}
 
-      {/* Post Type + Format + Platform */}
-      <div className="grid grid-cols-3 gap-2">
-        <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-            Tipo
-          </label>
-          <select
-            value={postType}
-            onChange={(e) => setPostType(e.target.value as PostType)}
-            className="w-full px-2 py-2 rounded-xl text-xs border focus:outline-none focus:ring-2 transition-all"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-          >
-            {postTypes.map(([key, config]) => (
-              <option key={key} value={key}>
-                {config.letter} {config.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Cliente */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Cliente *</label>
+              <select value={clientId} onChange={(e) => setClientId(e.target.value)} required className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle}>
+                <option value="">Seleccionar cliente...</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+              </select>
+            </div>
 
-        <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-            Formato
-          </label>
-          <select
-            value={format}
-            onChange={(e) => setFormat(e.target.value as PostFormat)}
-            className="w-full px-2 py-2 rounded-xl text-xs border focus:outline-none focus:ring-2 transition-all"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-          >
-            {formats.map(([key, config]) => (
-              <option key={key} value={key}>
-                {config.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Nombre del post */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Nombre del post</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ej: Promo Mayo, Tip #3..." className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+            </div>
 
-        <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-            Plataforma
-          </label>
-          <select
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as Platform)}
-            className="w-full px-2 py-2 rounded-xl text-xs border focus:outline-none focus:ring-2 transition-all"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-          >
-            {platforms.map((p) => (
-              <option key={p} value={p}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+            {/* Fecha + Hora */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Fecha</label>
+                <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Hora</label>
+                <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+              </div>
+            </div>
 
-      {/* Copy */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-          Copy
-        </label>
-        <textarea
-          value={copy}
-          onChange={(e) => setCopy(e.target.value)}
-          rows={4}
-          required
-          placeholder="Escribe el texto del post..."
-          className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all resize-none"
-          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-        />
-        <p className="text-xs mt-1" style={{ color: 'var(--text-light)' }}>
-          {copy.length} caracteres
-        </p>
-      </div>
+            {/* Explicación / Contexto */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Explicación / Contexto</label>
+              <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={2} placeholder="Nota interna sobre el propósito..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
+            </div>
 
-      {/* CTA */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-          CTA (Call to Action)
-        </label>
-        <input
-          type="text"
-          value={cta}
-          onChange={(e) => setCta(e.target.value)}
-          placeholder="ej: Agenda tu cita hoy"
-          className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
-          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-        />
-      </div>
+            {/* Link de inspo */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Link de inspiración</label>
+              <input type="url" value={inspoUrl} onChange={(e) => setInspoUrl(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+            </div>
 
-      {/* Explanation */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-          Explicación / Contexto
-        </label>
-        <textarea
-          value={explanation}
-          onChange={(e) => setExplanation(e.target.value)}
-          rows={2}
-          placeholder="Nota interna sobre el propósito del post..."
-          className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all resize-none"
-          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-        />
-      </div>
+            {/* Tipo + Formato + Plataforma */}
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Tipo</label>
+                <select value={postType} onChange={(e) => setPostType(e.target.value as PostType)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
+                  {(Object.entries(POST_TYPE_CONFIG) as [PostType, (typeof POST_TYPE_CONFIG)[PostType]][]).map(([key, config]) => (
+                    <option key={key} value={key}>{config.letter} {config.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Formato</label>
+                <select value={format} onChange={(e) => setFormat(e.target.value as PostFormat)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
+                  {(Object.entries(FORMAT_CONFIG) as [PostFormat, (typeof FORMAT_CONFIG)[PostFormat]][]).map(([key, config]) => (
+                    <option key={key} value={key}>{config.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Plataforma</label>
+                <select value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
+                  {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'youtube'] as Platform[]).map((p) => (
+                    <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-      {/* Date + Time */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-            Fecha
-          </label>
-          <input
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
-            Hora
-          </label>
-          <input
-            type="time"
-            value={scheduledTime}
-            onChange={(e) => setScheduledTime(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
-          />
+            {/* CTA */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>CTA (Call to Action)</label>
+              <input type="text" value={cta} onChange={(e) => setCta(e.target.value)} placeholder="ej: Agenda tu cita hoy" className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
+            </div>
+
+            {/* Copy */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Copy</label>
+              <textarea value={copy} onChange={(e) => setCopy(e.target.value)} rows={4} placeholder="Escribe el texto del post..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
+              <p className="text-xs mt-1" style={{ color: '#8A7A75' }}>{copy.length} caracteres</p>
+            </div>
+
+            {/* Submit */}
+            <button type="submit" disabled={isSaving || !clientId} className="w-full py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+              {isSaving ? 'Creando...' : 'Crear Post'}
+            </button>
+          </form>
         </div>
       </div>
+    </>
+  );
+}
 
-      {/* Messages */}
-      {saveMessage && (
-        <div
-          className={`p-3 rounded-xl text-sm ${
-            saveMessage.type === 'success'
-              ? 'text-green-800'
-              : 'text-red-800'
-          }`}
-          style={{
-            background: saveMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 100, 100, 0.15)',
-          }}
-        >
-          {saveMessage.text}
+// ─── Post Review Modal (for client_viewer) ─────────────────────────────────
+
+interface PostReviewModalProps {
+  post: Post | null;
+  client: Client | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onApprove: (postId: string) => void;
+  currentUser: { name: string | null; email: string | null; memberId: string | null };
+}
+
+function PostReviewModal({ post, client, isOpen, onClose, onApprove, currentUser }: PostReviewModalProps) {
+  const { data: comments, refetch: refetchComments } = usePostComments(post?.id ?? null);
+  const [newComment, setNewComment] = useState('');
+  const [sending, setSending] = useState(false);
+
+  if (!isOpen || !post) return null;
+
+  const handleSendComment = async () => {
+    if (!newComment.trim() || !post) return;
+    setSending(true);
+    try {
+      await createPostComment({
+        post_id: post.id,
+        author_name: currentUser.name || 'Cliente',
+        author_email: currentUser.email,
+        author_member_id: currentUser.memberId,
+        content: newComment.trim(),
+        is_client_comment: true,
+      });
+      setNewComment('');
+      await refetchComments();
+    } catch (err) {
+      console.error('Error sending comment:', err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDownloadAsset = () => {
+    if (post.image_url) {
+      const a = document.createElement('a');
+      a.href = post.image_url;
+      a.download = post.name || 'asset';
+      a.target = '_blank';
+      a.click();
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(255,180,150,0.3)' }}>
+          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
+            <h2 className="font-serif text-lg font-bold" style={{ color: '#2A1F1A' }}>
+              {client?.emoji} {post.name || 'Post'}
+            </h2>
+            <button onClick={onClose} className="text-xl hover:opacity-60">×</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            {/* Left: Asset preview */}
+            <div className="p-6 border-r" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
+              {post.image_url ? (
+                <div className="space-y-3">
+                  <img src={post.image_url} alt={post.name || 'Asset'} className="w-full rounded-xl object-cover max-h-[400px]" />
+                  <button onClick={handleDownloadAsset} className="w-full py-2 rounded-xl text-sm font-medium border hover:opacity-80 transition" style={{ color: '#FF8FAD', borderColor: '#FF8FAD' }}>
+                    ⬇ Descargar asset
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-64 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,180,150,0.1)' }}>
+                  <p className="text-sm" style={{ color: '#8A7A75' }}>Sin asset cargado</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Info + actions */}
+            <div className="p-6 space-y-4">
+              {/* Post info */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Fecha</p>
+                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.scheduled_date || '—'}</p>
+                </div>
+                {post.explanation && <div>
+                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Explicación</p>
+                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.explanation}</p>
+                </div>}
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Tipo</p>
+                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Plataforma</p>
+                    <p className="text-sm capitalize" style={{ color: '#2A1F1A' }}>{post.platform}</p>
+                  </div>
+                </div>
+                {post.cta && <div>
+                  <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>CTA</p>
+                  <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.cta}</p>
+                </div>}
+              </div>
+
+              {/* Copy */}
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(255,180,150,0.08)' }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</p>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: '#2A1F1A' }}>{post.copy || '(sin copy)'}</p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { onApprove(post.id); onClose(); }}
+                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: '#10B981' }}
+                >
+                  ✓ Aprobar
+                </button>
+              </div>
+
+              {/* Comments section */}
+              <div className="border-t pt-4" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: '#8A7A75' }}>Comentarios</p>
+
+                {/* Existing comments */}
+                <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+                  {comments.length === 0 ? (
+                    <p className="text-xs" style={{ color: '#B8A9A4' }}>Sin comentarios aún</p>
+                  ) : (
+                    comments.map((c) => (
+                      <div key={c.id} className="p-2 rounded-lg text-xs" style={{ background: c.is_client_comment ? 'rgba(255,143,173,0.1)' : 'rgba(200,200,200,0.15)' }}>
+                        <span className="font-semibold" style={{ color: '#2A1F1A' }}>{c.author_name || 'Anónimo'}</span>
+                        <span className="mx-1" style={{ color: '#B8A9A4' }}>·</span>
+                        <span style={{ color: '#B8A9A4' }}>{new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        <p className="mt-1" style={{ color: '#5A4A45' }}>{c.content}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* New comment input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Escribe un comentario..."
+                    className="flex-1 px-3 py-2 rounded-xl text-sm border"
+                    style={{ background: 'var(--surface)', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
+                  />
+                  <button
+                    onClick={handleSendComment}
+                    disabled={sending || !newComment.trim()}
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+                    style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}
+                  >
+                    {sending ? '...' : 'Enviar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isSaving || !clientId || !copy.trim()}
-        className="w-full py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: 'var(--gradient)' }}
-      >
-        {isSaving ? 'Creando...' : 'Crear Post'}
-      </button>
-    </form>
+      </div>
+    </>
   );
 }
 
@@ -374,128 +412,33 @@ interface DayCellProps {
 
 function DayCell({ date, isCurrentMonth, posts, isSelected, onClick }: DayCellProps) {
   const today = isToday(date);
-
   return (
     <button
       onClick={() => onClick(date)}
-      className="min-h-[72px] p-1.5 rounded-lg border transition-all text-left relative"
+      className="min-h-[56px] p-1 rounded-lg border transition-all text-left relative"
       style={{
-        background: isSelected
-          ? 'var(--primary-light, rgba(255, 143, 173, 0.15))'
-          : isCurrentMonth
-          ? 'var(--surface)'
-          : 'transparent',
-        borderColor: isSelected
-          ? 'var(--primary)'
-          : today
-          ? 'var(--primary-deep)'
-          : 'var(--glass-border)',
+        background: isSelected ? 'rgba(255,143,173,0.15)' : isCurrentMonth ? 'var(--surface)' : 'transparent',
+        borderColor: isSelected ? 'var(--primary)' : today ? 'var(--primary-deep)' : 'var(--glass-border)',
         opacity: isCurrentMonth ? 1 : 0.4,
         borderWidth: today || isSelected ? '2px' : '1px',
       }}
     >
-      <div
-        className="text-xs font-semibold mb-1"
-        style={{ color: today ? 'var(--primary-deep)' : 'var(--text-dark)' }}
-      >
+      <div className="text-[10px] font-semibold mb-0.5" style={{ color: today ? 'var(--primary-deep)' : 'var(--text-dark)' }}>
         {date.getDate()}
       </div>
-      <div className="flex flex-wrap gap-0.5">
-        {posts.slice(0, 4).map((post) => (
+      <div className="flex flex-wrap gap-px">
+        {posts.slice(0, 3).map((post) => (
           <div
             key={post.id}
-            className="w-4 h-4 rounded-sm flex items-center justify-center text-white font-bold"
-            style={{
-              backgroundColor: getPostTypeColor(post.post_type || 'otro'),
-              fontSize: '8px',
-            }}
-            title={`${POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type} - ${post.platform}`}
+            className="w-3 h-3 rounded-sm flex items-center justify-center text-white font-bold"
+            style={{ backgroundColor: getPostTypeColor(post.post_type || 'otro'), fontSize: '7px' }}
           >
             {POST_TYPE_CONFIG[post.post_type as PostType]?.letter || '?'}
           </div>
         ))}
-        {posts.length > 4 && (
-          <span className="text-[9px] font-bold" style={{ color: 'var(--text-light)' }}>
-            +{posts.length - 4}
-          </span>
-        )}
+        {posts.length > 3 && <span className="text-[8px] font-bold" style={{ color: 'var(--text-light)' }}>+{posts.length - 3}</span>}
       </div>
     </button>
-  );
-}
-
-// ─── Day Detail Panel ──────────────────────────────────────────────────────
-
-interface DayDetailProps {
-  date: Date;
-  posts: Post[];
-  clients: Client[];
-  onClose: () => void;
-  onPostClick: (post: Post) => void;
-}
-
-function DayDetail({ date, posts, clients, onClose, onPostClick }: DayDetailProps) {
-  const clientMap = new Map(clients.map((c) => [c.id, c]));
-
-  return (
-    <div
-      className="mt-4 p-4 rounded-2xl border"
-      style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
-          {date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </h4>
-        <button
-          onClick={onClose}
-          className="text-xs font-semibold px-2 py-1 rounded-lg transition-all hover:opacity-70"
-          style={{ color: 'var(--primary-deep)' }}
-        >
-          Cerrar
-        </button>
-      </div>
-
-      {posts.length === 0 ? (
-        <p className="text-xs" style={{ color: 'var(--text-light)' }}>
-          No hay posts programados para este día.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {posts.map((post) => {
-            const client = clientMap.get(post.client_id);
-            const typeConfig = POST_TYPE_CONFIG[post.post_type as PostType];
-            return (
-              <div
-                key={post.id}
-                className="p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all hover:shadow-sm"
-                style={{ background: 'var(--bg)', borderColor: 'var(--glass-border)' }}
-                onClick={() => onPostClick(post)}
-              >
-                <div
-                  className="w-6 h-6 rounded flex items-center justify-center text-white font-bold flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: typeConfig?.color || '#D0D0D0', fontSize: '10px' }}
-                >
-                  {typeConfig?.letter || '?'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold" style={{ color: 'var(--text-dark)' }}>
-                      {client?.emoji} {client?.name || 'Cliente'}
-                    </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--glass-border)', color: 'var(--text-mid)' }}>
-                      {post.platform}
-                    </span>
-                  </div>
-                  <p className="text-xs line-clamp-2" style={{ color: 'var(--text-mid)' }}>
-                    {post.copy || '(sin contenido)'}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -505,13 +448,17 @@ export default function PlanningPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string | null>(null);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [newPostOpen, setNewPostOpen] = useState(false);
+  const [reviewPost, setReviewPost] = useState<Post | null>(null);
+
+  const { data: currentUser } = useCurrentUser();
+  const role = currentUser?.member?.role;
+  const isClientViewer = role === 'client_viewer';
 
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: posts, loading: postsLoading, refetch: refetchPosts } = usePosts();
 
   const monthYear = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-
   const calendarDays = useMemo(() => generateCalendarDays(currentDate), [currentDate]);
 
   // Group posts by date
@@ -527,57 +474,62 @@ export default function PlanningPage() {
     return map;
   }, [posts, selectedClientFilter]);
 
-  // Stats for the month
-  const monthStats = useMemo(() => {
+  // Posts for current month (for the table)
+  const monthPosts = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const monthPosts = (posts || []).filter((p) => {
-      if (!p.scheduled_date) return false;
-      if (selectedClientFilter && p.client_id !== selectedClientFilter) return false;
-      const d = parseLocalDate(p.scheduled_date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
-    return {
-      total: monthPosts.length,
-      pending: monthPosts.filter((p) => p.approval_status === 'pending').length,
-      approved: monthPosts.filter((p) => p.approval_status === 'approved' || p.approval_status === 'approved_with_changes').length,
-    };
+    return (posts || [])
+      .filter((p) => {
+        if (!p.scheduled_date) return false;
+        if (selectedClientFilter && p.client_id !== selectedClientFilter) return false;
+        const d = parseLocalDate(p.scheduled_date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      })
+      .sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
   }, [posts, currentDate, selectedClientFilter]);
 
-  const selectedDayPosts = useMemo(() => {
-    if (!selectedDate) return [];
-    const key = formatDateKey(selectedDate);
-    return postsByDate[key] || [];
-  }, [selectedDate, postsByDate]);
+  const monthStats = useMemo(() => ({
+    total: monthPosts.length,
+    pending: monthPosts.filter((p) => p.approval_status === 'pending').length,
+    approved: monthPosts.filter((p) => p.approval_status === 'approved' || p.approval_status === 'approved_with_changes').length,
+  }), [monthPosts]);
 
-  const handlePostCreated = useCallback(() => {
-    refetchPosts();
-  }, [refetchPosts]);
+  const handlePostCreated = useCallback(() => { refetchPosts(); }, [refetchPosts]);
+
+  const handleApprove = async (postId: string) => {
+    try {
+      await updatePost(postId, { approval_status: 'approved', approved_at: new Date().toISOString() });
+      refetchPosts();
+    } catch (err) { console.error('Error approving:', err); }
+  };
 
   const goToPreviousMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const goToNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
   const dayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const clientMap = new Map((clients || []).map((c) => [c.id, c]));
 
   return (
     <div className="space-y-6">
       {/* Sticky Header */}
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
-        <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
-          📋 Planificación
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
-          Crea posts y planifica tu contenido en el calendario mensual
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>📋 Planificación</h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
+              {isClientViewer ? 'Revisa y aprueba el contenido planeado' : 'Crea posts y planifica tu contenido'}
+            </p>
+          </div>
+          {!isClientViewer && (
+            <button onClick={() => setNewPostOpen(true)} className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white hover:shadow-lg transition" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+              + Nuevo Post Planeado
+            </button>
+          )}
+        </div>
       </div>
 
       {clientsLoading || postsLoading ? (
         <div className="space-y-4 animate-pulse">
-          <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 rounded-2xl" style={{ background: 'var(--glass-border)' }} />
-            ))}
-          </div>
           <div className="h-96 rounded-2xl" style={{ background: 'var(--glass-border)' }} />
         </div>
       ) : (
@@ -590,151 +542,182 @@ export default function PlanningPage() {
           { label: 'Pendientes', value: monthStats.pending, color: 'var(--primary)' },
           { label: 'Aprobados', value: monthStats.approved, color: 'var(--primary-deep)' },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="p-3 rounded-2xl border"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}
-          >
-            <p className="text-xs font-semibold" style={{ color: 'var(--text-mid)' }}>
-              {stat.label}
-            </p>
-            <p className="text-2xl font-serif font-bold mt-1" style={{ color: stat.color }}>
-              {stat.value}
-            </p>
+          <div key={stat.label} className="p-3 rounded-2xl border" style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-mid)' }}>{stat.label}</p>
+            <p className="text-2xl font-serif font-bold mt-1" style={{ color: stat.color }}>{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Client filter */}
       <div className="flex items-center gap-3">
-        <label className="text-xs font-semibold" style={{ color: 'var(--text-mid)' }}>
-          Filtrar por cliente:
-        </label>
+        <label className="text-xs font-semibold" style={{ color: 'var(--text-mid)' }}>Filtrar:</label>
         <select
           value={selectedClientFilter || ''}
           onChange={(e) => setSelectedClientFilter(e.target.value || null)}
-          className="px-3 py-1.5 rounded-xl text-sm border focus:outline-none focus:ring-2 transition-all"
+          className="px-3 py-1.5 rounded-xl text-sm border"
           style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
         >
-          <option value="">Todos</option>
-          {(clients || []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.emoji} {c.name}
-            </option>
-          ))}
+          <option value="">Todos los clientes</option>
+          {(clients || []).map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
         </select>
       </div>
 
-      {/* Main Layout: Left (Creator) | Right (Calendar) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-        {/* Left: Post Creator */}
-        <div
-          className="rounded-2xl border p-5 h-fit lg:sticky lg:top-4"
-          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}
-        >
-          <h2 className="text-base font-serif font-bold mb-4" style={{ color: 'var(--text-dark)' }}>
-            Nuevo Post Planeado
-          </h2>
-          <PostCreator
-            clients={clients || []}
-            selectedDate={selectedDate}
-            onPostCreated={handlePostCreated}
-          />
-        </div>
+      {/* Main Layout: Calendar (left) | Posts Table (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,4fr)] gap-6">
 
-        {/* Right: Calendar */}
-        <div>
-          <div
-            className="rounded-2xl border p-5"
-            style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}
-          >
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={goToPreviousMonth}
-                className="p-2 rounded-lg transition-all hover:opacity-70"
-                style={{ background: 'var(--bg)' }}
-              >
-                ◀
-              </button>
-              <h3
-                className="text-lg font-serif font-semibold capitalize"
-                style={{ color: 'var(--text-dark)' }}
-              >
-                {monthYear}
-              </h3>
-              <button
-                onClick={goToNextMonth}
-                className="p-2 rounded-lg transition-all hover:opacity-70"
-                style={{ background: 'var(--bg)' }}
-              >
-                ▶
-              </button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {dayHeaders.map((day) => (
-                <div key={day} className="text-center text-xs font-semibold py-1" style={{ color: 'var(--primary-deep)' }}>
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day) => {
-                const key = formatDateKey(day.date);
-                const dayPosts = postsByDate[key] || [];
-                return (
-                  <DayCell
-                    key={key}
-                    date={day.date}
-                    isCurrentMonth={day.isCurrentMonth}
-                    posts={dayPosts}
-                    isSelected={selectedDate !== null && isSameDay(selectedDate, day.date)}
-                    onClick={setSelectedDate}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Post Type Legend */}
-            <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t" style={{ borderColor: 'var(--glass-border)' }}>
-              {Object.entries(POST_TYPE_CONFIG).map(([key, config]) => (
-                <div key={key} className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: config.color }} />
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-mid)' }}>
-                    {config.label}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Left: Calendar (75% size) */}
+        <div className="rounded-2xl border p-4" style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}>
+          {/* Month Navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={goToPreviousMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ background: 'var(--bg)' }}>◀</button>
+            <h3 className="text-sm font-serif font-semibold capitalize" style={{ color: 'var(--text-dark)' }}>{monthYear}</h3>
+            <button onClick={goToNextMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ background: 'var(--bg)' }}>▶</button>
           </div>
 
-          {/* Day Detail (when a day is selected) */}
-          {selectedDate && (
-            <DayDetail
-              date={selectedDate}
-              posts={selectedDayPosts}
-              clients={clients || []}
-              onClose={() => setSelectedDate(null)}
-              onPostClick={(post) => setSelectedPost(post)}
-            />
-          )}
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {dayHeaders.map((day) => (
+              <div key={day} className="text-center text-[10px] font-semibold py-0.5" style={{ color: 'var(--primary-deep)' }}>{day}</div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day) => {
+              const key = formatDateKey(day.date);
+              return (
+                <DayCell
+                  key={key}
+                  date={day.date}
+                  isCurrentMonth={day.isCurrentMonth}
+                  posts={postsByDate[key] || []}
+                  isSelected={selectedDate !== null && isSameDay(selectedDate, day.date)}
+                  onClick={setSelectedDate}
+                />
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+            {Object.entries(POST_TYPE_CONFIG).map(([key, config]) => (
+              <div key={key} className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: config.color }} />
+                <span className="text-[9px] font-medium" style={{ color: 'var(--text-mid)' }}>{config.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Posts Table */}
+        <div className="rounded-2xl border" style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}>
+          <div className="p-4 border-b" style={{ borderColor: 'var(--glass-border)' }}>
+            <h3 className="text-sm font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
+              Posts del mes ({monthPosts.length})
+            </h3>
+          </div>
+
+          <div className="overflow-y-auto max-h-[500px]">
+            {monthPosts.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm" style={{ color: 'var(--text-light)' }}>No hay posts planeados para este mes</p>
+              </div>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--bg)' }}>
+                    <th className="text-left py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Fecha</th>
+                    <th className="text-left py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Cliente</th>
+                    <th className="text-center py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Tipo</th>
+                    <th className="text-center py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Formato</th>
+                    <th className="text-center py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Plataforma</th>
+                    <th className="text-center py-2 px-3 font-semibold" style={{ color: 'var(--text-mid)' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthPosts.map((post) => {
+                    const client = clientMap.get(post.client_id);
+                    const typeConfig = POST_TYPE_CONFIG[post.post_type as PostType];
+                    const formatConfig = FORMAT_CONFIG[post.format as PostFormat];
+                    const isApproved = post.approval_status === 'approved' || post.approval_status === 'approved_with_changes';
+                    return (
+                      <tr
+                        key={post.id}
+                        className="border-b hover:bg-[rgba(255,143,173,0.05)] transition-colors cursor-pointer"
+                        style={{ borderColor: 'var(--glass-border)' }}
+                        onClick={() => setReviewPost(post)}
+                      >
+                        <td className="py-2 px-3" style={{ color: 'var(--text-dark)' }}>
+                          {post.scheduled_date ? parseLocalDate(post.scheduled_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '—'}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span style={{ color: 'var(--text-dark)' }}>{client?.emoji} {client?.name || '—'}</span>
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-white font-bold" style={{ backgroundColor: typeConfig?.color || '#D0D0D0', fontSize: '9px' }}>
+                            {typeConfig?.letter || '?'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center" style={{ color: 'var(--text-mid)' }}>
+                          {formatConfig?.label || post.format || '—'}
+                        </td>
+                        <td className="py-2 px-3 text-center capitalize" style={{ color: 'var(--text-mid)' }}>
+                          {post.platform}
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {isApproved ? (
+                              <span className="text-green-500 text-sm" title="Aprobado">✅</span>
+                            ) : (
+                              <button
+                                onClick={() => handleApprove(post.id)}
+                                className="text-green-500 hover:text-green-600 text-sm"
+                                title="Aprobar"
+                              >
+                                ☑
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setReviewPost(post)}
+                              className="hover:opacity-70 text-sm"
+                              style={{ color: 'var(--primary)' }}
+                              title="Ver / Comentar"
+                            >
+                              💬
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Post Detail/Edit Modal */}
-      <PostModal
-        post={selectedPost}
-        client={selectedPost ? (clients?.find(c => c.id === selectedPost.client_id) ?? null) : null}
-        isOpen={!!selectedPost}
-        onClose={() => setSelectedPost(null)}
-        onSave={async (postId, data) => {
-          await updatePost(postId, data);
-          refetchPosts();
-          setSelectedPost(null);
+      {/* New Post Modal */}
+      <NewPostModal
+        isOpen={newPostOpen}
+        onClose={() => setNewPostOpen(false)}
+        clients={clients || []}
+        defaultDate={selectedDate ? formatDateKey(selectedDate) : formatDateKey(new Date())}
+        onPostCreated={handlePostCreated}
+      />
+
+      {/* Post Review Modal */}
+      <PostReviewModal
+        post={reviewPost}
+        client={reviewPost ? clientMap.get(reviewPost.client_id) ?? null : null}
+        isOpen={!!reviewPost}
+        onClose={() => setReviewPost(null)}
+        onApprove={handleApprove}
+        currentUser={{
+          name: currentUser?.member?.full_name ?? null,
+          email: currentUser?.user?.email ?? null,
+          memberId: currentUser?.member?.id ?? null,
         }}
       />
       </>
