@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser, useOrganization, useClients } from '@/lib/hooks';
+import type { MemberRole } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
@@ -15,17 +16,23 @@ interface NavItem {
   icon: string;
   href: string;
   section: 'principal' | 'workspace' | 'config';
+  /** Roles that can see this item. If omitted, visible to all. */
+  roles?: MemberRole[];
 }
 
+// Admins = owner, admin, member (all equivalent)
+const ADMIN_ROLES: MemberRole[] = ['owner', 'admin', 'member'];
+const NON_CLIENT: MemberRole[] = ['owner', 'admin', 'member', 'creative'];
+
 const navItems: NavItem[] = [
-  { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal' },
-  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal' },
-  { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal' },
+  { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
+  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal', roles: NON_CLIENT },
+  { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
   { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace' },
   { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace' },
-  { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace' },
-  { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace' },
-  { label: 'Agencia', icon: '⚙️', href: '/dashboard/settings', section: 'config' },
+  { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
+  { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
+  { label: 'Agencia', icon: '⚙️', href: '/dashboard/settings', section: 'config', roles: ADMIN_ROLES },
 ];
 
 const sectionLabels = {
@@ -122,10 +129,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
+  const currentRole: MemberRole | null = user?.data?.member?.role ?? null;
+  const isAdmin = currentRole ? ADMIN_ROLES.includes(currentRole) : false;
+
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || (currentRole && item.roles.includes(currentRole))
+  );
+
   const groupedNavItems = {
-    principal: navItems.filter((item) => item.section === 'principal'),
-    workspace: navItems.filter((item) => item.section === 'workspace'),
-    config: navItems.filter((item) => item.section === 'config'),
+    principal: visibleNavItems.filter((item) => item.section === 'principal'),
+    workspace: visibleNavItems.filter((item) => item.section === 'workspace'),
+    config: visibleNavItems.filter((item) => item.section === 'config'),
   };
 
   const isActiveLink = (href: string) => {
@@ -426,7 +440,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
 
-          <OnboardingPopup hasClients={clients.length > 0} />
+          {isAdmin && <OnboardingPopup hasClients={clients.length > 0} />}
           {children}
         </main>
       </div>

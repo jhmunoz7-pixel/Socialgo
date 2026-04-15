@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useStats, useClients, usePosts, usePackages } from '@/lib/hooks';
+import { useStats, useClients, usePosts, usePackages, useCurrentUser } from '@/lib/hooks';
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
 import ExcelJS from 'exceljs';
 
 export default function ReportsPage() {
+  const { data: currentUser } = useCurrentUser();
+  const userRole = currentUser?.member?.role;
+  const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'member';
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
   const { loading: statsLoading } = useStats();
   const { data: clients, loading: clientsLoading } = useClients();
@@ -330,8 +333,8 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Total MRR */}
-          <div style={{
+          {/* Total MRR — admin only */}
+          {isAdmin && <div style={{
             background: 'var(--surface)',
             borderColor: 'var(--glass-border)',
             backdropFilter: 'blur(16px)',
@@ -347,7 +350,7 @@ export default function ReportsPage() {
                 <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Ingresos mensuales</p>
               </>
             )}
-          </div>
+          </div>}
 
           {/* Posts This Month */}
           <div style={{
@@ -368,8 +371,8 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Pending Payments */}
-          <div style={{
+          {/* Pending Payments — admin only */}
+          {isAdmin && <div style={{
             background: 'var(--surface)',
             borderColor: 'var(--glass-border)',
             backdropFilter: 'blur(16px)',
@@ -385,7 +388,7 @@ export default function ReportsPage() {
                 <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Clientes</p>
               </>
             )}
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -406,8 +409,8 @@ export default function ReportsPage() {
                   <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Posts</th>
                   <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Puntuación IA</th>
                   <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Tasa Aprobación</th>
-                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Pago</th>
-                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Cuenta</th>
+                  {isAdmin && <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Pago</th>}
+                  {isAdmin && <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Cuenta</th>}
                 </tr>
               </thead>
               <tbody>
@@ -441,12 +444,12 @@ export default function ReportsPage() {
                       <td style={{ color: 'var(--text-dark)' }} className="py-4 px-4 text-center font-semibold">
                         {row.postsCount > 0 ? `${row.approvalRate}%` : '—'}
                       </td>
-                      <td className="py-4 px-4 text-center">
+                      {isAdmin && <td className="py-4 px-4 text-center">
                         <PayStatusBadge status={row.payStatus} />
-                      </td>
-                      <td className="py-4 px-4 text-center">
+                      </td>}
+                      {isAdmin && <td className="py-4 px-4 text-center">
                         <AccountStatusBadge status={row.accountStatus} />
-                      </td>
+                      </td>}
                     </tr>
                   ))
                 ) : (

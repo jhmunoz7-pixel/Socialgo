@@ -2,12 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClients, useStats, usePackages, useMembers, deleteClient, updateClient } from '@/lib/hooks';
+import { useClients, useStats, usePackages, useMembers, useCurrentUser, deleteClient, updateClient } from '@/lib/hooks';
 import { Client, PayStatus, AccountStatus, calculateMonthlyPayment } from '@/types';
 import { AddClientModal } from '@/components/clients/AddClientModal';
 
 export default function ClientsPage() {
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const role = currentUser?.member?.role;
+  const isAdmin = role === 'owner' || role === 'admin' || role === 'member';
   const { data: clients, loading: clientsLoading, refetch: refetchClients } = useClients();
   const { data: stats, loading: statsLoading } = useStats();
   const { data: packages } = usePackages();
@@ -158,17 +161,22 @@ export default function ClientsPage() {
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>👥 Clientes</h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Gestiona cuentas, contratos y estatus de pago</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
+              {isAdmin ? 'Gestiona cuentas, contratos y estatus de pago' : 'Clientes asignados'}
+            </p>
           </div>
-          <button
-            onClick={() => setAddClientOpen(true)}
-            className="btn btn-primary"
-          >
-            + Agregar cliente
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setAddClientOpen(true)}
+              className="btn btn-primary"
+            >
+              + Agregar cliente
+            </button>
+          )}
         </div>
 
-        {/* Stats Grid — inside sticky area */}
+        {/* Stats Grid — inside sticky area (admin only) */}
+        {isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {isLoading ? (
             [1, 2, 3, 4].map((i) => (
@@ -198,6 +206,7 @@ export default function ClientsPage() {
             </>
           )}
         </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -298,24 +307,24 @@ export default function ClientsPage() {
                   <span className="text-body-xs text-sg-text-mid">{client.package_type || ''}</span>
                 </div>
               </div>
-              <button
+              {isAdmin && <button
                 onClick={(e) => { e.stopPropagation(); if (client.pay_status === 'pendiente') handleTogglePayStatus(client); }}
                 className={`badge ${getStatusBadgeClass(client.pay_status === 'pendiente' ? 'pago_pendiente' : client.account_status)} text-xs flex-shrink-0`}
               >
                 {client.pay_status === 'pendiente' ? 'Pago Pendiente' : getStatusLabel(client.account_status)}
-              </button>
+              </button>}
             </div>
             <div className="flex items-center justify-between text-body-xs text-sg-text-mid">
-              <span>Mes {calculateMonthsActive(client.start_date)}</span>
-              <span className="font-mono font-semibold text-sg-text">{formatCurrency(getMonthlyPayment(client))}</span>
+              {isAdmin && <span>Mes {calculateMonthsActive(client.start_date)}</span>}
+              {isAdmin && <span className="font-mono font-semibold text-sg-text">{formatCurrency(getMonthlyPayment(client))}</span>}
               <span>{client.city || '-'}</span>
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 {client.instagram && (
                   <a href={client.instagram} target="_blank" rel="noopener noreferrer" className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center">📷</a>
                 )}
-                <button onClick={() => handleToggleAccountStatus(client)} className={`text-base min-w-[44px] min-h-[44px] flex items-center justify-center ${client.account_status === 'activo' ? 'text-green-500' : 'text-sg-text-light'}`} title={client.account_status === 'activo' ? 'Desactivar' : 'Activar'}>{client.account_status === 'activo' ? '✅' : '⏸️'}</button>
-                <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar">✏️</button>
-                <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar">🗑️</button>
+                {isAdmin && <button onClick={() => handleToggleAccountStatus(client)} className={`text-base min-w-[44px] min-h-[44px] flex items-center justify-center ${client.account_status === 'activo' ? 'text-green-500' : 'text-sg-text-light'}`} title={client.account_status === 'activo' ? 'Desactivar' : 'Activar'}>{client.account_status === 'activo' ? '✅' : '⏸️'}</button>}
+                {isAdmin && <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar">✏️</button>}
+                {isAdmin && <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar">🗑️</button>}
               </div>
             </div>
           </div>
@@ -344,27 +353,27 @@ export default function ClientsPage() {
                   <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Paquete
                   </th>
-                  <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                  {isAdmin && <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Tipo
-                  </th>
-                  <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                  </th>}
+                  {isAdmin && <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Meses activos
-                  </th>
-                  <th className="text-right p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                  </th>}
+                  {isAdmin && <th className="text-right p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Pago mensual
-                  </th>
+                  </th>}
                   <th className="text-left p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Ciudad
                   </th>
                   <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     IG
                   </th>
-                  <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                  {isAdmin && <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Status
-                  </th>
-                  <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
+                  </th>}
+                  {isAdmin && <th className="text-center p-4 text-body-xs font-semibold text-sg-text-mid uppercase tracking-wide">
                     Acciones
-                  </th>
+                  </th>}
                 </tr>
               </thead>
               <tbody>
@@ -397,25 +406,25 @@ export default function ClientsPage() {
                     </td>
 
                     {/* Tipo */}
-                    <td className="p-4">
+                    {isAdmin && <td className="p-4">
                       <p className="text-body-sm text-sg-text">
                         {client.package_type || '-'}
                       </p>
-                    </td>
+                    </td>}
 
                     {/* Meses activos */}
-                    <td className="p-4">
+                    {isAdmin && <td className="p-4">
                       <p className="text-body-sm text-sg-text">
                         Mes {calculateMonthsActive(client.start_date)}
                       </p>
-                    </td>
+                    </td>}
 
                     {/* Pago mensual */}
-                    <td className="p-4 text-right">
+                    {isAdmin && <td className="p-4 text-right">
                       <p className="font-mono text-body-md font-semibold text-sg-text">
                         {formatCurrency(getMonthlyPayment(client))}
                       </p>
-                    </td>
+                    </td>}
 
                     {/* Ciudad */}
                     <td className="p-4">
@@ -443,7 +452,7 @@ export default function ClientsPage() {
                     </td>
 
                     {/* Status */}
-                    <td className="p-4 text-center">
+                    {isAdmin && <td className="p-4 text-center">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -459,10 +468,10 @@ export default function ClientsPage() {
                           ? 'Pago Pendiente'
                           : getStatusLabel(client.account_status)}
                       </button>
-                    </td>
+                    </td>}
 
                     {/* Acciones */}
-                    <td className="p-4 text-center">
+                    {isAdmin && <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleToggleAccountStatus(client); }}
@@ -489,7 +498,7 @@ export default function ClientsPage() {
                           🗑️
                         </button>
                       </div>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
