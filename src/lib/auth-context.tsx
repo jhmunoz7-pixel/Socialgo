@@ -67,9 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         memberQuery = memberQuery.eq('org_id', impersonateOrgId);
       }
 
-      // Use maybeSingle + order so duplicate member rows don't break auth
+      // Use maybeSingle + order so duplicate member rows don't break auth.
+      // Order by updated_at DESC to prefer the most recently modified record
+      // (e.g. when invite endpoint updates the role).
       const { data: memberData, error: memberError } = await memberQuery
-        .order('created_at', { ascending: true })
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -79,9 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (memberData) {
         const { organizations, ...memberOnly } = memberData;
+        console.log('[auth-context] member loaded:', { role: memberOnly.role, org_id: memberOnly.org_id, user_id: memberOnly.user_id });
         setMember(memberOnly as Member);
         setOrganization((organizations as unknown as Organization) || null);
       } else {
+        console.log('[auth-context] no member found for user:', authData.user.id);
         setMember(null);
         setOrganization(null);
       }
