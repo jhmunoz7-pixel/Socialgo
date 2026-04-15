@@ -300,12 +300,13 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
   const { data: clients } = useClients();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<MemberRole>('member');
+  const [inviteRole, setInviteRole] = useState<MemberRole>('creative');
   const [inviteClientIds, setInviteClientIds] = useState<string[]>([]);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [editingAssignments, setEditingAssignments] = useState<string | null>(null);
   const [assignmentsByMember, setAssignmentsByMember] = useState<Record<string, string[]>>({});
   const [assignmentDraft, setAssignmentDraft] = useState<string[]>([]);
@@ -443,6 +444,26 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
     }
   };
 
+  const handleResendInvite = async (member: { id: string; full_name: string | null }) => {
+    setResendingInvite(member.id);
+    try {
+      const res = await fetch('/api/members/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: member.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al reenviar');
+      alert(`Invitación reenviada a ${data.email}`);
+    } catch (err: unknown) {
+      console.error('Error resending invite:', err);
+      const message = err instanceof Error ? err.message : 'Error al reenviar invitación';
+      alert(message);
+    } finally {
+      setResendingInvite(null);
+    }
+  };
+
   const handleDeleteMember = async (memberId: string, memberName: string | null) => {
     const displayName = memberName || 'este miembro';
     if (!confirm(`¿Estás seguro de que deseas eliminar a ${displayName} del equipo?`)) return;
@@ -514,7 +535,6 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
                   onChange={(e) => setInviteRole(e.target.value as MemberRole)}
                   className="w-full px-4 py-2 rounded-lg bg-white/50 border border-white/30 text-text focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all"
                 >
-                  <option value="member">Miembro</option>
                   <option value="creative">Creativo</option>
                   <option value="admin">Administrador</option>
                   <option value="client_viewer">Cliente (solo ver)</option>
@@ -651,6 +671,14 @@ function EquipoTab({ members, membersLoading, canManageMembers, refetchMembers, 
                         <option value="admin">Administrador</option>
                         <option value="client_viewer">Cliente (ver)</option>
                       </select>
+                      <button
+                        onClick={() => handleResendInvite(member)}
+                        disabled={resendingInvite === member.id}
+                        className="px-2 py-1 rounded text-sm bg-blue-500/20 border border-blue-300/30 text-blue-600 hover:bg-blue-500/30 transition-colors text-xs disabled:opacity-50"
+                        title="Reenviar invitación por email"
+                      >
+                        {resendingInvite === member.id ? '...' : '📩 Reenviar'}
+                      </button>
                       <button
                         onClick={() => handleDeleteMember(member.id, member.full_name)}
                         disabled={deletingMember === member.id}

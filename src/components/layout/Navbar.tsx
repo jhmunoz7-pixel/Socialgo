@@ -75,7 +75,7 @@ export async function Navbar() {
                 Iniciar sesión
               </Link>
               <Link
-                href="/auth/signup"
+                href="/pricing"
                 className="text-sm font-medium px-4 py-2 rounded-xl text-white"
                 style={{
                   background: "linear-gradient(135deg, #FF8FAD, #FFBA8A)",

@@ -548,7 +548,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/auth/login" className="px-5 py-2 text-sm text-[#5A4A45] hover:text-[#2A1F1A] transition font-medium hidden sm:inline-block">Iniciar sesión</Link>
-            <Link href="/auth/signup">
+            <Link href="/pricing">
               <MagneticButton className="px-5 py-2 rounded-full font-medium text-white text-sm transition hover:shadow-lg" style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}>
                 Empezar gratis
               </MagneticButton>

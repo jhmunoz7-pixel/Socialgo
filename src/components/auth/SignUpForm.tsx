@@ -20,6 +20,8 @@ export function SignUpForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,6 +54,8 @@ export function SignUpForm() {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName.trim() || null,
+            company: agencyName.trim() || null,
+            phone: phone.trim() || null,
           },
         },
       });
@@ -90,8 +94,20 @@ export function SignUpForm() {
         placeholder="María García"
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
+        required
         disabled={isLoading}
         autoComplete="name"
+      />
+
+      <Input
+        type="text"
+        label="Nombre de la agencia"
+        placeholder="Mi Agencia Creativa"
+        value={agencyName}
+        onChange={(e) => setAgencyName(e.target.value)}
+        required
+        disabled={isLoading}
+        autoComplete="organization"
       />
 
       <Input
@@ -103,6 +119,16 @@ export function SignUpForm() {
         required
         disabled={isLoading}
         autoComplete="email"
+      />
+
+      <Input
+        type="tel"
+        label="Teléfono"
+        placeholder="+52 55 1234 5678"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        disabled={isLoading}
+        autoComplete="tel"
       />
 
       <Input
@@ -134,13 +160,13 @@ export function SignUpForm() {
         size="md"
         className="w-full"
         isLoading={isLoading}
-        disabled={isLoading || !email || !password || !confirmPassword}
+        disabled={isLoading || !fullName || !agencyName || !email || !password || !confirmPassword}
       >
         Crear cuenta
       </Button>
 
       <p className="text-body-xs text-aurometal text-center">
-        Al registrarte inicias un trial de 14 días gratis. Sin tarjeta de crédito.
+        Al registrarte inicias un trial de 7 días gratis. Sin tarjeta de crédito.
       </p>
     </form>
   );

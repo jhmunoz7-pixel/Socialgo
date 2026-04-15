@@ -63,7 +63,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
 
   // Status
   const [accountManager, setAccountManager] = useState(editClient?.manager_id || '');
-  const [estatus, setEstatus] = useState<AccountStatus>(editClient?.account_status || 'onboarding');
+  const [estatus, setEstatus] = useState<AccountStatus>(editClient?.account_status || 'activo');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +139,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
     setRequiereIVA(false);
     setIvaOption('incluido');
     setAccountManager('');
-    setEstatus('onboarding');
+    setEstatus('activo');
   };
 
   const handleSubmit = async () => {
@@ -609,17 +609,6 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
                 </select>
               </div>
 
-              <div>
-                <label className="form-label">Estatus inicial</label>
-                <select
-                  value={estatus}
-                  onChange={(e) => setEstatus(e.target.value as AccountStatus)}
-                  className="form-select"
-                >
-                  <option value="onboarding">Onboarding</option>
-                  <option value="activo">Activo</option>
-                </select>
-              </div>
             </div>
           </div>
 

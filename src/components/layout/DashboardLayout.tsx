@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useCurrentUser, useOrganization } from '@/lib/hooks';
+import { useCurrentUser, useOrganization, useClients } from '@/lib/hooks';
 import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
+import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 
 interface NavItem {
   label: string;
@@ -17,8 +18,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal' },
   { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal' },
+  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal' },
   { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal' },
   { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace' },
   { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace' },
@@ -38,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const user = useCurrentUser();
   const org = useOrganization();
+  const { data: clients } = useClients();
 
   // Sidebar state: collapsed (icons only) and mobile open/close
   const [collapsed, setCollapsed] = useState(false);
@@ -424,6 +426,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
 
+          <OnboardingPopup hasClients={clients.length > 0} />
           {children}
         </main>
       </div>

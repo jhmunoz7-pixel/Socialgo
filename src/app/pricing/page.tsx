@@ -158,7 +158,7 @@ function PricingPageInner() {
   const faqItems = [
     {
       question: '¿Cómo funciona la prueba gratis?',
-      answer: 'Obtén acceso completo a tu plan elegido durante 14 días sin necesidad de tarjeta de crédito. Después de los 14 días, tu plan se activará con el método de pago que registres.',
+      answer: 'Obtén acceso completo a tu plan elegido durante 7 días sin necesidad de tarjeta de crédito. Después de los 7 días, tu plan se activará con el método de pago que registres.',
     },
     {
       question: '¿Puedo cambiar de plan en cualquier momento?',
@@ -223,7 +223,7 @@ function PricingPageInner() {
           Planes simples, resultados potentes
         </h1>
         <p className="text-lg text-[#5A4A45] max-w-2xl mx-auto">
-          Elige el plan perfecto para tu agencia. Todos incluyen 14 días de prueba gratis.
+          Elige el plan perfecto para tu agencia. Todos incluyen 7 días de prueba gratis.
         </p>
       </section>
 

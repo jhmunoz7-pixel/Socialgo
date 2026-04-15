@@ -87,6 +87,17 @@ export default function ClientsPage() {
     }
   };
 
+  const handleToggleAccountStatus = async (client: Client) => {
+    try {
+      const newStatus: AccountStatus = client.account_status === 'activo' ? 'pausado' : 'activo';
+      await updateClient(client.id, { account_status: newStatus });
+      await refetchClients();
+    } catch (error) {
+      console.error('Error updating account status:', error);
+      alert('Error al actualizar el estado de la cuenta');
+    }
+  };
+
   const handleDeleteClient = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) return;
     try {
@@ -302,6 +313,7 @@ export default function ClientsPage() {
                 {client.instagram && (
                   <a href={client.instagram} target="_blank" rel="noopener noreferrer" className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center">📷</a>
                 )}
+                <button onClick={() => handleToggleAccountStatus(client)} className={`text-base min-w-[44px] min-h-[44px] flex items-center justify-center ${client.account_status === 'activo' ? 'text-green-500' : 'text-sg-text-light'}`} title={client.account_status === 'activo' ? 'Desactivar' : 'Activar'}>{client.account_status === 'activo' ? '✅' : '⏸️'}</button>
                 <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar">✏️</button>
                 <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar">🗑️</button>
               </div>
@@ -452,6 +464,16 @@ export default function ClientsPage() {
                     {/* Acciones */}
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleAccountStatus(client); }}
+                          className={`relative group text-lg transition-colors ${client.account_status === 'activo' ? 'text-green-500 hover:text-red-400' : 'text-sg-text-light hover:text-green-500'}`}
+                          title={client.account_status === 'activo' ? 'Desactivar cliente' : 'Activar cliente'}
+                        >
+                          {client.account_status === 'activo' ? '✅' : '⏸️'}
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            {client.account_status === 'activo' ? 'Desactivar' : 'Activar'} — {client.account_status === 'activo' ? 'pausar cuenta' : 'cliente con plan pagado'}
+                          </span>
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleEditClient(client.id); }}
                           className="text-rose hover:text-rose-deep transition-colors text-lg"
