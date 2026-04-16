@@ -407,6 +407,37 @@ export function calculateMonthlyPayment(pkg: Package | null, contractType: Packa
   return totalWithDiscount / months;
 }
 
+// ========== Canva WIP Integration ==========
+export interface CanvaConnection {
+  id: string;
+  org_id: string;
+  client_id: string;
+  folder_id: string;
+  folder_name: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanvaDesign {
+  id: string;
+  org_id: string;
+  client_id: string;
+  canva_design_id: string;
+  title: string | null;
+  thumbnail_url: string | null;
+  design_url: string | null;
+  page_count: number;
+  canva_updated_at: string | null;
+  synced_at: string;
+  linked_post_id: string | null;
+  status: 'wip' | 'assigned' | 'exported';
+  created_at: string;
+  // Joined
+  client?: Pick<Client, 'name' | 'emoji' | 'color'>;
+  linked_post?: Post;
+}
+
 export function calculateTotalWithIVA(amount: number, requiresIva: boolean, ivaIncluded: boolean): { subtotal: number; iva: number; total: number } {
   if (!requiresIva) return { subtotal: amount, iva: 0, total: amount };
 
