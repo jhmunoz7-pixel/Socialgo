@@ -8,7 +8,6 @@ import type { MemberRole } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 import {
   Home, ListTodo,
@@ -211,9 +210,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </p>
           </div>
         )}
-
-        {/* Theme Selector */}
-        <ThemeSelector />
 
         {/* Navigation */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto">
