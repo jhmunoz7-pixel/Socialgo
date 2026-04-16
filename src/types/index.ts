@@ -422,6 +422,11 @@ export interface CanvaConnection {
   updated_at: string;
 }
 
+export interface CanvaDesignPage {
+  page_number: number;
+  thumbnail_url: string | null;
+}
+
 export interface CanvaDesign {
   id: string;
   org_id: string;
@@ -431,6 +436,8 @@ export interface CanvaDesign {
   thumbnail_url: string | null;
   design_url: string | null;
   page_count: number;
+  /** Per-page thumbnails. Empty until synced; length may be less than page_count. */
+  pages: CanvaDesignPage[];
   canva_updated_at: string | null;
   synced_at: string;
   linked_post_id: string | null;

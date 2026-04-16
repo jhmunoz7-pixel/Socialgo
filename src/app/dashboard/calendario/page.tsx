@@ -11,7 +11,7 @@ import {
   createPost,
   createPostComment,
 } from '@/lib/hooks';
-import type { Post, Client, Platform, PostType, PostFormat } from '@/types';
+import type { Post, Client, Platform, PostType, PostFormat, CanvaDesign } from '@/types';
 import {
   STAGE_CONFIG,
   STAGE_ORDER,
@@ -47,6 +47,21 @@ function toDateKey(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+/**
+ * Resolve the thumbnail to render for a given design + page:
+ *   1. If the design has a cached `pages[page - 1].thumbnail_url`, use that
+ *      (real per-page thumbnail).
+ *   2. Otherwise fall back to the design-level thumbnail.
+ */
+function resolvePageThumbnail(design: CanvaDesign | null | undefined, page: number | null): string | null {
+  if (!design) return null;
+  if (page && Array.isArray(design.pages)) {
+    const match = design.pages.find((p) => p.page_number === page);
+    if (match?.thumbnail_url) return match.thumbnail_url;
+  }
+  return design.thumbnail_url || null;
 }
 
 function buildCalendarGrid(viewMonth: Date): Date[] {
@@ -174,19 +189,19 @@ export default function CalendarioPage() {
   // fall back to canva_designs.linked_post_id (legacy design-level link).
   const canvaByPostId = useMemo(() => {
     const map: Record<string, { thumbnail: string | null; page: number | null; pageCount: number }> = {};
-    // New linkage: post -> design
+    // New linkage: post -> design (+ specific page)
     posts.forEach((p) => {
       if (!p.canva_design_id) return;
       const d = designs.find((x) => x.id === p.canva_design_id);
       if (d) {
         map[p.id] = {
-          thumbnail: d.thumbnail_url,
+          thumbnail: resolvePageThumbnail(d, p.canva_page_number),
           page: p.canva_page_number,
           pageCount: d.page_count,
         };
       }
     });
-    // Legacy linkage: design -> linked_post
+    // Legacy linkage: design -> linked_post (design-level thumbnail only)
     designs.forEach((d) => {
       if (d.linked_post_id && !map[d.linked_post_id]) {
         map[d.linked_post_id] = {
@@ -873,13 +888,7 @@ function PostDrawer({
   post: Post;
   stage: StageKey;
   client: Client | null;
-  allDesigns: Array<{
-    id: string;
-    title: string | null;
-    thumbnail_url: string | null;
-    design_url: string | null;
-    page_count: number;
-  }>;
+  allDesigns: CanvaDesign[];
   isClientViewer: boolean;
   isMoving: boolean;
   onClose: () => void;
@@ -936,7 +945,7 @@ function PostDrawer({
     await updatePost(post.id, { copy: copyDraft });
   };
 
-  const thumbnail = post.image_url || linkedDesign?.thumbnail_url || null;
+  const thumbnail = post.image_url || resolvePageThumbnail(linkedDesign, pageNumber) || null;
   const canAdvance = !isClientViewer && config.nextStageKey !== null;
   const canReturn: boolean = !isClientViewer && stage !== 'proposal' && stage !== 'published';
   const canArchive: boolean = !isClientViewer && stage !== 'published';
@@ -1453,13 +1462,7 @@ function CanvaPickerPanel({
   allDesigns, currentDesignId, currentPage,
   onSave, onClose,
 }: {
-  allDesigns: Array<{
-    id: string;
-    title: string | null;
-    thumbnail_url: string | null;
-    design_url: string | null;
-    page_count: number;
-  }>;
+  allDesigns: CanvaDesign[];
   currentDesignId: string | null;
   currentPage: number | null;
   onSave: (designId: string | null, page: number | null) => Promise<void>;
@@ -1553,25 +1556,73 @@ function CanvaPickerPanel({
               <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
                 Página a usar
               </label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {Array.from({ length: selected.page_count }, (_, i) => i + 1).map((n) => {
-                  const on = page === n;
+              {(() => {
+                // If any page has a thumbnail, render a thumbnail grid; else fall back to numbers.
+                const hasThumbnails = selected.pages?.some((p) => p.thumbnail_url);
+                if (hasThumbnails) {
                   return (
-                    <button
-                      key={n}
-                      onClick={() => setPage(n)}
-                      className="w-7 h-7 rounded-md text-[11px] font-semibold transition-colors"
-                      style={{
-                        background: on ? 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' : 'white',
-                        color: on ? 'white' : 'var(--text-mid)',
-                        border: on ? '1px solid transparent' : '1px solid var(--glass-border)',
-                      }}
-                    >
-                      {n}
-                    </button>
+                    <div className="grid grid-cols-4 gap-2 mt-1">
+                      {Array.from({ length: selected.page_count }, (_, i) => i + 1).map((n) => {
+                        const on = page === n;
+                        const pageThumb = selected.pages?.find((p) => p.page_number === n)?.thumbnail_url || null;
+                        return (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n)}
+                            className="relative aspect-square rounded-md overflow-hidden transition-all"
+                            style={{
+                              border: on ? '2px solid #6366F1' : '1px solid var(--glass-border)',
+                              boxShadow: on ? '0 0 0 2px rgba(99,102,241,0.15)' : 'none',
+                            }}
+                            title={`Página ${n}`}
+                          >
+                            {pageThumb ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={pageThumb} alt={`Página ${n}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[11px] font-semibold" style={{ background: '#F1F5F9', color: 'var(--text-mid)' }}>
+                                {n}
+                              </div>
+                            )}
+                            <span
+                              className="absolute top-0.5 left-0.5 px-1 rounded-sm text-[9px] font-semibold"
+                              style={{ background: on ? '#6366F1' : 'rgba(0,0,0,0.55)', color: 'white' }}
+                            >
+                              {n}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
-                })}
-              </div>
+                }
+                return (
+                  <>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Array.from({ length: selected.page_count }, (_, i) => i + 1).map((n) => {
+                        const on = page === n;
+                        return (
+                          <button
+                            key={n}
+                            onClick={() => setPage(n)}
+                            className="w-7 h-7 rounded-md text-[11px] font-semibold transition-colors"
+                            style={{
+                              background: on ? 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' : 'white',
+                              color: on ? 'white' : 'var(--text-mid)',
+                              border: on ? '1px solid transparent' : '1px solid var(--glass-border)',
+                            }}
+                          >
+                            {n}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] italic mt-1" style={{ color: 'var(--text-light)' }}>
+                      Sin thumbnails por página aún — sincroniza desde Canva para previsualizar cada página.
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           )}
 
