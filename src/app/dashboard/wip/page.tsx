@@ -4,26 +4,22 @@ import React, { useState, useMemo } from 'react';
 import {
   useClients,
   usePosts,
-  useCanvaConnections,
   useCanvaDesigns,
 } from '@/lib/hooks';
-import type { Post, CanvaDesign, CanvaConnection } from '@/types';
+import type { Post, CanvaDesign } from '@/types';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TipBanner } from '@/components/ui/TipBanner';
 import {
   Layers,
-  RefreshCw,
   ExternalLink,
   Link2,
   Loader2,
-  FolderOpen,
   X,
   ChevronDown,
   Image,
   Clock,
   FileText,
   Check,
-  Unlink,
   Search,
 } from 'lucide-react';
 
@@ -49,38 +45,52 @@ function timeAgo(dateStr: string | null): string {
   return `hace ${diffD}d`;
 }
 
-// ─── Connection Setup Card ───────────────────────────────────────
-function ConnectionSetup({
+// ─── Add Design Card ─────────────────────────────────────────────
+function AddDesignCard({
   clientId,
-  onConnected,
+  onAdded,
 }: {
   clientId: string;
-  onConnected: () => void;
+  onAdded: () => void;
 }) {
-  const [folderId, setFolderId] = useState('');
-  const [folderName, setFolderName] = useState('');
+  const [designInput, setDesignInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleConnect = async () => {
-    if (!folderId.trim()) return;
+  // Extract design ID from URL or raw ID
+  const parseDesignId = (input: string): string => {
+    const trimmed = input.trim();
+    // Handle full URL: https://www.canva.com/design/DAGdtjOVgJU/cvLa0AWQ4dmJPLx2IQSMRA/edit
+    const urlMatch = trimmed.match(/canva\.com\/design\/([^/]+)/);
+    if (urlMatch) return urlMatch[1];
+    // Handle raw ID
+    return trimmed;
+  };
+
+  const handleAdd = async () => {
+    const designId = parseDesignId(designInput);
+    if (!designId) return;
     setSaving(true);
     setError('');
+    setSuccess('');
     try {
-      const res = await fetch('/api/canva/connections', {
+      const res = await fetch('/api/canva/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_id: clientId,
-          folder_id: folderId.trim(),
-          folder_name: folderName.trim() || null,
+          designs: [{ canva_design_id: designId }],
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error');
-      onConnected();
+      setSuccess('Diseño agregado');
+      setDesignInput('');
+      onAdded();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al conectar');
+      setError(err instanceof Error ? err.message : 'Error al agregar diseño');
     } finally {
       setSaving(false);
     }
@@ -88,7 +98,7 @@ function ConnectionSetup({
 
   return (
     <div
-      className="rounded-2xl p-6 border"
+      className="rounded-2xl p-5 border"
       style={{
         background: 'var(--surface)',
         borderColor: 'var(--glass-border)',
@@ -99,143 +109,44 @@ function ConnectionSetup({
           className="w-10 h-10 rounded-xl flex items-center justify-center"
           style={{ background: 'var(--primary)', color: 'var(--text-dark)' }}
         >
-          <FolderOpen className="w-5 h-5" />
+          <Image className="w-5 h-5" />
         </div>
         <div>
           <h3 className="font-semibold" style={{ color: 'var(--text-dark)' }}>
-            Vincular carpeta de Canva
+            Agregar diseño de Canva
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-light)' }}>
-            Conecta una carpeta de Canva para sincronizar los diseños de este cliente
+            Pega la URL o el ID del diseño de Canva
           </p>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-mid)' }}>
-            ID de la carpeta de Canva
-          </label>
-          <input
-            type="text"
-            value={folderId}
-            onChange={(e) => setFolderId(e.target.value)}
-            placeholder="Ej: FAF1234abcdef..."
-            className="w-full px-3 py-2 rounded-xl border text-sm"
-            style={{
-              background: 'var(--bg)',
-              borderColor: 'var(--glass-border)',
-              color: 'var(--text-dark)',
-            }}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-mid)' }}>
-            Nombre de la carpeta (opcional)
-          </label>
-          <input
-            type="text"
-            value={folderName}
-            onChange={(e) => setFolderName(e.target.value)}
-            placeholder="Ej: Contenido Mayo 2026"
-            className="w-full px-3 py-2 rounded-xl border text-sm"
-            style={{
-              background: 'var(--bg)',
-              borderColor: 'var(--glass-border)',
-              color: 'var(--text-dark)',
-            }}
-          />
-        </div>
-
-        {error && <p className="text-xs text-red-500">{error}</p>}
-
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={designInput}
+          onChange={(e) => { setDesignInput(e.target.value); setError(''); }}
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          placeholder="https://www.canva.com/design/DAGxxx.../edit  o  DAGxxx..."
+          className="flex-1 px-3 py-2 rounded-xl border text-sm"
+          style={{
+            background: 'var(--bg)',
+            borderColor: 'var(--glass-border)',
+            color: 'var(--text-dark)',
+          }}
+        />
         <button
-          onClick={handleConnect}
-          disabled={saving || !folderId.trim()}
-          className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+          onClick={handleAdd}
+          disabled={saving || !designInput.trim()}
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
           style={{ background: 'var(--gradient)' }}
         >
-          {saving ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Conectando...
-            </span>
-          ) : (
-            'Vincular carpeta'
-          )}
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+          {saving ? 'Agregando...' : 'Agregar'}
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── Connection Status Banner ────────────────────────────────────
-function ConnectionBanner({
-  connection,
-  onSync,
-  syncing,
-  onDisconnect,
-}: {
-  connection: CanvaConnection;
-  onSync: () => void;
-  syncing: boolean;
-  onDisconnect: () => void;
-}) {
-  return (
-    <div
-      className="rounded-2xl p-4 border flex items-center justify-between gap-4 flex-wrap"
-      style={{
-        background: 'var(--surface)',
-        borderColor: 'var(--glass-border)',
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: '#DCFCE7', color: '#15803D' }}
-        >
-          <FolderOpen className="w-4 h-4" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: 'var(--text-dark)' }}>
-              {connection.folder_name || connection.folder_id}
-            </span>
-            <span
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
-              style={{ background: '#DCFCE7', color: '#15803D' }}
-            >
-              Conectado
-            </span>
-          </div>
-          <p className="text-xs" style={{ color: 'var(--text-light)' }}>
-            Sincronizado: {timeAgo(connection.last_synced_at)}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onSync}
-          disabled={syncing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all hover:opacity-80"
-          style={{
-            borderColor: 'var(--glass-border)',
-            color: 'var(--text-mid)',
-            background: 'var(--bg)',
-          }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Sincronizando...' : 'Sincronizar'}
-        </button>
-        <button
-          onClick={onDisconnect}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-all hover:opacity-80"
-          style={{ color: 'var(--text-light)' }}
-          title="Desvincular carpeta"
-        >
-          <Unlink className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      {success && <p className="text-xs mt-2" style={{ color: '#15803D' }}>{success}</p>}
     </div>
   );
 }
@@ -515,14 +426,7 @@ function DesignCard({
 export default function WIPPage() {
   const { data: clients, loading: clientsLoading } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
   const [assignModalDesign, setAssignModalDesign] = useState<CanvaDesign | null>(null);
-
-  // Fetch connections and designs for selected client
-  const {
-    data: connections,
-    refetch: refetchConnections,
-  } = useCanvaConnections(selectedClientId);
 
   const {
     data: designs,
@@ -534,48 +438,12 @@ export default function WIPPage() {
     data: posts,
   } = usePosts(selectedClientId);
 
-  const activeConnection = connections.length > 0 ? connections[0] : null;
-
   // Auto-select first client
   React.useEffect(() => {
     if (clients.length > 0 && !selectedClientId) {
       setSelectedClientId(clients[0].id);
     }
   }, [clients, selectedClientId]);
-
-  const handleSync = async () => {
-    if (!selectedClientId) return;
-    setSyncing(true);
-    try {
-      const res = await fetch('/api/canva/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: selectedClientId }),
-      });
-      if (res.ok) {
-        await refetchDesigns();
-        await refetchConnections();
-      }
-    } catch (err) {
-      console.error('Sync error:', err);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!activeConnection) return;
-    try {
-      await fetch('/api/canva/connections', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: activeConnection.id }),
-      });
-      await refetchConnections();
-    } catch (err) {
-      console.error('Disconnect error:', err);
-    }
-  };
 
   const handleAssign = async (designId: string, postId: string) => {
     const res = await fetch('/api/canva/assign', {
@@ -670,25 +538,14 @@ export default function WIPPage() {
         </div>
       </div>
 
-      {/* Connection status */}
+      {/* Add design input */}
       {selectedClientId && (
-        <div>
-          {activeConnection ? (
-            <ConnectionBanner
-              connection={activeConnection}
-              onSync={handleSync}
-              syncing={syncing}
-              onDisconnect={handleDisconnect}
-            />
-          ) : (
-            <ConnectionSetup
-              clientId={selectedClientId}
-              onConnected={async () => {
-                await refetchConnections();
-              }}
-            />
-          )}
-        </div>
+        <AddDesignCard
+          clientId={selectedClientId}
+          onAdded={async () => {
+            await refetchDesigns();
+          }}
+        />
       )}
 
       {/* Design grid */}
@@ -699,13 +556,8 @@ export default function WIPPage() {
       ) : designs.length === 0 ? (
         <EmptyState
           icon={<Layers className="w-12 h-12" />}
-          title="No hay diseños sincronizados"
-          description="Vincula una carpeta de Canva para ver los diseños de tu equipo aquí."
-          action={
-            activeConnection
-              ? { label: 'Sincronizar ahora', onClick: handleSync }
-              : undefined
-          }
+          title="No hay diseños agregados"
+          description="Pega la URL o ID de un diseño de Canva arriba para agregarlo al board de WIP."
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
