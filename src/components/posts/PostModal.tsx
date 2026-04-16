@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Post, Client, PostType, PostFormat, Platform, POST_TYPE_CONFIG, FORMAT_CONFIG, ApprovalStatus } from '@/types';
 import { usePostComments, createPostComment, updatePost, useMembers, useCurrentUser } from '@/lib/hooks';
+import { PlatformPreviewSelector } from './PlatformPreviewSelector';
 
 interface PostModalProps {
   post: Post | null;
@@ -101,7 +102,7 @@ export const PostModal: React.FC<PostModalProps> = ({
   onSave,
   mode = 'edit',
 }) => {
-  const [activeTab, setActiveTab] = useState<'contenido' | 'programacion' | 'aprobacion'>('contenido');
+  const [activeTab, setActiveTab] = useState<'contenido' | 'programacion' | 'aprobacion' | 'preview'>('contenido');
   const [editState, setEditState] = useState<EditState>({
     name: '',
     explanation: '',
@@ -304,7 +305,7 @@ export const PostModal: React.FC<PostModalProps> = ({
           <div className="flex flex-col">
             {/* Tab Navigation */}
             <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--glass-border)' }}>
-              {(['contenido', 'programacion', 'aprobacion'] as const).map((tab) => (
+              {(['contenido', 'programacion', 'aprobacion', 'preview'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -318,6 +319,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                   {tab === 'contenido' && 'Contenido'}
                   {tab === 'programacion' && 'Programación'}
                   {tab === 'aprobacion' && 'Aprobación'}
+                  {tab === 'preview' && 'Vista Previa'}
                 </button>
               ))}
             </div>
@@ -691,6 +693,21 @@ export const PostModal: React.FC<PostModalProps> = ({
                       {savingComment ? 'Guardando...' : 'Enviar comentario'}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* VISTA PREVIA TAB */}
+              {activeTab === 'preview' && (
+                <div className="flex items-center justify-center pr-4 py-4" style={{ minHeight: 400 }}>
+                  <PlatformPreviewSelector
+                    imageUrl={post?.image_url ?? null}
+                    copy={editState.copy || null}
+                    cta={editState.cta || null}
+                    clientName={client?.name || 'Cliente'}
+                    clientEmoji={client?.emoji || '📱'}
+                    platform={editState.platform}
+                    format={editState.format}
+                  />
                 </div>
               )}
             </div>

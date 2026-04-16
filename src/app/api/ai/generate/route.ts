@@ -31,6 +31,19 @@ export async function POST(req: NextRequest) {
       if (brandKit) {
         if (brandKit.color_palette) brandContext += `\nPaleta de colores: ${JSON.stringify(brandKit.color_palette)}`;
         if (brandKit.style_notes) brandContext += `\nEstilo de marca: ${brandKit.style_notes}`;
+
+        // Inject AI brand voice if available
+        if (brandKit.style_questionnaire && typeof brandKit.style_questionnaire === 'object') {
+          const voice = (brandKit.style_questionnaire as Record<string, any>).ai_brand_voice;
+          if (voice) {
+            brandContext += `\nVoz de marca analizada por AI:`;
+            if (voice.tone_adjectives) brandContext += ` Tono: ${voice.tone_adjectives.join(', ')}.`;
+            if (voice.sentence_style) brandContext += ` Estilo: ${voice.sentence_style}.`;
+            if (voice.dos) brandContext += ` Hacer: ${voice.dos.join('; ')}.`;
+            if (voice.donts) brandContext += ` Evitar: ${voice.donts.join('; ')}.`;
+            if (voice.emoji_usage) brandContext += ` Uso de emojis: ${voice.emoji_usage}.`;
+          }
+        }
       }
     }
 
