@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   useCurrentUser,
@@ -8,7 +8,10 @@ import {
   usePosts,
   useClients,
   useCanvaDesigns,
+  useMembers,
+  usePackages,
 } from '@/lib/hooks';
+import { ONBOARDING_TASKS, getCompletedTasks } from '@/lib/onboarding';
 // Post type used implicitly via usePosts() return
 import {
   Home,
@@ -23,6 +26,11 @@ import {
   ArrowRight,
   Calendar,
   AlertCircle,
+  Rocket,
+  Circle,
+  X as XIcon,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 // Platform badge colors
@@ -70,6 +78,49 @@ export default function HomePage() {
   const { data: posts, loading: postsLoading } = usePosts();
   const { data: clients } = useClients();
   const { data: designs } = useCanvaDesigns(undefined, 'wip');
+  const { data: members } = useMembers();
+  const { data: packages } = usePackages();
+
+  // Onboarding state
+  const completedTasks = useMemo(() => getCompletedTasks({
+    clientsCount: clients.length,
+    packagesCount: packages.length,
+    membersCount: members.length,
+    postsCount: posts.length,
+    canvaDesignsCount: designs.length,
+    reviewPostsCount: posts.filter(p => p.status === 'in_production' || p.status === 'review_1_1').length,
+    approvedPostsCount: posts.filter(p => p.approval_status === 'approved').length,
+    publishedPostsCount: posts.filter(p => p.status === 'published').length,
+  }), [clients, packages, members, posts, designs]);
+
+  const [dismissedTasks, setDismissedTasks] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set<string>();
+    try {
+      const stored = localStorage.getItem('sg_onboarding_dismissed');
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
+
+  const [hideCompleted, setHideCompleted] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sg_onboarding_dismissed', JSON.stringify([...dismissedTasks]));
+    } catch { /* ignore */ }
+  }, [dismissedTasks]);
+
+  const dismissTask = (taskId: string) => {
+    setDismissedTasks(prev => {
+      const next = new Set(prev);
+      next.add(taskId);
+      return next;
+    });
+  };
+
+  const completedCount = ONBOARDING_TASKS.filter(t => completedTasks.has(t.id) || dismissedTasks.has(t.id)).length;
+  const showOnboarding = completedCount < ONBOARDING_TASKS.length;
 
   const userName = user.data?.member?.full_name?.split(' ')[0] || 'Usuario';
   const today = new Date();
@@ -282,6 +333,119 @@ export default function HomePage() {
             />
           </div>
         </div>
+
+        {/* ── Onboarding: Primeros pasos ── */}
+        {showOnboarding && (
+          <div
+            className="rounded-2xl p-5"
+            style={{
+              gridColumn: 'span 12',
+              background: 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FDF4FF 100%)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+                >
+                  <Rocket className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: '#312E81' }}>
+                    Primeros pasos
+                  </h3>
+                  <p className="text-xs" style={{ color: '#6366F1' }}>
+                    {completedTasks.size} de {ONBOARDING_TASKS.length} completados
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setHideCompleted(h => !h)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-white/60"
+                style={{ color: '#6366F1' }}
+              >
+                {hideCompleted ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {hideCompleted ? 'Mostrar completados' : 'Ocultar completados'}
+              </button>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: 'rgba(99,102,241,0.15)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  background: 'linear-gradient(90deg, #6366F1, #A78BFA, #C084FC)',
+                  width: `${(completedTasks.size / ONBOARDING_TASKS.length) * 100}%`,
+                }}
+              />
+            </div>
+
+            {/* Task list */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {ONBOARDING_TASKS.map((task) => {
+                const isCompleted = completedTasks.has(task.id);
+                const isDismissed = dismissedTasks.has(task.id);
+                if ((isCompleted || isDismissed) && hideCompleted) return null;
+                if (isDismissed && !isCompleted) return null;
+
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group"
+                    style={{
+                      background: isCompleted ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.7)',
+                      border: isCompleted
+                        ? '1px solid rgba(16,185,129,0.2)'
+                        : '1px solid rgba(148,163,184,0.15)',
+                    }}
+                  >
+                    {/* Check icon */}
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: '#10B981' }} />
+                    ) : (
+                      <Link href={task.href}>
+                        <Circle className="w-5 h-5 flex-shrink-0 cursor-pointer hover:opacity-70 transition-opacity" style={{ color: '#A78BFA' }} />
+                      </Link>
+                    )}
+
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      {isCompleted ? (
+                        <p className="text-sm line-through" style={{ color: '#94A3B8' }}>
+                          {task.label}
+                        </p>
+                      ) : (
+                        <Link href={task.href} className="block">
+                          <p className="text-sm font-medium hover:underline" style={{ color: '#312E81' }}>
+                            {task.label}
+                          </p>
+                          <p className="text-xs" style={{ color: '#6366F1' }}>
+                            {task.description}
+                          </p>
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Dismiss button (only for incomplete tasks) */}
+                    {!isCompleted && (
+                      <button
+                        onClick={() => dismissTask(task.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/80"
+                        title="Descartar"
+                      >
+                        <XIcon className="w-3.5 h-3.5" style={{ color: '#94A3B8' }} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Pending Approvals ── */}
         <div
