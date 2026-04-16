@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getValidCanvaAccessToken } from '@/lib/canva-oauth';
 
 /**
  * POST /api/canva/designs/{id}/sync-pages
@@ -87,28 +88,32 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const token = process.env.CANVA_API_TOKEN;
-    if (!token) {
-      return NextResponse.json(
-        {
-          error:
-            'Canva no está conectado. Pide al admin que configure CANVA_API_TOKEN en el servidor.',
-          code: 'CANVA_NOT_CONFIGURED',
-        },
-        { status: 503 },
-      );
-    }
-
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { data: member } = await supabase
       .from('members')
-      .select('org_id, role')
+      .select('id, org_id, role')
       .eq('user_id', user.id)
       .single();
     if (!member) return NextResponse.json({ error: 'Sin organización' }, { status: 403 });
+
+    // Prefer the member's per-user Canva OAuth token; fall back to the
+    // legacy org-wide CANVA_API_TOKEN env var so existing deployments
+    // keep working while users migrate to Connect.
+    let token = await getValidCanvaAccessToken(member.id);
+    if (!token) token = process.env.CANVA_API_TOKEN || null;
+    if (!token) {
+      return NextResponse.json(
+        {
+          error:
+            'Canva no está conectado. Conecta tu cuenta en Configuración → Integraciones.',
+          code: 'CANVA_NOT_CONNECTED',
+        },
+        { status: 503 },
+      );
+    }
 
     const { id } = await params;
 
