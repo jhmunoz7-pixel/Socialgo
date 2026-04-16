@@ -158,6 +158,9 @@ export interface Post {
   reach: number;
   // Assignment
   assigned_to: string | null;
+  // Canva linkage (per-page)
+  canva_design_id: string | null;
+  canva_page_number: number | null;
   // Publishing
   published_url: string | null;
   published_at: string | null;

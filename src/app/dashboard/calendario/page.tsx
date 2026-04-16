@@ -69,15 +69,31 @@ function buildCalendarGrid(viewMonth: Date): Date[] {
 export default function CalendarioPage() {
   const { data: currentUser } = useCurrentUser();
   const role = currentUser?.member?.role ?? null;
+  const memberId = currentUser?.member?.id ?? null;
   const isClientViewer = role === 'client_viewer';
+  const isCreative = role === 'creative';
 
-  const { data: clients, loading: clientsLoading } = useClients();
+  const { data: allClients, loading: clientsLoading } = useClients();
 
-  // Brand selection — client_viewer is locked to their own brand if we had that mapping;
-  // for now we select the first client by default for any role.
+  // Scope brands per role:
+  // - owner/admin/member: every client in the org
+  // - creative: only clients where they are the manager
+  // - client_viewer: no selector is rendered; still list their clients (managed elsewhere)
+  const clients = useMemo(() => {
+    if (isCreative && memberId) {
+      return allClients.filter((c) => c.manager_id === memberId);
+    }
+    return allClients;
+  }, [allClients, isCreative, memberId]);
+
+  // Brand selection — default to the first client the role can see.
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   useEffect(() => {
     if (!selectedClientId && clients.length > 0) {
+      setSelectedClientId(clients[0].id);
+    }
+    // If the current selection is no longer in scope (e.g., creative), reset it.
+    if (selectedClientId && clients.length > 0 && !clients.some((c) => c.id === selectedClientId)) {
       setSelectedClientId(clients[0].id);
     }
   }, [clients, selectedClientId]);
@@ -154,16 +170,34 @@ export default function CalendarioPage() {
     return byDate;
   }, [postsWithStage, activeStage, visibleStagesForRole, search]);
 
-  // Design lookup by linked_post_id (for Canva thumbnail on post cards)
-  const designByPostId = useMemo(() => {
-    const map: Record<string, string> = {};
+  // Per-post canva info: prefer posts.canva_design_id (new, supports per-page),
+  // fall back to canva_designs.linked_post_id (legacy design-level link).
+  const canvaByPostId = useMemo(() => {
+    const map: Record<string, { thumbnail: string | null; page: number | null; pageCount: number }> = {};
+    // New linkage: post -> design
+    posts.forEach((p) => {
+      if (!p.canva_design_id) return;
+      const d = designs.find((x) => x.id === p.canva_design_id);
+      if (d) {
+        map[p.id] = {
+          thumbnail: d.thumbnail_url,
+          page: p.canva_page_number,
+          pageCount: d.page_count,
+        };
+      }
+    });
+    // Legacy linkage: design -> linked_post
     designs.forEach((d) => {
-      if (d.linked_post_id && d.thumbnail_url) {
-        map[d.linked_post_id] = d.thumbnail_url;
+      if (d.linked_post_id && !map[d.linked_post_id]) {
+        map[d.linked_post_id] = {
+          thumbnail: d.thumbnail_url,
+          page: null,
+          pageCount: d.page_count,
+        };
       }
     });
     return map;
-  }, [designs]);
+  }, [designs, posts]);
 
   const todayKey = toDateKey(new Date());
 
@@ -534,25 +568,30 @@ export default function CalendarioPage() {
                     >
                       {day.getDate()}
                     </span>
-                    {postsThisDay.map(({ post, stage }) => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        stage={stage}
-                        thumbnail={post.image_url || designByPostId[post.id] || null}
-                        draggable={!isClientViewer}
-                        onClick={() => setSelectedPostId(post.id)}
-                        onDragStart={(e) => {
-                          setDraggedPostId(post.id);
-                          e.dataTransfer.setData('text/post-id', post.id);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onDragEnd={() => {
-                          setDraggedPostId(null);
-                          setDragOverKey(null);
-                        }}
-                      />
-                    ))}
+                    {postsThisDay.map(({ post, stage }) => {
+                      const canva = canvaByPostId[post.id];
+                      return (
+                        <PostCard
+                          key={post.id}
+                          post={post}
+                          stage={stage}
+                          thumbnail={post.image_url || canva?.thumbnail || null}
+                          canvaPage={canva?.page ?? null}
+                          canvaPageCount={canva?.pageCount ?? null}
+                          draggable={!isClientViewer}
+                          onClick={() => setSelectedPostId(post.id)}
+                          onDragStart={(e) => {
+                            setDraggedPostId(post.id);
+                            e.dataTransfer.setData('text/post-id', post.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => {
+                            setDraggedPostId(null);
+                            setDragOverKey(null);
+                          }}
+                        />
+                      );
+                    })}
                     {/* Hover "+ Propuesta" hint on empty cells */}
                     {!isClientViewer && postsThisDay.length === 0 && inMonth && (
                       <div
@@ -601,7 +640,8 @@ export default function CalendarioPage() {
             post={selectedPost}
             stage={postToStage(selectedPost)}
             client={selectedClient}
-            design={designs.find((d) => d.linked_post_id === selectedPost.id) || null}
+            allDesigns={designs}
+            onLinkChange={refetchPosts}
             isClientViewer={isClientViewer}
             isMoving={isMoving}
             onClose={() => setSelectedPostId(null)}
@@ -758,12 +798,14 @@ function BrandSelector({
 }
 
 function PostCard({
-  post, stage, thumbnail, onClick,
+  post, stage, thumbnail, canvaPage, canvaPageCount, onClick,
   draggable = false, onDragStart, onDragEnd,
 }: {
   post: Post;
   stage: StageKey;
   thumbnail: string | null;
+  canvaPage: number | null;
+  canvaPageCount: number | null;
   onClick: () => void;
   draggable?: boolean;
   onDragStart?: (e: ReactDragEvent) => void;
@@ -801,6 +843,15 @@ function PostCard({
         >
           <span>{config.icon}</span> {config.shortLabel}
         </span>
+        {canvaPage !== null && canvaPageCount !== null && canvaPageCount > 1 && (
+          <span
+            className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
+            style={{ background: 'rgba(0,0,0,0.55)', color: 'white' }}
+            title={`Página ${canvaPage} de ${canvaPageCount}`}
+          >
+            {canvaPage}/{canvaPageCount}
+          </span>
+        )}
       </div>
       {/* Footer */}
       <div className="px-1.5 py-1 bg-white">
@@ -816,19 +867,26 @@ function PostCard({
 }
 
 function PostDrawer({
-  post, stage, client, design, isClientViewer, isMoving,
-  onClose, onAdvance, onReturn, onArchive,
+  post, stage, client, allDesigns, isClientViewer, isMoving,
+  onClose, onAdvance, onReturn, onArchive, onLinkChange,
 }: {
   post: Post;
   stage: StageKey;
   client: Client | null;
-  design: { thumbnail_url: string | null; design_url: string | null; page_count: number } | null;
+  allDesigns: Array<{
+    id: string;
+    title: string | null;
+    thumbnail_url: string | null;
+    design_url: string | null;
+    page_count: number;
+  }>;
   isClientViewer: boolean;
   isMoving: boolean;
   onClose: () => void;
   onAdvance: () => void;
   onReturn: () => void;
   onArchive: () => void;
+  onLinkChange: () => Promise<void>;
 }) {
   const config = STAGE_CONFIG[stage];
   const { data: comments, refetch: refetchComments } = usePostComments(post.id);
@@ -836,6 +894,23 @@ function PostDrawer({
   const [newComment, setNewComment] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copyDraft, setCopyDraft] = useState(post.copy || '');
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // The design this post is currently linked to (prefers posts.canva_design_id)
+  const linkedDesign = useMemo(
+    () => allDesigns.find((d) => d.id === post.canva_design_id) || null,
+    [allDesigns, post.canva_design_id],
+  );
+  const pageNumber = post.canva_page_number ?? null;
+
+  const saveCanvaLink = async (designId: string | null, page: number | null) => {
+    await updatePost(post.id, {
+      canva_design_id: designId,
+      canva_page_number: page,
+    });
+    await onLinkChange();
+    setPickerOpen(false);
+  };
 
   const sendComment = async () => {
     if (!newComment.trim()) return;
@@ -861,7 +936,7 @@ function PostDrawer({
     await updatePost(post.id, { copy: copyDraft });
   };
 
-  const thumbnail = post.image_url || design?.thumbnail_url || null;
+  const thumbnail = post.image_url || linkedDesign?.thumbnail_url || null;
   const canAdvance = !isClientViewer && config.nextStageKey !== null;
   const canReturn: boolean = !isClientViewer && stage !== 'proposal' && stage !== 'published';
   const canArchive: boolean = !isClientViewer && stage !== 'published';
@@ -898,9 +973,22 @@ function PostDrawer({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Preview */}
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-light)' }}>
-            Preview{design ? ` · Canva (${design.page_count} págs)` : ''}
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+              {linkedDesign
+                ? `Preview · Canva (pág ${pageNumber ?? 1} de ${linkedDesign.page_count})`
+                : 'Preview'}
+            </p>
+            {!isClientViewer && (
+              <button
+                onClick={() => setPickerOpen((v) => !v)}
+                className="text-[10px] font-semibold hover:underline"
+                style={{ color: '#6366F1' }}
+              >
+                {linkedDesign ? 'Cambiar' : 'Vincular Canva'}
+              </button>
+            )}
+          </div>
           <div
             className="relative rounded-xl overflow-hidden border"
             style={{ borderColor: 'var(--glass-border)' }}
@@ -913,9 +1001,9 @@ function PostDrawer({
                 {config.icon}
               </div>
             )}
-            {design?.design_url && (
+            {linkedDesign?.design_url && (
               <a
-                href={design.design_url}
+                href={linkedDesign.design_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md flex items-center gap-1.5 hover:shadow-lg transition-shadow"
@@ -926,6 +1014,17 @@ function PostDrawer({
               </a>
             )}
           </div>
+
+          {/* Canva picker panel */}
+          {pickerOpen && !isClientViewer && (
+            <CanvaPickerPanel
+              allDesigns={allDesigns}
+              currentDesignId={post.canva_design_id}
+              currentPage={pageNumber}
+              onSave={saveCanvaLink}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
         </div>
 
         {/* Title + client */}
@@ -1164,6 +1263,8 @@ function NewProposalModal({
         impressions: 0,
         reach: 0,
         assigned_to: null,
+        canva_design_id: null,
+        canva_page_number: null,
         published_url: null,
         published_at: null,
         publish_error: null,
@@ -1340,6 +1441,163 @@ function NewProposalModal({
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
+// Canva picker panel (inline inside the drawer)
+// ═════════════════════════════════════════════════════════
+
+function CanvaPickerPanel({
+  allDesigns, currentDesignId, currentPage,
+  onSave, onClose,
+}: {
+  allDesigns: Array<{
+    id: string;
+    title: string | null;
+    thumbnail_url: string | null;
+    design_url: string | null;
+    page_count: number;
+  }>;
+  currentDesignId: string | null;
+  currentPage: number | null;
+  onSave: (designId: string | null, page: number | null) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(currentDesignId);
+  const [page, setPage] = useState<number>(currentPage || 1);
+  const [saving, setSaving] = useState(false);
+
+  const selected = allDesigns.find((d) => d.id === selectedId) || null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(selectedId, selectedId ? page : null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnlink = async () => {
+    setSaving(true);
+    try {
+      await onSave(null, null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="mt-3 rounded-xl border p-3 space-y-3"
+      style={{ borderColor: 'var(--glass-border)', background: '#FAFAFA' }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold" style={{ color: 'var(--text-dark)' }}>
+          Vincular a diseño Canva
+        </p>
+        <button
+          onClick={onClose}
+          className="text-[11px] hover:underline"
+          style={{ color: 'var(--text-light)' }}
+        >
+          Cerrar
+        </button>
+      </div>
+
+      {allDesigns.length === 0 ? (
+        <p className="text-xs italic" style={{ color: 'var(--text-light)' }}>
+          No hay diseños de Canva para este cliente. Sincroniza desde En Diseño.
+        </p>
+      ) : (
+        <>
+          {/* Design thumbnails */}
+          <div className="grid grid-cols-3 gap-2 max-h-[180px] overflow-y-auto">
+            {allDesigns.map((d) => {
+              const on = selectedId === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => { setSelectedId(d.id); setPage(1); }}
+                  className="relative aspect-square rounded-lg overflow-hidden transition-all"
+                  style={{
+                    border: on ? '2px solid #6366F1' : '1px solid var(--glass-border)',
+                    boxShadow: on ? '0 0 0 2px rgba(99,102,241,0.15)' : 'none',
+                  }}
+                  title={d.title || 'Diseño Canva'}
+                >
+                  {d.thumbnail_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={d.thumbnail_url} alt={d.title || 'Canva'} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xl" style={{ background: '#F1F5F9' }}>
+                      🎨
+                    </div>
+                  )}
+                  <span
+                    className="absolute bottom-0 left-0 right-0 text-[9px] font-medium px-1 py-0.5 truncate"
+                    style={{ background: 'rgba(0,0,0,0.5)', color: 'white' }}
+                  >
+                    {d.page_count} pág{d.page_count === 1 ? '' : 's'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Page picker */}
+          {selected && selected.page_count > 1 && (
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+                Página a usar
+              </label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {Array.from({ length: selected.page_count }, (_, i) => i + 1).map((n) => {
+                  const on = page === n;
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => setPage(n)}
+                      className="w-7 h-7 rounded-md text-[11px] font-semibold transition-colors"
+                      style={{
+                        background: on ? 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' : 'white',
+                        color: on ? 'white' : 'var(--text-mid)',
+                        border: on ? '1px solid transparent' : '1px solid var(--glass-border)',
+                      }}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            {currentDesignId && (
+              <button
+                onClick={handleUnlink}
+                disabled={saving}
+                className="flex-1 py-1.5 rounded-lg text-xs font-medium border hover:bg-white disabled:opacity-50"
+                style={{ borderColor: 'var(--glass-border)', color: 'var(--text-mid)' }}
+              >
+                Desvincular
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={saving || !selectedId}
+              className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+            >
+              {saving ? 'Guardando…' : 'Guardar vínculo'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
