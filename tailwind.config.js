@@ -8,61 +8,46 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // SocialGo Brand Colors (glassmorphism palette)
+        // SocialGo Brand Colors — Indigo/Violet palette
         rose: {
-          DEFAULT: "#FFB5C8",
-          deep: "#FF8FAD",
+          DEFAULT: "#818CF8",
+          deep: "#6366F1",
         },
         peach: {
-          DEFAULT: "#FFD4B8",
-          deep: "#FFBA8A",
+          DEFAULT: "#A78BFA",
+          deep: "#7C3AED",
         },
         lavender: {
-          DEFAULT: "#E8D5FF",
+          DEFAULT: "#C4B5FD",
         },
         cream: {
-          DEFAULT: "#FFF8F3",
+          DEFAULT: "#F8FAFC",
         },
         sand: {
-          DEFAULT: "#F5EDE4",
+          DEFAULT: "#E2E8F0",
         },
         // Semantic
-        "sg-bg": "#FFF8F3",
+        "sg-bg": "#F8FAFC",
         "sg-glass": "rgba(255,255,255,0.55)",
-        "sg-text": "#2A1F1A",
-        "sg-text-mid": "#7A6560",
-        "sg-text-light": "#B8A9A4",
-        "sg-border": "rgba(255,180,150,0.25)",
+        "sg-text": "#0F172A",
+        "sg-text-mid": "#64748B",
+        "sg-text-light": "#94A3B8",
+        "sg-border": "rgba(148,163,184,0.2)",
         // Status
-        "sg-success": "#B8E8C8",
-        "sg-success-text": "#2D6B47",
-        "sg-warning": "#FFE5B0",
-        "sg-warning-text": "#8A5A00",
-        "sg-danger": "#FFD0D8",
-        "sg-danger-text": "#8A1F35",
+        "sg-success": "#BBF7D0",
+        "sg-success-text": "#166534",
+        "sg-warning": "#FEF08A",
+        "sg-warning-text": "#854D0E",
+        "sg-danger": "#FECACA",
+        "sg-danger-text": "#991B1B",
       },
       fontFamily: {
-        display: [
-          "Fraunces",
-          "Georgia",
-          "serif",
-        ],
+        display: ["Fraunces", "Georgia", "serif"],
         sans: [
-          "DM Sans",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          '"Segoe UI"',
-          "Roboto",
-          '"Helvetica Neue"',
-          "Arial",
-          "sans-serif",
+          "DM Sans", "-apple-system", "BlinkMacSystemFont",
+          '"Segoe UI"', "Roboto", '"Helvetica Neue"', "Arial", "sans-serif",
         ],
-        mono: [
-          "DM Mono",
-          "SF Mono",
-          "Fira Code",
-          "monospace",
-        ],
+        mono: ["DM Mono", "SF Mono", "Fira Code", "monospace"],
       },
       fontSize: {
         "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
@@ -80,15 +65,15 @@ module.exports = {
         none: "0",
         sm: "10px",
         md: "14px",
-        lg: "18px",
-        xl: "24px",
+        lg: "16px",
+        xl: "20px",
         full: "9999px",
       },
       boxShadow: {
-        soft: "0 4px 24px rgba(200,120,100,0.10)",
-        card: "0 2px 16px rgba(200,120,100,0.06)",
-        glow: "0 4px 16px rgba(255,143,173,0.35)",
-        "hover-lift": "0 8px 30px rgba(200,120,100,0.12)",
+        soft: "0 4px 24px rgba(99,102,241,0.08)",
+        card: "0 2px 16px rgba(99,102,241,0.05)",
+        glow: "0 4px 16px rgba(99,102,241,0.25)",
+        "hover-lift": "0 8px 30px rgba(99,102,241,0.10)",
       },
       backdropBlur: {
         glass: "16px",

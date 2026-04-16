@@ -138,11 +138,11 @@ export function getRoleLabel(role: MemberRole): string {
 
 export function getRoleColor(role: MemberRole): string {
   const colors: Record<MemberRole, string> = {
-    owner: '#FF8FAD', // rose deep
-    admin: '#FF8FAD', // same as owner
-    member: '#FF8FAD', // same as owner
-    creative: '#E8D5FF', // accent/lavender
-    client_viewer: '#D0E8FF', // blue
+    owner: '#6366F1', // rose deep
+    admin: '#6366F1', // same as owner
+    member: '#6366F1', // same as owner
+    creative: '#C4B5FD', // accent/lavender
+    client_viewer: '#93C5FD', // blue
   };
   return colors[role] ?? '#94A3B8';
 }

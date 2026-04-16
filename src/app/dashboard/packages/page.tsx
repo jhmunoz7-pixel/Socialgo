@@ -171,7 +171,7 @@ export default function PackagesPage() {
         <button
           onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2 rounded-2xl font-sans text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
         >
           <Plus />
           <span className="hidden sm:inline">Nuevo paquete</span>
@@ -197,7 +197,7 @@ export default function PackagesPage() {
               <div
                 key={i}
                 className="h-80 rounded-2xl border border-white/40 animate-pulse"
-                style={{ background: 'rgba(255,248,243,0.4)' }}
+                style={{ background: 'rgba(241,245,249,0.4)' }}
               />
             ))}
           </div>
@@ -205,19 +205,19 @@ export default function PackagesPage() {
           /* Empty State */
           <div
             className="flex flex-col items-center justify-center py-16 px-6 rounded-3xl border border-white/40"
-            style={{ background: 'rgba(255,248,243,0.7)', backdropFilter: 'blur(16px)' }}
+            style={{ background: 'rgba(241,245,249,0.7)', backdropFilter: 'blur(16px)' }}
           >
             <PackageIcon className="w-12 h-12 mb-4" style={{ color: 'var(--text-light)' }} />
-            <h2 className="text-xl font-serif font-bold text-[#2A1F1A] mb-2">
+            <h2 className="text-xl font-serif font-bold text-[#0F172A] mb-2">
               Sin paquetes aún
             </h2>
-            <p className="text-[#2A1F1A]/60 font-sans mb-6 text-center max-w-sm">
+            <p className="text-[#0F172A]/60 font-sans mb-6 text-center max-w-sm">
               Crea tu primer paquete para comenzar a ofrecer servicios a tus clientes
             </p>
             <button
               onClick={openCreateModal}
               className="px-6 py-2 rounded-2xl font-sans text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
             >
               Crear primer paquete
             </button>
@@ -229,26 +229,26 @@ export default function PackagesPage() {
               <div
                 key={pkg.id}
                 className="relative rounded-2xl border border-white/40 shadow-sm p-6 group hover:shadow-md transition-shadow"
-                style={{ background: 'rgba(255,248,243,0.7)', backdropFilter: 'blur(16px)' }}
+                style={{ background: 'rgba(241,245,249,0.7)', backdropFilter: 'blur(16px)' }}
               >
                 {/* Featured Badge */}
                 {pkg.is_featured && (
                   <div
                     className="absolute top-4 right-4 px-3 py-1 rounded-full font-sans text-xs font-semibold text-white"
-                    style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                   >
                     Destacado
                   </div>
                 )}
 
                 {/* Package Name */}
-                <h3 className="text-xl font-serif font-bold text-[#2A1F1A] mb-2 pr-16">
+                <h3 className="text-xl font-serif font-bold text-[#0F172A] mb-2 pr-16">
                   {pkg.name}
                 </h3>
 
                 {/* Description */}
                 {pkg.description && (
-                  <p className="text-sm font-sans text-[#2A1F1A]/70 mb-4">
+                  <p className="text-sm font-sans text-[#0F172A]/70 mb-4">
                     {pkg.description}
                   </p>
                 )}
@@ -256,17 +256,17 @@ export default function PackagesPage() {
                 {/* Price */}
                 <div className="mb-6">
                   {pkg.price !== null ? (
-                    <p className="text-3xl font-serif font-bold text-[#FF8FAD]">
+                    <p className="text-3xl font-serif font-bold text-[#6366F1]">
                       ${pkg.price.toLocaleString('es-MX', {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
                       })}
-                      <span className="text-sm font-sans font-normal text-[#2A1F1A]/60 ml-1">
+                      <span className="text-sm font-sans font-normal text-[#0F172A]/60 ml-1">
                         {pkg.currency}
                       </span>
                     </p>
                   ) : (
-                    <p className="text-sm font-sans text-[#2A1F1A]/60 italic">
+                    <p className="text-sm font-sans text-[#0F172A]/60 italic">
                       Precio personalizado
                     </p>
                   )}
@@ -295,7 +295,7 @@ export default function PackagesPage() {
 
                 {/* Features List */}
                 <div className="mb-6">
-                  <p className="text-xs font-sans font-semibold text-[#2A1F1A]/70 uppercase tracking-wide mb-3">
+                  <p className="text-xs font-sans font-semibold text-[#0F172A]/70 uppercase tracking-wide mb-3">
                     Características
                   </p>
                   <ul className="space-y-2">
@@ -303,13 +303,13 @@ export default function PackagesPage() {
                       pkg.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <Check />
-                          <span className="font-sans text-sm text-[#2A1F1A]">
+                          <span className="font-sans text-sm text-[#0F172A]">
                             {feature}
                           </span>
                         </li>
                       ))
                     ) : (
-                      <p className="font-sans text-sm text-[#2A1F1A]/50">
+                      <p className="font-sans text-sm text-[#0F172A]/50">
                         Sin características
                       </p>
                     )}
@@ -320,7 +320,7 @@ export default function PackagesPage() {
                 <div className="flex gap-2 space-y-2 flex-col">
                   <button
                     onClick={() => openEditModal(pkg)}
-                    className="w-full py-2 rounded-2xl font-sans text-sm font-medium text-[#2A1F1A] transition-all hover:shadow-md flex items-center justify-center gap-2"
+                    className="w-full py-2 rounded-2xl font-sans text-sm font-medium text-[#0F172A] transition-all hover:shadow-md flex items-center justify-center gap-2"
                     style={{ background: 'rgba(255, 181, 200, 0.3)' }}
                   >
                     <Edit />
@@ -347,11 +347,11 @@ export default function PackagesPage() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div
             className="w-full max-w-2xl rounded-3xl border border-white/40 shadow-xl max-h-[90vh] overflow-y-auto"
-            style={{ background: 'rgba(255,248,243,0.95)', backdropFilter: 'blur(16px)' }}
+            style={{ background: 'rgba(241,245,249,0.95)', backdropFilter: 'blur(16px)' }}
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-warm-white border-b border-gray-100 px-6 md:px-8 py-6 flex items-center justify-between">
-              <h2 className="text-2xl font-serif font-bold text-[#2A1F1A]">
+              <h2 className="text-2xl font-serif font-bold text-[#0F172A]">
                 {editingPackage ? 'Editar paquete' : 'Nuevo paquete'}
               </h2>
               <button
@@ -366,7 +366,7 @@ export default function PackagesPage() {
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
               {/* Name Field */}
               <div>
-                <label className="block text-sm font-sans font-semibold text-[#2A1F1A] mb-2">
+                <label className="block text-sm font-sans font-semibold text-[#0F172A] mb-2">
                   Nombre del paquete
                 </label>
                 <input
@@ -374,7 +374,7 @@ export default function PackagesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="ej: Básico, Professional, Premium"
-                  className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                  className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                   style={{ background: 'rgba(255,255,255,0.6)' }}
                   required
                 />
@@ -382,7 +382,7 @@ export default function PackagesPage() {
 
               {/* Description Field */}
               <div>
-                <label className="block text-sm font-sans font-semibold text-[#2A1F1A] mb-2">
+                <label className="block text-sm font-sans font-semibold text-[#0F172A] mb-2">
                   Descripción
                 </label>
                 <textarea
@@ -390,7 +390,7 @@ export default function PackagesPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe qué incluye este paquete..."
                   rows={3}
-                  className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                  className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                   style={{ background: 'rgba(255,255,255,0.6)' }}
                 />
               </div>
@@ -398,7 +398,7 @@ export default function PackagesPage() {
               {/* Price and Currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-sans font-semibold text-[#2A1F1A] mb-2">
+                  <label className="block text-sm font-sans font-semibold text-[#0F172A] mb-2">
                     Precio base
                   </label>
                   <input
@@ -406,20 +406,20 @@ export default function PackagesPage() {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     placeholder="0"
-                    className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                    className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                     style={{ background: 'rgba(255,255,255,0.6)' }}
                     step="0.01"
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-sans font-semibold text-[#2A1F1A] mb-2">
+                  <label className="block text-sm font-sans font-semibold text-[#0F172A] mb-2">
                     Moneda
                   </label>
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                    className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                     style={{ background: 'rgba(255,255,255,0.6)' }}
                   >
                     <option value="MXN">MXN (Peso Mexicano)</option>
@@ -431,12 +431,12 @@ export default function PackagesPage() {
 
               {/* Discounts */}
               <div>
-                <p className="text-sm font-sans font-semibold text-[#2A1F1A] mb-3">
+                <p className="text-sm font-sans font-semibold text-[#0F172A] mb-3">
                   Descuentos por tipo de contratación
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-sans font-semibold text-[#2A1F1A]/70 mb-2">
+                    <label className="block text-xs font-sans font-semibold text-[#0F172A]/70 mb-2">
                       Trimestral (%)
                     </label>
                     <input
@@ -444,7 +444,7 @@ export default function PackagesPage() {
                       value={formData.discount_quarterly}
                       onChange={(e) => setFormData({ ...formData, discount_quarterly: e.target.value })}
                       placeholder="0"
-                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                       style={{ background: 'rgba(255,255,255,0.6)' }}
                       step="0.01"
                       min="0"
@@ -452,7 +452,7 @@ export default function PackagesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-sans font-semibold text-[#2A1F1A]/70 mb-2">
+                    <label className="block text-xs font-sans font-semibold text-[#0F172A]/70 mb-2">
                       Semestral (%)
                     </label>
                     <input
@@ -460,7 +460,7 @@ export default function PackagesPage() {
                       value={formData.discount_semiannual}
                       onChange={(e) => setFormData({ ...formData, discount_semiannual: e.target.value })}
                       placeholder="0"
-                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                       style={{ background: 'rgba(255,255,255,0.6)' }}
                       step="0.01"
                       min="0"
@@ -468,7 +468,7 @@ export default function PackagesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-sans font-semibold text-[#2A1F1A]/70 mb-2">
+                    <label className="block text-xs font-sans font-semibold text-[#0F172A]/70 mb-2">
                       Anual (%)
                     </label>
                     <input
@@ -476,7 +476,7 @@ export default function PackagesPage() {
                       value={formData.discount_annual}
                       onChange={(e) => setFormData({ ...formData, discount_annual: e.target.value })}
                       placeholder="0"
-                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                      className="w-full px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                       style={{ background: 'rgba(255,255,255,0.6)' }}
                       step="0.01"
                       min="0"
@@ -488,7 +488,7 @@ export default function PackagesPage() {
 
               {/* Features Field */}
               <div>
-                <label className="block text-sm font-sans font-semibold text-[#2A1F1A] mb-3">
+                <label className="block text-sm font-sans font-semibold text-[#0F172A] mb-3">
                   Características
                 </label>
                 <div className="flex gap-2 mb-3">
@@ -503,14 +503,14 @@ export default function PackagesPage() {
                       }
                     }}
                     placeholder="Añadir característica..."
-                    className="flex-1 px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#FF8FAD] transition-all"
+                    className="flex-1 px-4 py-2 rounded-xl font-sans text-sm border border-white/40 focus:outline-none focus:ring-2 focus:ring-[#6366F1] transition-all"
                     style={{ background: 'rgba(255,255,255,0.6)' }}
                   />
                   <button
                     type="button"
                     onClick={handleAddFeature}
                     className="px-4 py-2 rounded-xl font-sans text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                   >
                     <Plus />
                   </button>
@@ -522,7 +522,7 @@ export default function PackagesPage() {
                     {formData.features.map((feature, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 px-3 py-1 rounded-full font-sans text-sm text-[#2A1F1A] border border-white/40"
+                        className="flex items-center gap-2 px-3 py-1 rounded-full font-sans text-sm text-[#0F172A] border border-white/40"
                         style={{ background: 'rgba(255, 181, 200, 0.2)' }}
                       >
                         <span>{feature}</span>
@@ -546,9 +546,9 @@ export default function PackagesPage() {
                     type="checkbox"
                     checked={formData.is_featured}
                     onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                    className="w-4 h-4 rounded cursor-pointer accent-[#FF8FAD]"
+                    className="w-4 h-4 rounded cursor-pointer accent-[#6366F1]"
                   />
-                  <span className="font-sans text-sm font-semibold text-[#2A1F1A]">
+                  <span className="font-sans text-sm font-semibold text-[#0F172A]">
                     Marcar como destacado
                   </span>
                 </label>
@@ -566,7 +566,7 @@ export default function PackagesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-2xl font-sans text-sm font-medium text-[#2A1F1A] border border-white/40 hover:bg-white/20 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-2xl font-sans text-sm font-medium text-[#0F172A] border border-white/40 hover:bg-white/20 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -574,7 +574,7 @@ export default function PackagesPage() {
                   type="submit"
                   disabled={isCreating || !formData.name}
                   className="flex-1 px-4 py-2 rounded-2xl font-sans text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                 >
                   {isCreating ? 'Guardando...' : editingPackage ? 'Guardar cambios' : 'Crear paquete'}
                 </button>

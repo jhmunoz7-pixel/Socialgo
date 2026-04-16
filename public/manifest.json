@@ -4,8 +4,8 @@
   "description": "Gestiona clientes, planea contenido y analiza con IA. El sistema operativo para agencias de social media.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#FFF8F3",
-  "theme_color": "#FF8FAD",
+  "background_color": "#F8FAFC",
+  "theme_color": "#6366F1",
   "orientation": "any",
   "icons": [
     {

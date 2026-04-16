@@ -161,9 +161,9 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
     <>
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]" onClick={onClose} />
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(255,180,150,0.3)' }}>
-          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
-            <h2 className="font-serif text-lg font-bold" style={{ color: '#2A1F1A' }}>Nuevo Post Planeado</h2>
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(148,163,184,0.25)' }}>
+          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
+            <h2 className="font-serif text-lg font-bold" style={{ color: '#0F172A' }}>Nuevo Post Planeado</h2>
             <button onClick={onClose} className="text-xl hover:opacity-60">×</button>
           </div>
 
@@ -172,7 +172,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
 
             {/* Cliente */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Cliente *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Cliente *</label>
               <select value={clientId} onChange={(e) => setClientId(e.target.value)} required className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle}>
                 <option value="">Seleccionar cliente...</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
@@ -181,38 +181,38 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
 
             {/* Nombre del post */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Nombre del post</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Nombre del post</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ej: Promo Mayo, Tip #3..." className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
             </div>
 
             {/* Fecha + Hora */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Fecha</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Fecha</label>
                 <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Hora</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Hora</label>
                 <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
               </div>
             </div>
 
             {/* Explicación / Contexto */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Explicación / Contexto</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Explicación / Contexto</label>
               <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={2} placeholder="Nota interna sobre el propósito..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
             </div>
 
             {/* Link de inspo */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Link de inspiración</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Link de inspiración</label>
               <input type="text" value={inspoUrl} onChange={(e) => setInspoUrl(e.target.value)} placeholder="link o referencia de inspiración" className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
             </div>
 
             {/* Tipo + Formato + Plataforma */}
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Tipo</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Tipo</label>
                 <select value={postType} onChange={(e) => setPostType(e.target.value as PostType)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
                   {(Object.entries(POST_TYPE_CONFIG) as [PostType, (typeof POST_TYPE_CONFIG)[PostType]][]).map(([key, config]) => (
                     <option key={key} value={key}>{config.letter} {config.label}</option>
@@ -220,7 +220,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Formato</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Formato</label>
                 <select value={format} onChange={(e) => setFormat(e.target.value as PostFormat)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
                   {(Object.entries(FORMAT_CONFIG) as [PostFormat, (typeof FORMAT_CONFIG)[PostFormat]][]).map(([key, config]) => (
                     <option key={key} value={key}>{config.label}</option>
@@ -228,7 +228,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Plataforma</label>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Plataforma</label>
                 <select value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} className="w-full px-2 py-2 rounded-xl text-xs border" style={inputStyle}>
                   {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'youtube'] as Platform[]).map((p) => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
@@ -239,15 +239,15 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
 
             {/* CTA */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>CTA (Call to Action)</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>CTA (Call to Action)</label>
               <input type="text" value={cta} onChange={(e) => setCta(e.target.value)} placeholder="ej: Agenda tu cita hoy" className="w-full px-3 py-2 rounded-xl text-sm border" style={inputStyle} />
             </div>
 
             {/* Copy */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Copy</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Copy</label>
               <textarea value={copy} onChange={(e) => setCopy(e.target.value)} rows={4} placeholder="Escribe el texto del post..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
-              <p className="text-xs mt-1" style={{ color: '#8A7A75' }}>{copy.length} caracteres</p>
+              <p className="text-xs mt-1" style={{ color: '#64748B' }}>{copy.length} caracteres</p>
               <div className="mt-2">
                 <AIToolbar copy={copy} onCopyChange={setCopy} platform={platform} postType={postType} clientId={clientId} />
               </div>
@@ -255,13 +255,13 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
 
             {/* Asset Upload */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Asset (imagen o video)</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#334155' }}>Asset (imagen o video)</label>
               <input
                 type="file"
                 accept="image/*,video/*"
                 onChange={handleFileChange}
                 className="w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:text-white file:cursor-pointer"
-                style={{ color: '#5A4A45' }}
+                style={{ color: '#334155' }}
               />
               {assetPreview && (
                 <div className="mt-2 relative">
@@ -272,7 +272,7 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
             </div>
 
             {/* Submit */}
-            <button type="submit" disabled={isSaving || !clientId} className="w-full py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+            <button type="submit" disabled={isSaving || !clientId} className="w-full py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
               {isSaving ? 'Creando...' : 'Crear Post'}
             </button>
           </form>
@@ -404,15 +404,15 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
     }
   };
 
-  const inputStyle = { background: '#FAFAFA', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' };
+  const inputStyle = { background: '#FAFAFA', borderColor: 'rgba(148,163,184,0.25)', color: '#0F172A' };
 
   return (
     <>
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]" onClick={onClose} />
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(255,180,150,0.3)' }}>
-          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
-            <h2 className="font-serif text-lg font-bold" style={{ color: '#2A1F1A' }}>
+        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" style={{ border: '1px solid rgba(148,163,184,0.25)' }}>
+          <div className="sticky top-0 bg-white px-6 py-4 border-b flex items-center justify-between z-10" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
+            <h2 className="font-serif text-lg font-bold" style={{ color: '#0F172A' }}>
               {client?.emoji} {post.name || 'Post'}
             </h2>
             <div className="flex items-center gap-2">
@@ -423,7 +423,7 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
                     <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); }} className="underline hover:opacity-70">Copiar</button>
                   </div>
                 ) : (
-                  <button onClick={handleGenerateShareLink} disabled={shareLoading} className="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:opacity-80 transition disabled:opacity-50 flex items-center gap-1" style={{ borderColor: 'rgba(255,180,150,0.4)', color: '#FF8FAD' }}>
+                  <button onClick={handleGenerateShareLink} disabled={shareLoading} className="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:opacity-80 transition disabled:opacity-50 flex items-center gap-1" style={{ borderColor: 'rgba(148,163,184,0.3)', color: '#6366F1' }}>
                     {shareLoading ? '...' : '🔗 Compartir para aprobación'}
                   </button>
                 )
@@ -434,23 +434,23 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
             {/* Left: Asset preview */}
-            <div className="p-6 border-r" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
+            <div className="p-6 border-r" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
               {post.image_url ? (
                 <div className="space-y-3">
                   <img src={post.image_url} alt={post.name || 'Asset'} className="w-full rounded-xl object-cover max-h-[400px]" />
-                  <button onClick={handleDownloadAsset} className="w-full py-2 rounded-xl text-sm font-medium border hover:opacity-80 transition" style={{ color: '#FF8FAD', borderColor: '#FF8FAD' }}>
+                  <button onClick={handleDownloadAsset} className="w-full py-2 rounded-xl text-sm font-medium border hover:opacity-80 transition" style={{ color: '#6366F1', borderColor: '#6366F1' }}>
                     <Download className="w-3.5 h-3.5 inline" /> Descargar asset
                   </button>
                 </div>
               ) : (
-                <div className="w-full h-48 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,180,150,0.1)' }}>
-                  <p className="text-sm" style={{ color: '#8A7A75' }}>Sin asset cargado</p>
+                <div className="w-full h-48 rounded-xl flex items-center justify-center" style={{ background: 'rgba(148,163,184,0.1)' }}>
+                  <p className="text-sm" style={{ color: '#64748B' }}>Sin asset cargado</p>
                 </div>
               )}
               {/* Upload/change asset (non-client only) */}
               {canEdit && (
                 <div className="mt-3">
-                  <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>
                     {post.image_url ? 'Cambiar asset' : 'Subir asset'}
                   </label>
                   <input type="file" accept="image/*,video/*" onChange={(e) => setAssetFile(e.target.files?.[0] ?? null)} className="w-full text-xs" />
@@ -465,39 +465,39 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
               {canEdit ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Nombre</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Nombre</label>
                     <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-3 py-1.5 rounded-lg text-sm border" style={inputStyle} />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Explicación</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Explicación</label>
                     <textarea value={editExplanation} onChange={(e) => setEditExplanation(e.target.value)} rows={2} className="w-full px-3 py-1.5 rounded-lg text-sm border resize-none" style={inputStyle} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Tipo</label>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Tipo</label>
                       <select value={editPostType} onChange={(e) => setEditPostType(e.target.value as PostType)} className="w-full px-2 py-1.5 rounded-lg text-xs border" style={inputStyle}>
                         {(Object.entries(POST_TYPE_CONFIG) as [PostType, (typeof POST_TYPE_CONFIG)[PostType]][]).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Plataforma</label>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Plataforma</label>
                       <select value={editPlatform} onChange={(e) => setEditPlatform(e.target.value as Platform)} className="w-full px-2 py-1.5 rounded-lg text-xs border" style={inputStyle}>
                         {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'youtube'] as Platform[]).map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>CTA</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>CTA</label>
                     <input type="text" value={editCta} onChange={(e) => setEditCta(e.target.value)} className="w-full px-3 py-1.5 rounded-lg text-sm border" style={inputStyle} />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Copy</label>
                     <textarea value={editCopy} onChange={(e) => setEditCopy(e.target.value)} rows={3} className="w-full px-3 py-1.5 rounded-lg text-sm border resize-none" style={inputStyle} />
                     <div className="mt-2">
                       <AIToolbar copy={editCopy} onCopyChange={setEditCopy} platform={post?.platform} postType={post?.post_type || undefined} clientId={post?.client_id} />
                     </div>
                   </div>
-                  <button onClick={handleSave} disabled={saving} className="w-full py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+                  <button onClick={handleSave} disabled={saving} className="w-full py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
                     {saving ? 'Guardando...' : 'Guardar cambios'}
                   </button>
                 </div>
@@ -505,30 +505,30 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
                 /* Read-only for client_viewer */
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Fecha</p>
-                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.scheduled_date || '—'}</p>
+                    <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Fecha</p>
+                    <p className="text-sm" style={{ color: '#0F172A' }}>{post.scheduled_date || '—'}</p>
                   </div>
                   {post.explanation && <div>
-                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Explicación</p>
-                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.explanation}</p>
+                    <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Explicación</p>
+                    <p className="text-sm" style={{ color: '#0F172A' }}>{post.explanation}</p>
                   </div>}
                   <div className="flex gap-4">
                     <div>
-                      <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Tipo</p>
-                      <p className="text-sm" style={{ color: '#2A1F1A' }}>{POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type}</p>
+                      <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Tipo</p>
+                      <p className="text-sm" style={{ color: '#0F172A' }}>{POST_TYPE_CONFIG[post.post_type as PostType]?.label || post.post_type}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>Plataforma</p>
-                      <p className="text-sm capitalize" style={{ color: '#2A1F1A' }}>{post.platform}</p>
+                      <p className="text-xs font-semibold" style={{ color: '#64748B' }}>Plataforma</p>
+                      <p className="text-sm capitalize" style={{ color: '#0F172A' }}>{post.platform}</p>
                     </div>
                   </div>
                   {post.cta && <div>
-                    <p className="text-xs font-semibold" style={{ color: '#8A7A75' }}>CTA</p>
-                    <p className="text-sm" style={{ color: '#2A1F1A' }}>{post.cta}</p>
+                    <p className="text-xs font-semibold" style={{ color: '#64748B' }}>CTA</p>
+                    <p className="text-sm" style={{ color: '#0F172A' }}>{post.cta}</p>
                   </div>}
-                  <div className="p-3 rounded-xl" style={{ background: 'rgba(255,180,150,0.08)' }}>
-                    <p className="text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</p>
-                    <p className="text-sm whitespace-pre-wrap" style={{ color: '#2A1F1A' }}>{post.copy || '(sin copy)'}</p>
+                  <div className="p-3 rounded-xl" style={{ background: 'rgba(148,163,184,0.08)' }}>
+                    <p className="text-xs font-semibold mb-1" style={{ color: '#64748B' }}>Copy</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: '#0F172A' }}>{post.copy || '(sin copy)'}</p>
                   </div>
                   <button onClick={() => { onApprove(post.id); onClose(); }} className="w-full py-2.5 rounded-xl font-semibold text-sm text-white" style={{ background: '#10B981' }}>
                     ✓ Aprobar
@@ -537,25 +537,25 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
               )}
 
               {/* Comments section */}
-              <div className="border-t pt-4" style={{ borderColor: 'rgba(255,180,150,0.2)' }}>
-                <p className="text-xs font-semibold mb-3" style={{ color: '#8A7A75' }}>Comentarios</p>
+              <div className="border-t pt-4" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: '#64748B' }}>Comentarios</p>
                 <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
                   {comments.length === 0 ? (
-                    <p className="text-xs" style={{ color: '#B8A9A4' }}>Sin comentarios aún</p>
+                    <p className="text-xs" style={{ color: '#94A3B8' }}>Sin comentarios aún</p>
                   ) : (
                     comments.map((c) => (
-                      <div key={c.id} className="p-2 rounded-lg text-xs" style={{ background: c.is_client_comment ? 'rgba(255,143,173,0.1)' : 'rgba(200,200,200,0.15)' }}>
-                        <span className="font-semibold" style={{ color: '#2A1F1A' }}>{c.author_name || 'Anónimo'}</span>
-                        <span className="mx-1" style={{ color: '#B8A9A4' }}>·</span>
-                        <span style={{ color: '#B8A9A4' }}>{new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                        <p className="mt-1" style={{ color: '#5A4A45' }}>{c.content}</p>
+                      <div key={c.id} className="p-2 rounded-lg text-xs" style={{ background: c.is_client_comment ? 'rgba(99,102,241,0.1)' : 'rgba(200,200,200,0.15)' }}>
+                        <span className="font-semibold" style={{ color: '#0F172A' }}>{c.author_name || 'Anónimo'}</span>
+                        <span className="mx-1" style={{ color: '#94A3B8' }}>·</span>
+                        <span style={{ color: '#94A3B8' }}>{new Date(c.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        <p className="mt-1" style={{ color: '#334155' }}>{c.content}</p>
                       </div>
                     ))
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribe un comentario..." className="flex-1 px-3 py-2 rounded-xl text-sm border" style={{ background: '#FAFAFA', borderColor: 'rgba(255,180,150,0.3)', color: '#2A1F1A' }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }} />
-                  <button onClick={handleSendComment} disabled={sending || !newComment.trim()} className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribe un comentario..." className="flex-1 px-3 py-2 rounded-xl text-sm border" style={{ background: '#FAFAFA', borderColor: 'rgba(148,163,184,0.25)', color: '#0F172A' }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }} />
+                  <button onClick={handleSendComment} disabled={sending || !newComment.trim()} className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
                     {sending ? '...' : 'Enviar'}
                   </button>
                 </div>
@@ -585,7 +585,7 @@ function DayCell({ date, isCurrentMonth, posts, isSelected, onClick }: DayCellPr
       onClick={() => onClick(date)}
       className="min-h-[56px] p-1 rounded-lg border transition-all text-left relative"
       style={{
-        background: isSelected ? 'rgba(255,143,173,0.15)' : isCurrentMonth ? 'var(--surface)' : 'transparent',
+        background: isSelected ? 'rgba(99,102,241,0.15)' : isCurrentMonth ? 'var(--surface)' : 'transparent',
         borderColor: isSelected ? 'var(--primary)' : today ? 'var(--primary-deep)' : 'var(--glass-border)',
         opacity: isCurrentMonth ? 1 : 0.4,
         borderWidth: today || isSelected ? '2px' : '1px',
@@ -690,7 +690,7 @@ export default function PlanningPage() {
             </p>
           </div>
           {!isClientViewer && (
-            <button onClick={() => setNewPostOpen(true)} className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white hover:shadow-lg transition" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+            <button onClick={() => setNewPostOpen(true)} className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white hover:shadow-lg transition" style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
               + Nuevo Post Planeado
             </button>
           )}
@@ -813,7 +813,7 @@ export default function PlanningPage() {
                     return (
                       <tr
                         key={post.id}
-                        className="border-b hover:bg-[rgba(255,143,173,0.05)] transition-colors cursor-pointer"
+                        className="border-b hover:bg-[rgba(99,102,241,0.05)] transition-colors cursor-pointer"
                         style={{ borderColor: 'var(--glass-border)' }}
                         onClick={() => setReviewPost(post)}
                       >

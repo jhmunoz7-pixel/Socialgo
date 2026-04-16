@@ -18,8 +18,8 @@ export function SocialGoWordmark({
     variant === 'dark'
       ? '#FFFFFF'
       : variant === 'auto'
-      ? 'var(--text-dark, #2A1F1A)'
-      : '#2A1F1A';
+      ? 'var(--text-dark, #0F172A)'
+      : '#0F172A';
   const uid = `go-${variant}-${height}`;
 
   return (
@@ -40,12 +40,12 @@ export function SocialGoWordmark({
           y2="50"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="#FF8FAD" />
-          <stop offset="100%" stopColor="#FFBA8A" />
+          <stop offset="0%" stopColor="#6366F1" />
+          <stop offset="100%" stopColor="#A78BFA" />
         </linearGradient>
       </defs>
-      <rect x="2" y="3" width="22" height="22" rx="6" fill="#FF8FAD" opacity="0.85" />
-      <rect x="13" y="13" width="22" height="22" rx="6" fill="#FFBA8A" opacity="0.8" />
+      <rect x="2" y="3" width="22" height="22" rx="6" fill="#6366F1" opacity="0.85" />
+      <rect x="13" y="13" width="22" height="22" rx="6" fill="#A78BFA" opacity="0.8" />
       <rect x="24" y="23" width="22" height="22" rx="6" fill="#C4A1FF" opacity="0.75" />
       <path
         d="M34 14 C34 14, 18 10, 16 20 C14 30, 30 28, 32 36 C34 44, 20 46, 16 40"
@@ -107,13 +107,13 @@ export function SocialGoIsotipo({ size = 28 }: { size?: number }) {
           y2="120"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="#FF8FAD" />
-          <stop offset="50%" stopColor="#FFBA8A" />
+          <stop offset="0%" stopColor="#6366F1" />
+          <stop offset="50%" stopColor="#A78BFA" />
           <stop offset="100%" stopColor="#C4A1FF" />
         </linearGradient>
       </defs>
-      <rect x="14" y="10" width="38" height="38" rx="10" fill="#FF8FAD" opacity="0.6" />
-      <rect x="34" y="28" width="38" height="38" rx="10" fill="#FFBA8A" opacity="0.55" />
+      <rect x="14" y="10" width="38" height="38" rx="10" fill="#6366F1" opacity="0.6" />
+      <rect x="34" y="28" width="38" height="38" rx="10" fill="#A78BFA" opacity="0.55" />
       <rect x="54" y="46" width="38" height="38" rx="10" fill="#C4A1FF" opacity="0.5" />
       <path
         d="M76 36 C76 36, 48 28, 44 44 C40 60, 68 58, 72 72 C76 88, 50 94, 42 82"
@@ -124,13 +124,13 @@ export function SocialGoIsotipo({ size = 28 }: { size?: number }) {
       />
       <path
         d="M36 78 L42 82 L38 90"
-        stroke="#FFBA8A"
+        stroke="#A78BFA"
         strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="80" cy="32" r="4" fill="#FF8FAD" />
+      <circle cx="80" cy="32" r="4" fill="#6366F1" />
     </svg>
   );
 }

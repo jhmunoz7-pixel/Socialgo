@@ -60,21 +60,21 @@ export function OnboardingPopup({ hasClients }: OnboardingPopupProps) {
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
         <div
           className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-          style={{ border: '1px solid rgba(255,180,150,0.3)' }}
+          style={{ border: '1px solid rgba(148,163,184,0.25)' }}
         >
           {/* Header */}
           <div
             className="px-6 pt-6 pb-4 text-center"
-            style={{ background: 'linear-gradient(135deg, rgba(255,143,173,0.1), rgba(255,186,138,0.1))' }}
+            style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(255,186,138,0.1))' }}
           >
             <div className="text-3xl mb-2">🚀</div>
             <h2
               className="font-serif text-xl font-bold"
-              style={{ color: '#2A1F1A' }}
+              style={{ color: '#0F172A' }}
             >
               ¡Bienvenido a SocialGo!
             </h2>
-            <p className="text-sm mt-1" style={{ color: '#5A4A45' }}>
+            <p className="text-sm mt-1" style={{ color: '#334155' }}>
               Configura tu agencia en 3 pasos
             </p>
           </div>
@@ -85,15 +85,15 @@ export function OnboardingPopup({ hasClients }: OnboardingPopupProps) {
               <div key={step.number} className="flex items-start gap-3">
                 <div
                   className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}
                 >
                   {step.number}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#2A1F1A' }}>
+                  <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#0F172A' }}>
                     <span>{step.icon}</span> {step.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: '#8A7A75' }}>
+                  <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>
                     {step.desc}
                   </p>
                 </div>
@@ -106,14 +106,14 @@ export function OnboardingPopup({ hasClients }: OnboardingPopupProps) {
             <button
               onClick={() => dismiss(false)}
               className="w-full py-2.5 rounded-xl text-sm font-medium text-white transition hover:shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}
             >
               ¡Entendido, empezar!
             </button>
             <button
               onClick={() => dismiss(true)}
               className="w-full py-2 text-xs transition hover:opacity-70"
-              style={{ color: '#8A7A75' }}
+              style={{ color: '#64748B' }}
             >
               No volver a mostrar
             </button>

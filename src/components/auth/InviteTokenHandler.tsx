@@ -58,10 +58,10 @@ export function InviteTokenHandler() {
   if (!processing) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: '#FFF8F3' }}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: '#F8FAFC' }}>
       <div className="text-center">
         <div className="text-3xl mb-3 animate-pulse">🔐</div>
-        <p className="text-sm font-medium" style={{ color: '#2A1F1A' }}>
+        <p className="text-sm font-medium" style={{ color: '#0F172A' }}>
           Configurando tu cuenta...
         </p>
       </div>

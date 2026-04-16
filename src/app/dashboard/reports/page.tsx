@@ -13,15 +13,15 @@ import {
 
 // Hardcoded chart colors (CSS vars don't work in Recharts SVG)
 const CHART_COLORS = {
-  primary: '#FF8FAD',
-  secondary: '#FFBA8A',
-  accent: '#E8D5FF',
+  primary: '#6366F1',
+  secondary: '#A78BFA',
+  accent: '#38BDF8',
   success: '#10B981',
   warning: '#F59E0B',
   info: '#3B82F6',
-  muted: '#B8A9A4',
+  muted: '#94A3B8',
 };
-const PIE_COLORS = ['#FF8FAD', '#FFBA8A', '#E8D5FF', '#B8E8C8', '#D0E8FF'];
+const PIE_COLORS = ['#6366F1', '#A78BFA', '#38BDF8', '#86EFAC', '#93C5FD'];
 
 type CompareMode = 'none' | 'prev_month' | 'same_month_last_year';
 
@@ -173,7 +173,7 @@ export default function ReportsPage() {
         count,
         percentage: total > 0 ? (count / total) * 100 : 0,
         label: POST_TYPE_CONFIG[type as PostType]?.label || type,
-        color: POST_TYPE_CONFIG[type as PostType]?.color || '#D0E8FF',
+        color: POST_TYPE_CONFIG[type as PostType]?.color || '#93C5FD',
       }))
       .sort((a, b) => b.count - a.count);
   }, [posts, selectedMonth]);
@@ -361,9 +361,9 @@ export default function ReportsPage() {
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         }}
       >
-        <p style={{ color: '#2A1F1A', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{label}</p>
+        <p style={{ color: '#0F172A', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{label}</p>
         {payload.map((entry, i) => (
-          <p key={i} style={{ color: '#7A6560', fontSize: 12 }}>
+          <p key={i} style={{ color: '#64748B', fontSize: 12 }}>
             {entry.name ? `${entry.name}: ` : ''}{entry.value}
           </p>
         ))}
@@ -702,8 +702,8 @@ export default function ReportsPage() {
             ) : platformDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={platformDistribution} layout="vertical" margin={{ left: 20 }}>
-                  <XAxis type="number" tick={{ fill: '#7A6560', fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fill: '#2A1F1A', fontSize: 12 }} width={80} />
+                  <XAxis type="number" tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#0F172A', fontSize: 12 }} width={80} />
                   <Tooltip content={<ChartTooltip />} />
                   <Bar dataKey="count" name="Posts" fill={CHART_COLORS.primary} radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -724,8 +724,8 @@ export default function ReportsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={approvalPipeline} layout="vertical" margin={{ left: 10 }}>
-                  <XAxis type="number" tick={{ fill: '#7A6560', fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fill: '#2A1F1A', fontSize: 12 }} width={70} />
+                  <XAxis type="number" tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#0F172A', fontSize: 12 }} width={70} />
                   <Tooltip content={<ChartTooltip />} />
                   <Bar dataKey="count" name="Posts" fill={CHART_COLORS.secondary} radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -747,8 +747,8 @@ export default function ReportsPage() {
                       <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="month" tick={{ fill: '#7A6560', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#64748B', fontSize: 12 }} />
                   <Tooltip content={<ChartTooltip />} />
                   <Area
                     type="monotone"
@@ -779,8 +779,8 @@ export default function ReportsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={postsByDayOfWeek}>
-                  <XAxis dataKey="day" tick={{ fill: '#2A1F1A', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <XAxis dataKey="day" tick={{ fill: '#0F172A', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#64748B', fontSize: 12 }} />
                   <Tooltip content={<ChartTooltip />} />
                   <Bar dataKey="count" name="Posts" fill={CHART_COLORS.accent} radius={[6, 6, 0, 0]} />
                 </BarChart>
@@ -799,8 +799,8 @@ export default function ReportsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={aiScoreTrend}>
-                  <XAxis dataKey="month" tick={{ fill: '#7A6560', fontSize: 12 }} />
-                  <YAxis domain={[0, 100]} tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: '#64748B', fontSize: 12 }} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line
                     type="monotone"

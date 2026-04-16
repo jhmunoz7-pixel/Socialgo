@@ -308,20 +308,20 @@ export interface ThemeConfig {
 export const THEMES: ThemeConfig[] = [
   {
     id: 'rose',
-    name: 'Rosa & Peach',
+    name: 'Indigo & Violet',
     colors: {
-      primary: '#FFB5C8',
-      primaryDeep: '#FF8FAD',
-      secondary: '#FFD4B8',
-      secondaryDeep: '#FFBA8A',
-      accent: '#E8D5FF',
-      bg: '#FFF8F3',
-      bgWarm: '#FFFBF8',
+      primary: '#818CF8',
+      primaryDeep: '#6366F1',
+      secondary: '#C4B5FD',
+      secondaryDeep: '#A78BFA',
+      accent: '#C4B5FD',
+      bg: '#F8FAFC',
+      bgWarm: '#F1F5F9',
       surface: 'rgba(255,255,255,0.55)',
-      glassBorder: 'rgba(255,180,150,0.25)',
-      textDark: '#2A1F1A',
-      textMid: '#7A6560',
-      textLight: '#B8A9A4',
+      glassBorder: 'rgba(148,163,184,0.2)',
+      textDark: '#0F172A',
+      textMid: '#64748B',
+      textLight: '#94A3B8',
     },
   },
   {
@@ -364,11 +364,11 @@ export const THEMES: ThemeConfig[] = [
 
 // ========== Post Type UI Config ==========
 export const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string; letter: string }> = {
-  ventas_promo: { label: 'Ventas/Promo', color: '#FF8FAD', letter: 'V' },
-  fun_casual: { label: 'Fun/Casual', color: '#FFE5B0', letter: 'F' },
-  educativo: { label: 'Educativo', color: '#E8D5FF', letter: 'E' },
-  formal: { label: 'Formal', color: '#B8E8C8', letter: 'L' },
-  otro: { label: 'Otro', color: '#D0E8FF', letter: 'O' },
+  ventas_promo: { label: 'Ventas/Promo', color: '#6366F1', letter: 'V' },
+  fun_casual: { label: 'Fun/Casual', color: '#FBBF24', letter: 'F' },
+  educativo: { label: 'Educativo', color: '#C4B5FD', letter: 'E' },
+  formal: { label: 'Formal', color: '#34D399', letter: 'L' },
+  otro: { label: 'Otro', color: '#38BDF8', letter: 'O' },
 };
 
 export const FORMAT_CONFIG: Record<PostFormat, { label: string; letter: string }> = {

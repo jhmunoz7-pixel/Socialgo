@@ -100,7 +100,7 @@ export function SetPasswordForm() {
 
   if (checkingSession) {
     return (
-      <div className="py-8 text-center" style={{ color: "#B8A9A4" }}>
+      <div className="py-8 text-center" style={{ color: "#94A3B8" }}>
         Verificando invitación...
       </div>
     );
@@ -112,7 +112,7 @@ export function SetPasswordForm() {
         <p className="text-body-sm" style={{ color: "#E74C3C" }}>
           Tu sesión de invitación expiró o el enlace es inválido.
         </p>
-        <p className="text-body-xs" style={{ color: "#7A6560" }}>
+        <p className="text-body-xs" style={{ color: "#64748B" }}>
           Pide a tu administrador que te reenvíe la invitación desde el panel de equipo.
         </p>
       </div>

@@ -74,20 +74,20 @@ export default function ClientDetailPage() {
 
   const payStatusBadge = (status: string) => {
     const badgeMap: Record<string, { bg: string; text: string }> = {
-      pagado: { bg: '#B8E8C8', text: '#2D6B47' },
-      pendiente: { bg: '#FFE5B0', text: '#8A5A00' },
+      pagado: { bg: '#86EFAC', text: '#2D6B47' },
+      pendiente: { bg: '#FBBF24', text: '#8A5A00' },
       vencido: { bg: '#FFD0D8', text: '#8A1F35' },
     };
-    return badgeMap[status] || { bg: '#F5EDE4', text: '#7A6560' };
+    return badgeMap[status] || { bg: '#E2E8F0', text: '#64748B' };
   };
 
   const accountStatusBadge = (status: string) => {
     const badgeMap: Record<string, { bg: string; text: string }> = {
-      activo: { bg: '#B8E8C8', text: '#2D6B47' },
-      onboarding: { bg: '#FFE5B0', text: '#8A5A00' },
-      pausado: { bg: '#F5EDE4', text: '#7A6560' },
+      activo: { bg: '#86EFAC', text: '#2D6B47' },
+      onboarding: { bg: '#FBBF24', text: '#8A5A00' },
+      pausado: { bg: '#E2E8F0', text: '#64748B' },
     };
-    return badgeMap[status] || { bg: '#F5EDE4', text: '#7A6560' };
+    return badgeMap[status] || { bg: '#E2E8F0', text: '#64748B' };
   };
 
   const getAccountStatusLabel = (status: string): string => {
@@ -484,10 +484,10 @@ function PostCard({ post, onClick }: PostCardProps) {
     postType: PostType | null
   ): { bg: string; text: string } => {
     if (!postType) {
-      return { bg: '#F5EDE4', text: '#7A6560' };
+      return { bg: '#E2E8F0', text: '#64748B' };
     }
     const config = POST_TYPE_CONFIG[postType];
-    return { bg: config?.color || '#F5EDE4', text: '#7A6560' };
+    return { bg: config?.color || '#E2E8F0', text: '#64748B' };
   };
 
   const getAIScoreColor = (score: number | null): string => {
@@ -521,7 +521,7 @@ function PostCard({ post, onClick }: PostCardProps) {
         style={{
           backgroundImage: post.image_url
             ? `url(${post.image_url})`
-            : `linear-gradient(135deg, ${post.post_type ? postTypeColors.bg : '#F5EDE4'} 0%, ${post.post_type ? postTypeColors.bg + '80' : '#E8D5FF80'} 100%)`,
+            : `linear-gradient(135deg, ${post.post_type ? postTypeColors.bg : '#E2E8F0'} 0%, ${post.post_type ? postTypeColors.bg + '80' : '#C4B5FD80'} 100%)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

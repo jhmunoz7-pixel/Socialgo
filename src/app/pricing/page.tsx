@@ -13,7 +13,7 @@ const ChevronDown = ({ className }: { className?: string }) => (
 
 export default function PricingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" style={{ background: '#FFF8F3' }} />}>
+    <Suspense fallback={<div className="min-h-screen" style={{ background: '#F8FAFC' }} />}>
       <PricingPageInner />
     </Suspense>
   );
@@ -175,27 +175,27 @@ function PricingPageInner() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF8F3] to-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#F8FAFC] to-white relative overflow-hidden">
       {/* Background blobs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#FFB5C8]/20 to-[#E8D5FF]/20 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-[#FFD4B8]/20 to-[#FFB5C8]/20 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#818CF8]/20 to-[#C4B5FD]/20 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-[#C4B5FD]/20 to-[#818CF8]/20 rounded-full blur-3xl -z-10" />
 
       {/* Navbar */}
       <nav className="border-b border-white/20 backdrop-blur-md bg-white/30 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-serif text-xl font-bold text-[#2A1F1A]">socialgo</span>
-            <div className="w-2 h-2 bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] rounded-full" />
+            <span className="font-serif text-xl font-bold text-[#0F172A]">socialgo</span>
+            <div className="w-2 h-2 bg-gradient-to-r from-[#6366F1] to-[#A78BFA] rounded-full" />
           </Link>
 
           <div className="hidden md:flex gap-8">
-            <Link href="/" className="text-sm text-[#5A4A45] hover:text-[#2A1F1A] transition">
+            <Link href="/" className="text-sm text-[#334155] hover:text-[#0F172A] transition">
               Inicio
             </Link>
-            <Link href="/#features" className="text-sm text-[#5A4A45] hover:text-[#2A1F1A] transition">
+            <Link href="/#features" className="text-sm text-[#334155] hover:text-[#0F172A] transition">
               Funcionalidades
             </Link>
-            <Link href="/#faq" className="text-sm text-[#5A4A45] hover:text-[#2A1F1A] transition">
+            <Link href="/#faq" className="text-sm text-[#334155] hover:text-[#0F172A] transition">
               FAQ
             </Link>
           </div>
@@ -203,13 +203,13 @@ function PricingPageInner() {
           <div className="flex gap-3">
             <Link
               href="/auth/login"
-              className="px-4 py-2 text-sm text-[#2A1F1A] hover:bg-white/30 rounded-lg transition"
+              className="px-4 py-2 text-sm text-[#0F172A] hover:bg-white/30 rounded-lg transition"
             >
               Iniciar sesión
             </Link>
             <Link
               href="/auth/signup"
-              className="px-4 py-2 text-sm text-white bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] rounded-lg hover:shadow-lg transition"
+              className="px-4 py-2 text-sm text-white bg-gradient-to-r from-[#6366F1] to-[#A78BFA] rounded-lg hover:shadow-lg transition"
             >
               Empezar gratis
             </Link>
@@ -219,10 +219,10 @@ function PricingPageInner() {
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 py-16 md:py-24 text-center">
-        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-[#2A1F1A] mb-4">
+        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-[#0F172A] mb-4">
           Planes simples, resultados potentes
         </h1>
-        <p className="text-lg text-[#5A4A45] max-w-2xl mx-auto">
+        <p className="text-lg text-[#334155] max-w-2xl mx-auto">
           Elige el plan perfecto para tu agencia. Todos incluyen 7 días de prueba gratis.
         </p>
       </section>
@@ -236,8 +236,8 @@ function PricingPageInner() {
               onClick={() => setBillingCycle(cycle)}
               className={`px-6 py-3 rounded-xl transition font-sans text-sm font-medium ${
                 billingCycle === cycle
-                  ? 'bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white'
-                  : 'text-[#5A4A45] hover:text-[#2A1F1A]'
+                  ? 'bg-gradient-to-r from-[#6366F1] to-[#A78BFA] text-white'
+                  : 'text-[#334155] hover:text-[#0F172A]'
               }`}
             >
               {cycle === 'monthly' && 'Mensual'}
@@ -248,7 +248,7 @@ function PricingPageInner() {
         </div>
         {billingCycle === 'annual' && (
           <div className="flex justify-center mt-4">
-            <span className="inline-block bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white px-4 py-1 rounded-full text-xs font-semibold">
+            <span className="inline-block bg-gradient-to-r from-[#6366F1] to-[#A78BFA] text-white px-4 py-1 rounded-full text-xs font-semibold">
               Ahorra 32%
             </span>
           </div>
@@ -269,18 +269,18 @@ function PricingPageInner() {
         <div className="grid md:grid-cols-3 gap-8">
           {/* Free Plan */}
           <div className="rounded-2xl p-8 bg-white/60 backdrop-blur-md border border-white/80">
-            <h3 className="font-serif text-2xl font-bold text-[#2A1F1A] mb-2">Free</h3>
-            <p className="text-[#5A4A45] text-sm mb-6">1 cliente</p>
+            <h3 className="font-serif text-2xl font-bold text-[#0F172A] mb-2">Free</h3>
+            <p className="text-[#334155] text-sm mb-6">1 cliente</p>
             <div className="mb-6">
-              <div className="text-3xl font-bold text-[#2A1F1A]">
+              <div className="text-3xl font-bold text-[#0F172A]">
                 MXN <span className="text-4xl">0</span>
               </div>
-              <p className="text-[#5A4A45] text-sm mt-2">siempre</p>
+              <p className="text-[#334155] text-sm mt-2">siempre</p>
             </div>
 
             <Link
               href="/auth/signup"
-              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#FF8FAD] font-semibold hover:bg-gray-50 transition mb-8 border border-[#FFB5C8]"
+              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#6366F1] font-semibold hover:bg-gray-50 transition mb-8 border border-[#818CF8]"
             >
               Empezar gratis
             </Link>
@@ -289,31 +289,31 @@ function PricingPageInner() {
               {features.free.map((feature, idx) => (
                 <div key={idx} className="flex gap-3 items-start">
                   {feature === 'No' || !feature ? (
-                    <X className="w-5 h-5 text-[#7A6560] flex-shrink-0 mt-0.5" />
+                    <X className="w-5 h-5 text-[#64748B] flex-shrink-0 mt-0.5" />
                   ) : (
-                    <Check className="w-5 h-5 text-[#FF8FAD] flex-shrink-0 mt-0.5" />
+                    <Check className="w-5 h-5 text-[#6366F1] flex-shrink-0 mt-0.5" />
                   )}
-                  <span className="text-[#5A4A45] text-sm">{feature === 'No' ? featureLabels[features.free.indexOf(feature)] : feature}</span>
+                  <span className="text-[#334155] text-sm">{feature === 'No' ? featureLabels[features.free.indexOf(feature)] : feature}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Pro Plan (Popular) */}
-          <div className="rounded-3xl p-8 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-md border-2 border-[#FF8FAD] relative">
+          <div className="rounded-3xl p-8 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-md border-2 border-[#6366F1] relative">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <span className="inline-block bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white px-4 py-1 rounded-full text-xs font-semibold">
+              <span className="inline-block bg-gradient-to-r from-[#6366F1] to-[#A78BFA] text-white px-4 py-1 rounded-full text-xs font-semibold">
                 Popular
               </span>
             </div>
 
-            <h3 className="font-serif text-2xl font-bold text-[#2A1F1A] mb-2 mt-4">Pro</h3>
-            <p className="text-[#5A4A45] text-sm mb-6">2-5 clientes</p>
+            <h3 className="font-serif text-2xl font-bold text-[#0F172A] mb-2 mt-4">Pro</h3>
+            <p className="text-[#334155] text-sm mb-6">2-5 clientes</p>
             <div className="mb-6">
-              <div className="text-3xl font-bold text-[#2A1F1A]">
+              <div className="text-3xl font-bold text-[#0F172A]">
                 {formatPrice(getMonthlyPrice(currentPrices.pro))}
               </div>
-              <p className="text-[#5A4A45] text-sm mt-2">
+              <p className="text-[#334155] text-sm mt-2">
                 {billingCycle !== 'monthly' && (
                   <span className="line-through inline-block mr-2">
                     MXN {prices.monthly.pro}
@@ -326,7 +326,7 @@ function PricingPageInner() {
             <button
               onClick={() => handleSelectPlan('pro')}
               disabled={checkoutLoading !== null}
-              className="w-full block text-center px-6 py-3 rounded-lg bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] text-white font-semibold hover:shadow-lg transition mb-8 disabled:opacity-60"
+              className="w-full block text-center px-6 py-3 rounded-lg bg-gradient-to-r from-[#6366F1] to-[#A78BFA] text-white font-semibold hover:shadow-lg transition mb-8 disabled:opacity-60"
             >
               {checkoutLoading === 'pro' ? 'Cargando...' : 'Iniciar prueba gratis'}
             </button>
@@ -334,8 +334,8 @@ function PricingPageInner() {
             <div className="space-y-4">
               {features.pro.map((feature, idx) => (
                 <div key={idx} className="flex gap-3 items-start">
-                  <Check className="w-5 h-5 text-[#FF8FAD] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#5A4A45] text-sm">{feature}</span>
+                  <Check className="w-5 h-5 text-[#6366F1] flex-shrink-0 mt-0.5" />
+                  <span className="text-[#334155] text-sm">{feature}</span>
                 </div>
               ))}
             </div>
@@ -343,13 +343,13 @@ function PricingPageInner() {
 
           {/* Full Access Plan */}
           <div className="rounded-2xl p-8 bg-white/60 backdrop-blur-md border border-white/80">
-            <h3 className="font-serif text-2xl font-bold text-[#2A1F1A] mb-2">Full Access</h3>
-            <p className="text-[#5A4A45] text-sm mb-6">6-20 clientes</p>
+            <h3 className="font-serif text-2xl font-bold text-[#0F172A] mb-2">Full Access</h3>
+            <p className="text-[#334155] text-sm mb-6">6-20 clientes</p>
             <div className="mb-6">
-              <div className="text-3xl font-bold text-[#2A1F1A]">
+              <div className="text-3xl font-bold text-[#0F172A]">
                 {formatPrice(getMonthlyPrice(currentPrices.fullAccess))}
               </div>
-              <p className="text-[#5A4A45] text-sm mt-2">
+              <p className="text-[#334155] text-sm mt-2">
                 {billingCycle !== 'monthly' && (
                   <span className="line-through inline-block mr-2">
                     MXN {prices.monthly.fullAccess}
@@ -362,7 +362,7 @@ function PricingPageInner() {
             <button
               onClick={() => handleSelectPlan('full_access')}
               disabled={checkoutLoading !== null}
-              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#FF8FAD] font-semibold hover:bg-gray-50 transition mb-8 border border-[#FFB5C8] disabled:opacity-60"
+              className="w-full block text-center px-6 py-3 rounded-lg bg-white text-[#6366F1] font-semibold hover:bg-gray-50 transition mb-8 border border-[#818CF8] disabled:opacity-60"
             >
               {checkoutLoading === 'full_access' ? 'Cargando...' : 'Iniciar prueba gratis'}
             </button>
@@ -370,8 +370,8 @@ function PricingPageInner() {
             <div className="space-y-4">
               {features.fullAccess.map((feature, idx) => (
                 <div key={idx} className="flex gap-3 items-start">
-                  <Check className="w-5 h-5 text-[#FF8FAD] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#5A4A45] text-sm">{feature}</span>
+                  <Check className="w-5 h-5 text-[#6366F1] flex-shrink-0 mt-0.5" />
+                  <span className="text-[#334155] text-sm">{feature}</span>
                 </div>
               ))}
             </div>
@@ -382,45 +382,45 @@ function PricingPageInner() {
       {/* Comparison Table */}
       <section className="max-w-6xl mx-auto px-6 mb-20">
         <div className="rounded-3xl p-8 bg-white/60 backdrop-blur-md border border-white/80 overflow-x-auto">
-          <h2 className="font-serif text-3xl font-bold text-[#2A1F1A] mb-8">Comparativa de planes</h2>
+          <h2 className="font-serif text-3xl font-bold text-[#0F172A] mb-8">Comparativa de planes</h2>
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/40">
-                <th className="text-left py-4 px-4 text-[#2A1F1A] font-semibold">Funcionalidad</th>
-                <th className="text-center py-4 px-4 text-[#2A1F1A] font-semibold">Free</th>
-                <th className="text-center py-4 px-4 text-[#2A1F1A] font-semibold">Pro</th>
-                <th className="text-center py-4 px-4 text-[#2A1F1A] font-semibold">Full Access</th>
+                <th className="text-left py-4 px-4 text-[#0F172A] font-semibold">Funcionalidad</th>
+                <th className="text-center py-4 px-4 text-[#0F172A] font-semibold">Free</th>
+                <th className="text-center py-4 px-4 text-[#0F172A] font-semibold">Pro</th>
+                <th className="text-center py-4 px-4 text-[#0F172A] font-semibold">Full Access</th>
               </tr>
             </thead>
             <tbody>
               {featureLabels.map((label, idx) => (
                 <tr key={idx} className="border-b border-white/20 hover:bg-white/30 transition">
-                  <td className="py-4 px-4 text-[#5A4A45] font-medium">{label}</td>
+                  <td className="py-4 px-4 text-[#334155] font-medium">{label}</td>
                   <td className="text-center py-4 px-4">
                     {features.free[idx] === 'No' ? (
-                      <X className="w-5 h-5 text-[#7A6560] mx-auto" />
+                      <X className="w-5 h-5 text-[#64748B] mx-auto" />
                     ) : features.free[idx] === '1 cliente' ? (
-                      <span className="text-[#5A4A45] text-sm">1</span>
+                      <span className="text-[#334155] text-sm">1</span>
                     ) : (
-                      <Check className="w-5 h-5 text-[#FF8FAD] mx-auto" />
+                      <Check className="w-5 h-5 text-[#6366F1] mx-auto" />
                     )}
                   </td>
                   <td className="text-center py-4 px-4">
                     {features.pro[idx] === 'No' ? (
-                      <X className="w-5 h-5 text-[#7A6560] mx-auto" />
+                      <X className="w-5 h-5 text-[#64748B] mx-auto" />
                     ) : features.pro[idx].startsWith('Hasta') ? (
-                      <span className="text-[#5A4A45] text-sm">5</span>
+                      <span className="text-[#334155] text-sm">5</span>
                     ) : (
-                      <Check className="w-5 h-5 text-[#FF8FAD] mx-auto" />
+                      <Check className="w-5 h-5 text-[#6366F1] mx-auto" />
                     )}
                   </td>
                   <td className="text-center py-4 px-4">
                     {features.fullAccess[idx] === 'No' ? (
-                      <X className="w-5 h-5 text-[#7A6560] mx-auto" />
+                      <X className="w-5 h-5 text-[#64748B] mx-auto" />
                     ) : features.fullAccess[idx].startsWith('Hasta') ? (
-                      <span className="text-[#5A4A45] text-sm">20</span>
+                      <span className="text-[#334155] text-sm">20</span>
                     ) : (
-                      <Check className="w-5 h-5 text-[#FF8FAD] mx-auto" />
+                      <Check className="w-5 h-5 text-[#6366F1] mx-auto" />
                     )}
                   </td>
                 </tr>
@@ -432,7 +432,7 @@ function PricingPageInner() {
 
       {/* FAQ */}
       <section className="max-w-3xl mx-auto px-6 mb-20" id="faq">
-        <h2 className="font-serif text-3xl font-bold text-[#2A1F1A] mb-12 text-center">
+        <h2 className="font-serif text-3xl font-bold text-[#0F172A] mb-12 text-center">
           Preguntas frecuentes
         </h2>
         <div className="space-y-4">
@@ -445,15 +445,15 @@ function PricingPageInner() {
                 onClick={() => setOpenFAQ(openFAQ === idx ? null : idx)}
                 className="w-full px-8 py-6 flex justify-between items-center hover:bg-white/40 transition text-left"
               >
-                <span className="font-semibold text-[#2A1F1A]">{item.question}</span>
+                <span className="font-semibold text-[#0F172A]">{item.question}</span>
                 <ChevronDown
-                  className={`w-5 h-5 text-[#FF8FAD] transition-transform ${
+                  className={`w-5 h-5 text-[#6366F1] transition-transform ${
                     openFAQ === idx ? 'rotate-180' : ''
                   }`}
                 />
               </button>
               {openFAQ === idx && (
-                <div className="px-8 pb-6 text-[#5A4A45] border-t border-white/40 pt-4">
+                <div className="px-8 pb-6 text-[#334155] border-t border-white/40 pt-4">
                   {item.answer}
                 </div>
               )}
@@ -468,27 +468,27 @@ function PricingPageInner() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <span className="font-serif text-lg font-bold text-[#2A1F1A]">socialgo</span>
-                <div className="w-2 h-2 bg-gradient-to-r from-[#FF8FAD] to-[#FFBA8A] rounded-full" />
+                <span className="font-serif text-lg font-bold text-[#0F172A]">socialgo</span>
+                <div className="w-2 h-2 bg-gradient-to-r from-[#6366F1] to-[#A78BFA] rounded-full" />
               </div>
-              <p className="text-[#7A6560] text-sm">By Loonshot Labs</p>
+              <p className="text-[#64748B] text-sm">By Loonshot Labs</p>
             </div>
 
             <div>
-              <h4 className="font-semibold text-[#2A1F1A] mb-4 text-sm">Producto</h4>
-              <ul className="space-y-2 text-[#5A4A45] text-sm">
+              <h4 className="font-semibold text-[#0F172A] mb-4 text-sm">Producto</h4>
+              <ul className="space-y-2 text-[#334155] text-sm">
                 <li>
-                  <Link href="/" className="hover:text-[#2A1F1A] transition">
+                  <Link href="/" className="hover:text-[#0F172A] transition">
                     Inicio
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#features" className="hover:text-[#2A1F1A] transition">
+                  <Link href="/#features" className="hover:text-[#0F172A] transition">
                     Funcionalidades
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="hover:text-[#2A1F1A] transition">
+                  <Link href="/pricing" className="hover:text-[#0F172A] transition">
                     Precios
                   </Link>
                 </li>
@@ -496,15 +496,15 @@ function PricingPageInner() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-[#2A1F1A] mb-4 text-sm">Empresa</h4>
-              <ul className="space-y-2 text-[#5A4A45] text-sm">
+              <h4 className="font-semibold text-[#0F172A] mb-4 text-sm">Empresa</h4>
+              <ul className="space-y-2 text-[#334155] text-sm">
                 <li>
-                  <Link href="#" className="hover:text-[#2A1F1A] transition">
+                  <Link href="#" className="hover:text-[#0F172A] transition">
                     Blog
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-[#2A1F1A] transition">
+                  <Link href="#" className="hover:text-[#0F172A] transition">
                     Contáctanos
                   </Link>
                 </li>
@@ -512,15 +512,15 @@ function PricingPageInner() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-[#2A1F1A] mb-4 text-sm">Legal</h4>
-              <ul className="space-y-2 text-[#5A4A45] text-sm">
+              <h4 className="font-semibold text-[#0F172A] mb-4 text-sm">Legal</h4>
+              <ul className="space-y-2 text-[#334155] text-sm">
                 <li>
-                  <Link href="#" className="hover:text-[#2A1F1A] transition">
+                  <Link href="#" className="hover:text-[#0F172A] transition">
                     Privacidad
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-[#2A1F1A] transition">
+                  <Link href="#" className="hover:text-[#0F172A] transition">
                     Términos
                   </Link>
                 </li>
@@ -528,13 +528,13 @@ function PricingPageInner() {
             </div>
           </div>
 
-          <div className="border-t border-white/40 pt-8 flex justify-between items-center text-[#7A6560] text-sm">
+          <div className="border-t border-white/40 pt-8 flex justify-between items-center text-[#64748B] text-sm">
             <p>© 2026 Loonshot Labs. Todos los derechos reservados.</p>
             <div className="flex gap-6">
-              <Link href="#" className="hover:text-[#2A1F1A] transition">
+              <Link href="#" className="hover:text-[#0F172A] transition">
                 Twitter
               </Link>
-              <Link href="#" className="hover:text-[#2A1F1A] transition">
+              <Link href="#" className="hover:text-[#0F172A] transition">
                 Instagram
               </Link>
             </div>

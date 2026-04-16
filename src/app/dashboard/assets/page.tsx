@@ -174,7 +174,7 @@ export default function AssetsPage() {
           <button
             onClick={() => setShowUploadModal(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-sans font-medium transition-transform hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #FFB5C8, #FF8FAD)' }}
+            style={{ background: 'linear-gradient(135deg, #818CF8, #6366F1)' }}
           >
             <Upload className="w-5 h-5" />
             Subir archivo
@@ -193,14 +193,14 @@ export default function AssetsPage() {
             <div className="flex-1">
               <label
                 className="block text-sm font-sans font-medium mb-2"
-                style={{ color: '#2A1F1A' }}
+                style={{ color: '#0F172A' }}
               >
                 Buscar assets
               </label>
               <div className="relative">
                 <Search
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40"
-                  style={{ color: '#2A1F1A' }}
+                  style={{ color: '#0F172A' }}
                 />
                 <input
                   type="text"
@@ -209,9 +209,9 @@ export default function AssetsPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 rounded-2xl border font-sans backdrop-blur"
                   style={{
-                    background: 'rgba(255,248,243,0.7)',
-                    borderColor: 'rgba(255,181,200,0.3)',
-                    color: '#2A1F1A',
+                    background: 'rgba(241,245,249,0.7)',
+                    borderColor: 'rgba(129,140,248,0.3)',
+                    color: '#0F172A',
                   }}
                 />
               </div>
@@ -221,7 +221,7 @@ export default function AssetsPage() {
             <div className="flex-1">
               <label
                 className="block text-sm font-sans font-medium mb-2"
-                style={{ color: '#2A1F1A' }}
+                style={{ color: '#0F172A' }}
               >
                 Tipo de archivo
               </label>
@@ -232,9 +232,9 @@ export default function AssetsPage() {
                 }
                 className="w-full px-4 py-3 rounded-2xl border font-sans backdrop-blur"
                 style={{
-                  background: 'rgba(255,248,243,0.7)',
-                  borderColor: 'rgba(255,181,200,0.3)',
-                  color: '#2A1F1A',
+                  background: 'rgba(241,245,249,0.7)',
+                  borderColor: 'rgba(129,140,248,0.3)',
+                  color: '#0F172A',
                 }}
               >
                 <option value="all">Todos los tipos</option>
@@ -249,7 +249,7 @@ export default function AssetsPage() {
             <div className="flex-1">
               <label
                 className="block text-sm font-sans font-medium mb-2"
-                style={{ color: '#2A1F1A' }}
+                style={{ color: '#0F172A' }}
               >
                 Cliente
               </label>
@@ -258,9 +258,9 @@ export default function AssetsPage() {
                 onChange={(e) => setSelectedClient(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border font-sans backdrop-blur"
                 style={{
-                  background: 'rgba(255,248,243,0.7)',
-                  borderColor: 'rgba(255,181,200,0.3)',
-                  color: '#2A1F1A',
+                  background: 'rgba(241,245,249,0.7)',
+                  borderColor: 'rgba(129,140,248,0.3)',
+                  color: '#0F172A',
                 }}
                 disabled={clientsLoading}
               >
@@ -278,20 +278,20 @@ export default function AssetsPage() {
           <div className="flex items-center justify-between">
             <p
               className="text-sm font-sans"
-              style={{ color: '#2A1F1A', opacity: 0.7 }}
+              style={{ color: '#0F172A', opacity: 0.7 }}
             >
               {filteredAssets.length} asset{filteredAssets.length !== 1 ? 's' : ''}
             </p>
-            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: 'rgba(255,181,200,0.1)' }}>
+            <div className="flex items-center gap-1 rounded-2xl p-1" style={{ background: 'rgba(129,140,248,0.1)' }}>
               <button
                 onClick={() => setViewMode('grid')}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors"
                 style={{
                   background:
                     viewMode === 'grid'
-                      ? 'rgba(255,181,200,0.3)'
+                      ? 'rgba(129,140,248,0.3)'
                       : 'transparent',
-                  color: '#2A1F1A',
+                  color: '#0F172A',
                 }}
               >
                 <Grid3x3 className="w-5 h-5" />
@@ -302,9 +302,9 @@ export default function AssetsPage() {
                 style={{
                   background:
                     viewMode === 'list'
-                      ? 'rgba(255,181,200,0.3)'
+                      ? 'rgba(129,140,248,0.3)'
                       : 'transparent',
-                  color: '#2A1F1A',
+                  color: '#0F172A',
                 }}
               >
                 <List className="w-5 h-5" />
@@ -317,18 +317,18 @@ export default function AssetsPage() {
         {filteredAssets.length === 0 ? (
           <div
             className="rounded-2xl border border-white/40 p-12 text-center backdrop-blur"
-            style={{ background: 'rgba(255,248,243,0.7)' }}
+            style={{ background: 'rgba(241,245,249,0.7)' }}
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(255,181,200,0.2)' }}>
-              <ImageIcon className="w-8 h-8" style={{ color: '#FF8FAD' }} />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'rgba(129,140,248,0.2)' }}>
+              <ImageIcon className="w-8 h-8" style={{ color: '#6366F1' }} />
             </div>
             <h3
               className="text-lg font-serif font-semibold mb-2"
-              style={{ color: '#2A1F1A' }}
+              style={{ color: '#0F172A' }}
             >
               No se encontraron assets
             </h3>
-            <p style={{ color: '#2A1F1A', opacity: 0.6 }} className="text-sm">
+            <p style={{ color: '#0F172A', opacity: 0.6 }} className="text-sm">
               {searchQuery || selectedType !== 'all' || selectedClient !== 'all'
                 ? 'Intenta cambiar tus filtros'
                 : 'Comienza subiendo tu primer asset'}
@@ -341,7 +341,7 @@ export default function AssetsPage() {
               <div
                 key={asset.id}
                 className="rounded-2xl border border-white/40 overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
-                style={{ background: 'rgba(255,248,243,0.7)', backdropFilter: 'blur(16px)' }}
+                style={{ background: 'rgba(241,245,249,0.7)', backdropFilter: 'blur(16px)' }}
               >
                 {/* Thumbnail */}
                 <div
@@ -349,13 +349,13 @@ export default function AssetsPage() {
                   style={{
                     background: asset.file_url
                       ? `url(${asset.file_url}) center/cover`
-                      : 'linear-gradient(135deg, rgba(255,181,200,0.2), rgba(232,213,255,0.2))',
+                      : 'linear-gradient(135deg, rgba(129,140,248,0.2), rgba(196,181,253,0.2))',
                   }}
                 >
                   {!asset.file_url && (
                     <div
                       className="text-4xl opacity-40"
-                      style={{ color: '#FF8FAD' }}
+                      style={{ color: '#6366F1' }}
                     >
                       {asset.file_type === 'photo' && '📸'}
                       {asset.file_type === 'video' && '🎬'}
@@ -373,8 +373,8 @@ export default function AssetsPage() {
                     <span
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium"
                       style={{
-                        background: 'rgba(255,181,200,0.2)',
-                        color: '#FF8FAD',
+                        background: 'rgba(129,140,248,0.2)',
+                        color: '#6366F1',
                       }}
                     >
                       {getAssetIcon(asset.file_type)}
@@ -385,7 +385,7 @@ export default function AssetsPage() {
                   {/* Asset Name */}
                   <h3
                     className="font-serif font-semibold text-sm truncate"
-                    style={{ color: '#2A1F1A' }}
+                    style={{ color: '#0F172A' }}
                     title={asset.name}
                   >
                     {asset.name}
@@ -394,11 +394,11 @@ export default function AssetsPage() {
                   {/* Metadata */}
                   <div
                     className="space-y-1 text-xs"
-                    style={{ color: '#2A1F1A', opacity: 0.6 }}
+                    style={{ color: '#0F172A', opacity: 0.6 }}
                   >
                     <p>{formatFileSize(asset.file_size)}</p>
                     {asset.dimensions && <p>{asset.dimensions}</p>}
-                    <p className="text-xs mt-2 font-sans" style={{ color: '#FF8FAD' }}>
+                    <p className="text-xs mt-2 font-sans" style={{ color: '#6366F1' }}>
                       {getClientNameById(asset.client_id, clients || [])}
                     </p>
                   </div>
@@ -406,7 +406,7 @@ export default function AssetsPage() {
                   {/* Upload Date */}
                   <p
                     className="text-xs font-sans"
-                    style={{ color: '#2A1F1A', opacity: 0.5 }}
+                    style={{ color: '#0F172A', opacity: 0.5 }}
                   >
                     {formatDate(asset.created_at)}
                   </p>
@@ -421,7 +421,7 @@ export default function AssetsPage() {
               <div
                 key={asset.id}
                 className="rounded-2xl border border-white/40 p-4 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer group"
-                style={{ background: 'rgba(255,248,243,0.7)', backdropFilter: 'blur(16px)' }}
+                style={{ background: 'rgba(241,245,249,0.7)', backdropFilter: 'blur(16px)' }}
               >
                 {/* Thumbnail */}
                 <div
@@ -429,7 +429,7 @@ export default function AssetsPage() {
                   style={{
                     background: asset.file_url
                       ? `url(${asset.file_url}) center/cover`
-                      : 'linear-gradient(135deg, rgba(255,181,200,0.2), rgba(232,213,255,0.2))',
+                      : 'linear-gradient(135deg, rgba(129,140,248,0.2), rgba(196,181,253,0.2))',
                   }}
                 >
                   {!asset.file_url && (
@@ -447,13 +447,13 @@ export default function AssetsPage() {
                 <div className="flex-1 min-w-0">
                   <h3
                     className="font-serif font-semibold truncate"
-                    style={{ color: '#2A1F1A' }}
+                    style={{ color: '#0F172A' }}
                   >
                     {asset.name}
                   </h3>
                   <div
                     className="flex items-center gap-4 text-sm mt-1"
-                    style={{ color: '#2A1F1A', opacity: 0.6 }}
+                    style={{ color: '#0F172A', opacity: 0.6 }}
                   >
                     <span className="font-sans">
                       {getAssetTypeLabel(asset.file_type)}
@@ -471,7 +471,7 @@ export default function AssetsPage() {
                 {/* Date */}
                 <p
                   className="text-sm font-sans flex-shrink-0"
-                  style={{ color: '#2A1F1A', opacity: 0.5 }}
+                  style={{ color: '#0F172A', opacity: 0.5 }}
                 >
                   {formatDate(asset.created_at)}
                 </p>
@@ -559,7 +559,7 @@ export default function AssetsPage() {
                 }
               }}
               className="w-full py-3 rounded-2xl text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #FFB5C8, #FF8FAD)' }}
+              style={{ background: 'linear-gradient(135deg, #818CF8, #6366F1)' }}
             >
               {uploading ? 'Subiendo...' : 'Subir archivo'}
             </button>
