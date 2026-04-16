@@ -120,7 +120,7 @@ export default function CalendarioPage() {
 
   // Data scoped to the selected brand
   const { data: posts, loading: postsLoading, refetch: refetchPosts } = usePosts(selectedClientId);
-  const { data: designs } = useCanvaDesigns(selectedClientId);
+  const { data: designs, refetch: refetchDesigns } = useCanvaDesigns(selectedClientId);
 
   // Calendar navigation
   const [viewMonth, setViewMonth] = useState(() => new Date());
@@ -656,7 +656,7 @@ export default function CalendarioPage() {
             stage={postToStage(selectedPost)}
             client={selectedClient}
             allDesigns={designs}
-            onLinkChange={refetchPosts}
+            onLinkChange={async () => { await refetchPosts(); await refetchDesigns(); }}
             isClientViewer={isClientViewer}
             isMoving={isMoving}
             onClose={() => setSelectedPostId(null)}
@@ -1032,6 +1032,7 @@ function PostDrawer({
               currentPage={pageNumber}
               onSave={saveCanvaLink}
               onClose={() => setPickerOpen(false)}
+              onPagesRefreshed={onLinkChange}
             />
           )}
         </div>
@@ -1460,17 +1461,20 @@ function NewProposalModal({
 
 function CanvaPickerPanel({
   allDesigns, currentDesignId, currentPage,
-  onSave, onClose,
+  onSave, onClose, onPagesRefreshed,
 }: {
   allDesigns: CanvaDesign[];
   currentDesignId: string | null;
   currentPage: number | null;
   onSave: (designId: string | null, page: number | null) => Promise<void>;
   onClose: () => void;
+  onPagesRefreshed: () => Promise<void>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(currentDesignId);
   const [page, setPage] = useState<number>(currentPage || 1);
   const [saving, setSaving] = useState(false);
+  const [syncingPages, setSyncingPages] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const selected = allDesigns.find((d) => d.id === selectedId) || null;
 
@@ -1489,6 +1493,27 @@ function CanvaPickerPanel({
       await onSave(null, null);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSyncPages = async () => {
+    if (!selected) return;
+    setSyncingPages(true);
+    setSyncError(null);
+    try {
+      const res = await fetch(`/api/canva/designs/${selected.id}/sync-pages`, {
+        method: 'POST',
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setSyncError(body.error || 'Error al sincronizar páginas');
+      } else {
+        await onPagesRefreshed();
+      }
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setSyncingPages(false);
     }
   };
 
@@ -1549,6 +1574,33 @@ function CanvaPickerPanel({
               );
             })}
           </div>
+
+          {/* Sync pages from Canva */}
+          {selected && (
+            <div className="flex items-center justify-between">
+              <p className="text-[10px]" style={{ color: 'var(--text-light)' }}>
+                {selected.pages?.length
+                  ? `${selected.pages.length} ${selected.pages.length === 1 ? 'página sincronizada' : 'páginas sincronizadas'}`
+                  : 'Aún no se sincronizaron las páginas'}
+              </p>
+              <button
+                onClick={handleSyncPages}
+                disabled={syncingPages}
+                className="text-[10px] font-semibold px-2 py-1 rounded-md border hover:bg-white disabled:opacity-50 flex items-center gap-1"
+                style={{ borderColor: 'var(--glass-border)', color: '#6366F1' }}
+              >
+                {syncingPages ? 'Sincronizando…' : '🔄 Sincronizar páginas'}
+              </button>
+            </div>
+          )}
+          {syncError && (
+            <div
+              className="p-2 rounded-md text-[10px]"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#991B1B' }}
+            >
+              {syncError}
+            </div>
+          )}
 
           {/* Page picker */}
           {selected && selected.page_count > 1 && (
