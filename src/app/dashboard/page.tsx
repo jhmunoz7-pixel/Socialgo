@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useClients, useStats, usePackages, useMembers, useCurrentUser, deleteClient, updateClient } from '@/lib/hooks';
 import { Client, PayStatus, AccountStatus, calculateMonthlyPayment } from '@/types';
 import { AddClientModal } from '@/components/clients/AddClientModal';
+import { Users, Download, Pencil, Trash2, Play, Pause, ExternalLink, UserPlus } from 'lucide-react';
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -160,7 +161,7 @@ export default function ClientsPage() {
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>👥 Clientes</h1>
+            <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><Users className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Clientes</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
               {isAdmin ? 'Gestiona cuentas, contratos y estatus de pago' : 'Clientes asignados'}
             </p>
@@ -220,7 +221,7 @@ export default function ClientsPage() {
         </>
       ) : clients.length === 0 ? (
         <div className="glass-card p-12 text-center">
-          <div className="mb-4 text-5xl">👥</div>
+          <UserPlus className="w-12 h-12 mb-4" style={{ color: 'var(--text-light)' }} />
           <h2 className="text-heading-md text-sg-text font-semibold mb-2">No tienes clientes aún</h2>
           <p className="text-body-md text-sg-text-mid mb-6">
             Comienza a agregar tus primeros clientes para gestionar sus cuentas y pagos
@@ -280,7 +281,7 @@ export default function ClientsPage() {
             onClick={handleExportXLS}
             className="btn btn-primary whitespace-nowrap"
           >
-            📥 Exportar XLS
+            <Download className="w-3.5 h-3.5" /> Exportar XLS
           </button>
         </div>
       </div>
@@ -320,11 +321,11 @@ export default function ClientsPage() {
               <span>{client.city || '-'}</span>
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 {client.instagram && (
-                  <a href={client.instagram} target="_blank" rel="noopener noreferrer" className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center">📷</a>
+                  <a href={client.instagram} target="_blank" rel="noopener noreferrer" className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center"><ExternalLink className="w-4 h-4" /></a>
                 )}
-                {isAdmin && <button onClick={() => handleToggleAccountStatus(client)} className={`text-base min-w-[44px] min-h-[44px] flex items-center justify-center ${client.account_status === 'activo' ? 'text-green-500' : 'text-sg-text-light'}`} title={client.account_status === 'activo' ? 'Desactivar' : 'Activar'}>{client.account_status === 'activo' ? '✅' : '⏸️'}</button>}
-                {isAdmin && <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar">✏️</button>}
-                {isAdmin && <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar">🗑️</button>}
+                {isAdmin && <button onClick={() => handleToggleAccountStatus(client)} className={`text-base min-w-[44px] min-h-[44px] flex items-center justify-center ${client.account_status === 'activo' ? 'text-green-500' : 'text-sg-text-light'}`} title={client.account_status === 'activo' ? 'Desactivar' : 'Activar'}>{client.account_status === 'activo' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}</button>}
+                {isAdmin && <button onClick={() => handleEditClient(client.id)} className="text-rose text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Editar"><Pencil className="w-4 h-4" /></button>}
+                {isAdmin && <button onClick={() => handleDeleteClient(client.id)} className="text-sg-text-light text-base min-w-[44px] min-h-[44px] flex items-center justify-center" title="Eliminar"><Trash2 className="w-4 h-4" /></button>}
               </div>
             </div>
           </div>
@@ -444,7 +445,7 @@ export default function ClientsPage() {
                           title="Abrir Instagram"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          📷
+                          <ExternalLink className="w-4 h-4" />
                         </a>
                       ) : (
                         <span className="text-sg-text-light">-</span>
@@ -478,7 +479,7 @@ export default function ClientsPage() {
                           className={`relative group text-lg transition-colors ${client.account_status === 'activo' ? 'text-green-500 hover:text-red-400' : 'text-sg-text-light hover:text-green-500'}`}
                           title={client.account_status === 'activo' ? 'Desactivar cliente' : 'Activar cliente'}
                         >
-                          {client.account_status === 'activo' ? '✅' : '⏸️'}
+                          {client.account_status === 'activo' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                           <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                             {client.account_status === 'activo' ? 'Desactivar' : 'Activar'} — {client.account_status === 'activo' ? 'pausar cuenta' : 'cliente con plan pagado'}
                           </span>

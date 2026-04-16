@@ -10,10 +10,16 @@ import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
+import {
+  Package, Users, BarChart3, CalendarDays, Palette, FolderOpen,
+  Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
+  Eye,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface NavItem {
   label: string;
-  icon: string;
+  icon: LucideIcon;
   href: string;
   section: 'principal' | 'workspace' | 'config';
   /** Roles that can see this item. If omitted, visible to all. */
@@ -25,14 +31,14 @@ const ADMIN_ROLES: MemberRole[] = ['owner', 'admin', 'member'];
 const NON_CLIENT: MemberRole[] = ['owner', 'admin', 'member', 'creative'];
 
 const navItems: NavItem[] = [
-  { label: 'Paquetes', icon: '📦', href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
-  { label: 'Clientes', icon: '👥', href: '/dashboard', section: 'principal', roles: NON_CLIENT },
-  { label: 'Reportes', icon: '📊', href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
-  { label: 'Planificación', icon: '📋', href: '/dashboard/planning', section: 'workspace' },
-  { label: 'Contenido', icon: '🎨', href: '/dashboard/contenido', section: 'workspace' },
-  { label: 'Assets', icon: '📁', href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
-  { label: 'AI Studio', icon: '⚡', href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
-  { label: 'Agencia', icon: '⚙️', href: '/dashboard/settings', section: 'config', roles: ADMIN_ROLES },
+  { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
+  { label: 'Clientes', icon: Users, href: '/dashboard', section: 'principal', roles: NON_CLIENT },
+  { label: 'Reportes', icon: BarChart3, href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
+  { label: 'Planificación', icon: CalendarDays, href: '/dashboard/planning', section: 'workspace' },
+  { label: 'Contenido', icon: Palette, href: '/dashboard/contenido', section: 'workspace' },
+  { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
+  { label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
+  { label: 'Agencia', icon: Settings, href: '/dashboard/settings', section: 'config', roles: ADMIN_ROLES },
 ];
 
 const sectionLabels = {
@@ -182,9 +188,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               style={{ color: 'var(--text-mid)' }}
               title={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                <path d="M9 3L5 7L9 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <ChevronLeft className="w-4 h-4" style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
             </button>
           )}
         </div>
@@ -234,7 +238,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                       }
                       title={!showLabels ? item.label : undefined}
                     >
-                      <span className="text-lg flex-shrink-0">{item.icon}</span>
+                      <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
                       {showLabels && <span className="text-sm font-medium">{item.label}</span>}
                     </Link>
                   );
@@ -259,7 +263,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               }}
               title={!showLabels ? 'Platform Admin' : undefined}
             >
-              <span className="text-lg flex-shrink-0">🛠️</span>
+              <Shield className="w-[18px] h-[18px] flex-shrink-0" />
               {showLabels && (
                 <span className="text-xs font-semibold uppercase tracking-wide">
                   Platform Admin
@@ -297,7 +301,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             style={{ background: 'var(--glass-border)', color: 'var(--text-mid)' }}
             title={!showLabels ? 'Cerrar sesión' : undefined}
           >
-            {showLabels ? 'Cerrar sesión' : '🚪'}
+            {showLabels ? 'Cerrar sesión' : <LogOut className="w-4 h-4" />}
           </button>
         </div>
       </>
@@ -318,9 +322,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--surface)', color: 'var(--text-dark)' }}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M3 5H17M3 10H17M3 15H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <Menu className="w-5 h-5" />
           </button>
           <Link href="/dashboard">
             <img src="/socialgo-wordmark-light-cropped.svg" alt="SocialGo" style={{ height: 40 }} />
@@ -350,7 +352,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                   onClick={() => setMobileOpen(false)}
                   className="w-9 h-9 rounded-full flex items-center justify-center bg-black/30 text-white"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
               <SidebarContent isMobile={true} />
@@ -403,7 +405,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">👁️</span>
+                <Eye className="w-5 h-5" style={{ color: '#B4F965' }} />
                 <div>
                   <p className="text-sm font-semibold" style={{ color: '#B4F965' }}>
                     Modo impersonar — {org.data?.name || 'Agencia'}

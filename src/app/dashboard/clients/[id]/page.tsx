@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useClient, usePackages, useMembers, updatePost, createPost, useCurrentUser } from '@/lib/hooks';
 import { Post, POST_TYPE_CONFIG, PostType, calculateMonthlyPayment } from '@/types';
+import { LayoutGrid, Image as ImageIcon } from 'lucide-react';
 import { PostModal } from '@/components/posts/PostModal';
 import { EditClientModal } from '@/components/clients/EditClientModal';
 import BrandKitPanel from '@/components/clients/BrandKitPanel';
@@ -328,7 +329,7 @@ export default function ClientDetailPage() {
             className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
             style={activeTab === 'parrilla' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
           >
-            📋 Parrilla
+            <LayoutGrid className="w-4 h-4 inline" /> Parrilla
           </button>
           <button
             onClick={() => setActiveTab('feed')}
@@ -525,7 +526,7 @@ function PostCard({ post, onClick }: PostCardProps) {
           backgroundPosition: 'center',
         }}
       >
-        {!post.image_url && <span>📷</span>}
+        {!post.image_url && <ImageIcon className="w-4 h-4" />}
 
         {/* Date Badge - Top Left */}
         <div

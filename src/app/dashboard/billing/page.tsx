@@ -1,6 +1,7 @@
 'use client';
 
 import { useOrganization } from '@/lib/hooks';
+import { CreditCard } from 'lucide-react';
 
 /**
  * Billing page — SocialGo glassmorphism
@@ -59,7 +60,7 @@ export default function BillingPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
-          💳 Facturación
+          <span className="flex items-center gap-2"><CreditCard className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Facturación</span>
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
           Gestiona tu suscripción y método de pago

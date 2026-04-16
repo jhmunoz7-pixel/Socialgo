@@ -2,16 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useClients } from '@/lib/hooks';
-// Icon replacements (no external dependency)
-const Search = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>🔍</span>;
-const Upload = ({ className }: { className?: string }) => <span className={className}>📤</span>;
-const Grid3x3 = ({ className }: { className?: string }) => <span className={className}>⊞</span>;
-const List = ({ className }: { className?: string }) => <span className={className}>☰</span>;
-const ImageIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>📸</span>;
-const Video = ({ className }: { className?: string }) => <span className={className}>🎬</span>;
-const LayoutTemplate = ({ className }: { className?: string }) => <span className={className}>📐</span>;
-const Package = ({ className }: { className?: string }) => <span className={className}>📦</span>;
-const FileText = ({ className, style }: { className?: string; style?: React.CSSProperties }) => <span className={className} style={style}>📄</span>;
+import {
+  Search, Upload, LayoutGrid as Grid3x3, List, Image as ImageIcon,
+  Video, LayoutTemplate, Package, FileText, FolderOpen,
+} from 'lucide-react';
 
 type AssetType = 'photo' | 'video' | 'template' | 'kit' | 'other';
 
@@ -175,7 +169,7 @@ export default function AssetsPage() {
             className="text-2xl font-serif font-bold"
             style={{ color: 'var(--text-dark)' }}
           >
-            📁 Assets
+            <span className="flex items-center gap-2"><FolderOpen className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Assets</span>
           </h1>
           <button
             onClick={() => setShowUploadModal(true)}
@@ -367,7 +361,7 @@ export default function AssetsPage() {
                       {asset.file_type === 'video' && '🎬'}
                       {asset.file_type === 'template' && '📐'}
                       {asset.file_type === 'kit' && '📦'}
-                      {!asset.file_type && '📁'}
+                      {!asset.file_type && <FolderOpen className="w-5 h-5" />}
                     </div>
                   )}
                 </div>
@@ -444,7 +438,7 @@ export default function AssetsPage() {
                       {asset.file_type === 'video' && '🎬'}
                       {asset.file_type === 'template' && '📐'}
                       {asset.file_type === 'kit' && '📦'}
-                      {!asset.file_type && '📁'}
+                      {!asset.file_type && <FolderOpen className="w-5 h-5" />}
                     </span>
                   )}
                 </div>
