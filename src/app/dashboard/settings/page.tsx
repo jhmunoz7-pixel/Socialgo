@@ -5,7 +5,7 @@ import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/h
 import { usePermissions, getRoleLabel, getRoleColor } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
-import { Settings } from 'lucide-react';
+import { Settings, Hash, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 
 // ============================================================================
@@ -31,6 +31,13 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
+  // Slack integration state
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  const [isSavingSlack, setIsSavingSlack] = useState(false);
+  const [slackSaveMessage, setSlackSaveMessage] = useState('');
+  const [isTestingSlack, setIsTestingSlack] = useState(false);
+  const [slackTestResult, setSlackTestResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     if (org) {
       setFormData({
@@ -40,6 +47,7 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
         website: org.website || '',
         timezone: org.timezone || 'UTC',
       });
+      setSlackWebhookUrl(org.slack_webhook_url || '');
     }
   }, [org]);
 
@@ -120,7 +128,56 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
     );
   }
 
+  const handleSaveSlack = async () => {
+    if (!org) return;
+    setIsSavingSlack(true);
+    setSlackSaveMessage('');
+    try {
+      const supabase = createSupabaseClient();
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          slack_webhook_url: slackWebhookUrl.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', org.id);
+      if (error) throw error;
+      setSlackSaveMessage('Webhook guardado exitosamente');
+      setTimeout(() => setSlackSaveMessage(''), 3000);
+      await refetchOrg();
+    } catch (error) {
+      console.error('Error saving Slack webhook:', error);
+      setSlackSaveMessage('Error al guardar webhook');
+    } finally {
+      setIsSavingSlack(false);
+    }
+  };
+
+  const handleTestSlack = async () => {
+    if (!slackWebhookUrl.trim()) return;
+    setIsTestingSlack(true);
+    setSlackTestResult(null);
+    try {
+      const res = await fetch('/api/notifications/slack/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook_url: slackWebhookUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSlackTestResult({ type: 'error', text: data.error || 'Error al probar webhook' });
+      } else {
+        setSlackTestResult({ type: 'success', text: 'Mensaje de prueba enviado. Revisa tu canal de Slack.' });
+      }
+    } catch {
+      setSlackTestResult({ type: 'error', text: 'Error de conexion al probar webhook' });
+    } finally {
+      setIsTestingSlack(false);
+    }
+  };
+
   return (
+    <div className="space-y-6">
     <div className="glass-card p-8 rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 shadow-lg">
       <h2 className="text-2xl font-serif font-bold text-text mb-6">Configuración de Agencia</h2>
 
@@ -224,6 +281,97 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
         </button>
         {saveMessage && <p className="text-sm font-medium text-green-600">{saveMessage}</p>}
       </div>
+    </div>
+
+    {/* Integraciones — Slack */}
+    <div className="glass-card p-8 rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 shadow-lg">
+      <div className="flex items-center gap-3 mb-2">
+        <Hash className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} />
+        <h2 className="text-2xl font-serif font-bold text-text">Integraciones</h2>
+      </div>
+      <p className="text-sm text-text/60 mb-6">Conecta herramientas externas para recibir notificaciones automaticas.</p>
+
+      <div className="space-y-4">
+        <div className="p-5 rounded-xl bg-white/20 border border-white/30">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-[#4A154B] flex items-center justify-center">
+              <Hash className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text">Slack</h3>
+              <p className="text-xs text-text/60">Recibe notificaciones cuando se crean, aprueban o publican posts.</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">Webhook URL</label>
+              <input
+                type="url"
+                value={slackWebhookUrl}
+                onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                placeholder="https://hooks.slack.com/services/..."
+                className="w-full px-4 py-2 rounded-lg bg-white/50 border border-white/30 text-text placeholder-text/40 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all text-sm font-mono"
+              />
+              <p className="text-xs text-text/50 mt-1">
+                Crea un webhook en Slack: Apps {'>'} Incoming Webhooks {'>'} Add New Webhook to Workspace
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSaveSlack}
+                disabled={isSavingSlack}
+                className="px-5 py-2 rounded-lg font-medium text-white transition-all duration-200 disabled:opacity-50 text-sm"
+                style={{
+                  background: isSavingSlack ? '#ccc' : 'var(--gradient)',
+                }}
+              >
+                {isSavingSlack ? 'Guardando...' : 'Guardar webhook'}
+              </button>
+
+              <button
+                onClick={handleTestSlack}
+                disabled={isTestingSlack || !slackWebhookUrl.trim()}
+                className="px-5 py-2 rounded-lg font-medium text-sm transition-all duration-200 disabled:opacity-50 border"
+                style={{
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary-deep)',
+                  background: 'rgba(255,255,255,0.3)',
+                }}
+              >
+                {isTestingSlack ? (
+                  <span className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Probando...</span>
+                ) : (
+                  'Probar conexion'
+                )}
+              </button>
+
+              {slackSaveMessage && (
+                <p className="text-sm font-medium text-green-600">{slackSaveMessage}</p>
+              )}
+            </div>
+
+            {slackTestResult && (
+              <div
+                className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+                  slackTestResult.type === 'success'
+                    ? 'bg-green-100/50 text-green-800 border border-green-200/50'
+                    : 'bg-red-100/50 text-red-800 border border-red-200/50'
+                }`}
+              >
+                {slackTestResult.type === 'success' ? (
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                )}
+                {slackTestResult.text}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
     </div>
   );
 }

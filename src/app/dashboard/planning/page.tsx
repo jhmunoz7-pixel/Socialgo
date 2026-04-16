@@ -130,6 +130,9 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
         saves: 0,
         impressions: 0,
         reach: 0,
+        published_url: null,
+        published_at: null,
+        publish_error: null,
       });
 
       // Upload asset if selected
