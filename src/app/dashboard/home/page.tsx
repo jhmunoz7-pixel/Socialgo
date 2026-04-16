@@ -31,7 +31,12 @@ import {
   X as XIcon,
   Eye,
   EyeOff,
+  Flame,
+  ClipboardCheck,
+  UserCheck,
+  Target,
 } from 'lucide-react';
+import type { PostStatus } from '@/types';
 
 // Platform badge colors
 const PLATFORM_BADGE: Record<string, { bg: string; text: string }> = {
@@ -42,6 +47,47 @@ const PLATFORM_BADGE: Record<string, { bg: string; text: string }> = {
   twitter: { bg: '#F0F9FF', text: '#0EA5E9' },
   youtube: { bg: '#FEE2E2', text: '#DC2626' },
 };
+
+// Stage groups (mirrors Pendientes page)
+interface StageGroup {
+  key: string;
+  label: string;
+  icon: typeof Flame;
+  accent: string;
+  bg: string;
+  bgSoft: string;
+  statuses: PostStatus[];
+}
+
+const STAGE_GROUPS: StageGroup[] = [
+  {
+    key: 'in_progress',
+    label: 'En progreso',
+    icon: Flame,
+    accent: '#6366F1',
+    bg: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
+    bgSoft: '#EEF2FF',
+    statuses: ['draft', 'planned'],
+  },
+  {
+    key: 'to_review',
+    label: 'Por revisar',
+    icon: ClipboardCheck,
+    accent: '#A78BFA',
+    bg: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+    bgSoft: '#F5F3FF',
+    statuses: ['in_production', 'review_1_1'],
+  },
+  {
+    key: 'client_pending',
+    label: 'Pendiente cliente',
+    icon: UserCheck,
+    accent: '#F59E0B',
+    bg: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
+    bgSoft: '#FFFBEB',
+    statuses: ['scheduled', 'approved_with_changes'],
+  },
+];
 
 // Status labels in Spanish
 const STATUS_LABEL: Record<string, string> = {
@@ -149,6 +195,27 @@ export default function HomePage() {
     return posts
       .filter((p) => p.status === 'review_1_1' || (p.approval_status === 'pending' && p.status !== 'draft'))
       .slice(0, 3);
+  }, [posts]);
+
+  // Actionable posts grouped by stage (for Retos section)
+  const stageCounts = useMemo(() => {
+    const actionable = posts.filter(
+      (p) => !['published', 'archived', 'approved'].includes(p.status)
+    );
+    const totalActionable = actionable.length;
+    return {
+      total: totalActionable,
+      groups: STAGE_GROUPS.map((g) => {
+        const groupPosts = actionable.filter((p) => g.statuses.includes(p.status));
+        const preview = groupPosts.slice(0, 3);
+        return {
+          ...g,
+          count: groupPosts.length,
+          percent: totalActionable > 0 ? Math.round((groupPosts.length / totalActionable) * 100) : 0,
+          preview,
+        };
+      }),
+    };
   }, [posts]);
 
   // Recent activity (last 10 posts created/updated, descending)
@@ -446,6 +513,146 @@ export default function HomePage() {
             </div>
           </div>
         )}
+
+        {/* ── Retos pendientes (dynamic stage board) ── */}
+        <div
+          className="rounded-2xl p-5"
+          style={{
+            gridColumn: 'span 12',
+            background: '#FFFFFF',
+            border: '1px solid rgba(148,163,184,0.2)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+              >
+                <Target className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--text-dark)' }}>
+                  Retos pendientes
+                </h3>
+                <p className="text-[11px]" style={{ color: 'var(--text-light)' }}>
+                  {stageCounts.total} {stageCounts.total === 1 ? 'tarea en curso' : 'tareas en curso'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/pendientes"
+              className="text-xs font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
+              style={{ color: '#6366F1' }}
+            >
+              Ver tablero <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {stageCounts.total === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <CheckCircle2 className="w-10 h-10 mb-2" style={{ color: '#10B981' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--text-dark)' }}>
+                ¡Al día!
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-light)' }}>
+                No hay retos pendientes en este momento.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {stageCounts.groups.map((group) => {
+                const Icon = group.icon;
+                return (
+                  <Link
+                    key={group.key}
+                    href="/dashboard/pendientes"
+                    className="rounded-xl p-4 transition-all hover:shadow-md hover:-translate-y-0.5 duration-200 group"
+                    style={{
+                      background: group.bg,
+                      border: `1px solid ${group.accent}30`,
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ background: 'white' }}
+                        >
+                          <Icon className="w-4 h-4" style={{ color: group.accent }} />
+                        </div>
+                        <span className="text-xs font-semibold" style={{ color: group.accent }}>
+                          {group.label}
+                        </span>
+                      </div>
+                      <span
+                        className="text-2xl font-bold tabular-nums"
+                        style={{ color: group.accent }}
+                      >
+                        {group.count}
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden mb-3"
+                      style={{ background: 'rgba(255,255,255,0.7)' }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${group.percent}%`,
+                          background: group.accent,
+                        }}
+                      />
+                    </div>
+
+                    {/* Preview posts */}
+                    {group.preview.length === 0 ? (
+                      <p className="text-[11px] italic" style={{ color: 'var(--text-light)' }}>
+                        Sin tareas en esta etapa.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {group.preview.map((post) => {
+                          const client = clientMap[post.client_id];
+                          return (
+                            <div
+                              key={post.id}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.7)' }}
+                            >
+                              <span className="text-sm flex-shrink-0">{client?.emoji || '📝'}</span>
+                              <span
+                                className="text-[11px] font-medium truncate flex-1"
+                                style={{ color: 'var(--text-dark)' }}
+                              >
+                                {post.name || 'Sin nombre'}
+                              </span>
+                              <span
+                                className="text-[10px] flex-shrink-0 tabular-nums"
+                                style={{ color: 'var(--text-light)' }}
+                              >
+                                {formatDate(post.scheduled_date)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {group.count > group.preview.length && (
+                          <p className="text-[10px] text-center pt-1" style={{ color: group.accent }}>
+                            +{group.count - group.preview.length} más
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ── Pending Approvals ── */}
         <div

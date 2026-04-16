@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocialGo v4 — Calendario unificado (Mockup)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --border: rgba(148,163,184,0.2);
+    --text-dark: #0F172A;
+    --text-mid: #475569;
+    --text-light: #94A3B8;
+    --indigo: #6366F1;
+    --violet: #A78BFA;
+    --amber: #F59E0B;
+    --emerald: #10B981;
+    --sky: #38BDF8;
+    --slate: #94A3B8;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text-dark);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 999px; }
+  .stage-proposal { background: #F1F5F9; color: #475569; }
+  .stage-design    { background: #EEF2FF; color: #4F46E5; }
+  .stage-review    { background: #F5F3FF; color: #7C3AED; }
+  .stage-client    { background: #FFFBEB; color: #B45309; }
+  .stage-ready     { background: #ECFDF5; color: #047857; }
+  .stage-scheduled { background: #E0F2FE; color: #0284C7; }
+  .stage-published { background: #DCFCE7; color: #16A34A; }
+  .gradient-brand  { background: linear-gradient(135deg, #6366F1 0%, #A78BFA 100%); }
+  .post-card {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .post-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  .post-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+  .post-stage-bar {
+    height: 3px;
+    width: 100%;
+  }
+  .day-cell {
+    min-height: 120px;
+    padding: 8px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .day-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+  .day-today .day-num {
+    color: white;
+    background: var(--indigo);
+    padding: 2px 6px;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+  .sidebar-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-mid);
+    transition: background 0.15s;
+  }
+  .sidebar-item:hover { background: #F1F5F9; }
+  .sidebar-item.active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(167,139,250,0.08) 100%);
+    color: var(--indigo);
+    font-weight: 600;
+  }
+  .pill-count {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    background: #F1F5F9;
+    color: var(--text-mid);
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .sidebar-item.active .pill-count {
+    background: rgba(99,102,241,0.15);
+    color: var(--indigo);
+  }
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 420px;
+    background: white;
+    box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+    transform: translateX(100%);
+    transition: transform 0.25s ease-out;
+    z-index: 50;
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+  }
+  .drawer.open { transform: translateX(0); }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    z-index: 40;
+  }
+  .backdrop.open { opacity: 1; pointer-events: auto; }
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: white;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: var(--indigo); }
+  .filter-chip.on {
+    background: linear-gradient(135deg, #6366F1 0%, #A78BFA 100%);
+    color: white;
+    border-color: transparent;
+  }
+</style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+<!-- ═══════════════ MAIN APP SIDEBAR (mock of current) ═══════════════ -->
+<aside class="w-[68px] border-r bg-white flex flex-col items-center py-4 gap-3" style="border-color: var(--border);">
+  <div class="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center text-white font-bold text-xs">SG</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">🏠</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">👥</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">📋</div>
+  <div class="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center text-white">📅</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">🎨</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">📊</div>
+  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100">📦</div>
+</aside>
+
+<!-- ═══════════════ CALENDAR LEFT SIDEBAR (etapas) — collapsible ═══════════════ -->
+<aside id="stagePanel" class="w-[240px] border-r bg-white flex flex-col transition-all duration-200" style="border-color: var(--border);">
+  <div class="p-4 border-b flex items-start justify-between" style="border-color: var(--border);">
+    <div>
+      <h1 class="font-bold text-base flex items-center gap-2">
+        <span>📅</span> <span class="stage-label">Etapas</span>
+      </h1>
+      <p class="text-xs text-slate-500 mt-0.5 stage-label">Filtra por estado del post</p>
+    </div>
+    <button onclick="toggleStagePanel()" class="stage-label w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400" title="Ocultar panel">‹</button>
+  </div>
+
+  <!-- Search -->
+  <div class="p-3 border-b stage-label" style="border-color: var(--border);">
+    <div class="relative">
+      <input type="text" placeholder="Buscar post…" class="w-full text-xs pl-7 pr-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" style="border-color: var(--border);">
+      <span class="absolute left-2 top-1.5 text-slate-400 text-xs">🔍</span>
+    </div>
+  </div>
+
+  <!-- Etapas -->
+  <nav class="flex-1 p-2 overflow-y-auto stage-label">
+    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 py-2">Por hacer</p>
+
+    <div class="sidebar-item active">
+      <span class="dot" style="background: var(--indigo);"></span>
+      <span>Todos</span>
+      <span class="pill-count">11</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #94A3B8;"></span>
+      <span>💭 Propuesta del mes</span>
+      <span class="pill-count">3</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #6366F1;"></span>
+      <span>✏️ En diseño</span>
+      <span class="pill-count">2</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #A78BFA;"></span>
+      <span>👀 Revisión interna</span>
+      <span class="pill-count">2</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #F59E0B;"></span>
+      <span>📤 Con cliente</span>
+      <span class="pill-count">2</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #10B981;"></span>
+      <span>✅ Listo p/ programar</span>
+      <span class="pill-count">1</span>
+    </div>
+
+    <div class="sidebar-item">
+      <span class="dot" style="background: #38BDF8;"></span>
+      <span>🚀 Programado</span>
+      <span class="pill-count">1</span>
+    </div>
+  </nav>
+
+  <!-- Footer action -->
+  <div class="p-3 border-t stage-label" style="border-color: var(--border);">
+    <button class="w-full py-2 rounded-lg text-xs font-semibold text-white gradient-brand shadow-sm hover:shadow-md transition-all">
+      + Nueva propuesta
+    </button>
+  </div>
+</aside>
+
+<!-- Collapsed re-open rail (hidden by default) -->
+<button id="stagePanelReopen" onclick="toggleStagePanel()" class="hidden w-7 border-r bg-white hover:bg-slate-50 items-center justify-center text-slate-400" style="border-color: var(--border);" title="Mostrar panel de etapas">›</button>
+
+<!-- ═══════════════ MAIN CALENDAR ═══════════════ -->
+<main class="flex-1 flex flex-col overflow-hidden">
+
+  <!-- Top bar -->
+  <header class="h-[60px] px-6 flex items-center justify-between border-b bg-white flex-shrink-0" style="border-color: var(--border);">
+    <div class="flex items-center gap-3">
+      <!-- Client selector (the calendar is always scoped to ONE brand) -->
+      <div class="relative">
+        <button class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg border hover:bg-slate-50 transition-colors" style="border-color: var(--border);">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-200 to-orange-200 flex items-center justify-center text-base">🍔</div>
+          <div class="text-left">
+            <p class="text-[10px] text-slate-400 leading-tight">Marca</p>
+            <p class="text-xs font-semibold leading-tight">Duo</p>
+          </div>
+          <span class="text-slate-400 text-xs ml-1">▾</span>
+        </button>
+      </div>
+
+      <div class="w-px h-6 bg-slate-200"></div>
+
+      <button class="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-500">‹</button>
+      <h2 class="font-bold text-lg">Abril, 2026</h2>
+      <button class="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-500">›</button>
+      <button class="px-3 py-1 rounded-md border text-xs font-medium ml-2" style="border-color: var(--border);">Hoy</button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="filter-chip on">Todos</span>
+      <span class="filter-chip">👀 Revisión</span>
+      <span class="filter-chip">📤 Cliente</span>
+      <span class="filter-chip">🚀 Programados</span>
+      <div class="w-px h-5 bg-slate-200 mx-1"></div>
+      <button class="px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1.5" style="border-color: var(--border);">
+        📊 Mes ▾
+      </button>
+    </div>
+  </header>
+
+  <!-- Legend / stats bar -->
+  <div class="px-6 py-2 bg-white border-b flex items-center gap-4 text-[11px] text-slate-500 flex-shrink-0" style="border-color: var(--border);">
+    <span>💡 <b class="text-slate-700">Tip:</b> arrastra un post a otro día para reprogramar. Haz click para revisar y mover de etapa.</span>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="flex-1 overflow-auto bg-white">
+
+    <!-- Day headers -->
+    <div class="grid grid-cols-7 sticky top-0 z-10 bg-white border-b" style="border-color: var(--border);">
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Lun</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Mar</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Mié</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Jue</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Vie</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center border-r" style="border-color: var(--border);">Sáb</div>
+      <div class="p-2 text-[10px] uppercase font-semibold text-slate-500 text-center">Dom</div>
+    </div>
+
+    <!-- Week 1: Mon 30 Mar – Sun 5 Abr -->
+    <div class="grid grid-cols-7">
+      <div class="day-cell"><span class="day-num text-slate-300">30</span></div>
+      <div class="day-cell"><span class="day-num text-slate-300">31</span></div>
+      <div class="day-cell"><span class="day-num">1</span></div>
+      <div class="day-cell"><span class="day-num">2</span></div>
+      <div class="day-cell">
+        <span class="day-num">3</span>
+        <div class="post-card" onclick="openDrawer()">
+          <div class="post-stage-bar" style="background: #38BDF8;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-pink-200 to-orange-200 flex items-center justify-center text-4xl">🍔</div>
+            <span class="absolute top-1 left-1 chip stage-scheduled">🚀 Programado</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Galleta del día</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍔 Duo · 📸</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">4</span></div>
+      <div class="day-cell" style="border-right: none;"><span class="day-num">5</span></div>
+    </div>
+
+    <!-- Week 2: Mon 6 – Sun 12 -->
+    <div class="grid grid-cols-7">
+      <div class="day-cell">
+        <span class="day-num">6</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #10B981;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-purple-200 to-indigo-200 flex items-center justify-center text-4xl">🎁</div>
+            <span class="absolute top-1 left-1 chip stage-ready">✅ Listo</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Promo 2x1</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍕 Bingo · 🎥</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell">
+        <span class="day-num">7</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #A78BFA;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-yellow-100 to-orange-200 flex items-center justify-center text-4xl">☕</div>
+            <span class="absolute top-1 left-1 chip stage-review">👀 Revisión</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Lunes de café</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">☕ Café Luna</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">8</span></div>
+      <div class="day-cell">
+        <span class="day-num">9</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #F59E0B;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-red-200 to-pink-200 flex items-center justify-center text-4xl">🍕</div>
+            <span class="absolute top-1 left-1 chip stage-client">📤 Cliente</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Miércoles de pizza</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍕 Bingo · 📸</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">10</span></div>
+      <div class="day-cell">
+        <span class="day-num">11</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #94A3B8;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-slate-100 flex items-center justify-center text-3xl text-slate-400">💭</div>
+            <span class="absolute top-1 left-1 chip stage-proposal">💭 Propuesta</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Sin copy aún</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍔 Duo</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell" style="border-right: none;"><span class="day-num">12</span></div>
+    </div>
+
+    <!-- Week 3: Mon 13 – Sun 19 -->
+    <div class="grid grid-cols-7">
+      <div class="day-cell"><span class="day-num">13</span></div>
+      <div class="day-cell"><span class="day-num">14</span></div>
+      <div class="day-cell">
+        <span class="day-num">15</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #6366F1;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-indigo-200 to-violet-200 flex items-center justify-center text-4xl">🍩</div>
+            <span class="absolute top-1 left-1 chip stage-design">✏️ En diseño</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Donut lover</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍔 Duo · 🖼️</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell day-today">
+        <span class="day-num">16</span>
+        <div class="post-card" onclick="openDrawer()">
+          <div class="post-stage-bar" style="background: #A78BFA;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-violet-200 to-purple-200 flex items-center justify-center text-4xl">🥐</div>
+            <span class="absolute top-1 left-1 chip stage-review">👀 Revisión</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Croissant friday</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">☕ Café Luna</p>
+          </div>
+        </div>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #F59E0B;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-amber-100 to-yellow-200 flex items-center justify-center text-4xl">🍟</div>
+            <span class="absolute top-1 left-1 chip stage-client">📤 Cliente</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Combo familiar</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍔 Duo</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">17</span></div>
+      <div class="day-cell">
+        <span class="day-num">18</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #94A3B8;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-slate-100 flex items-center justify-center text-3xl text-slate-400">💭</div>
+            <span class="absolute top-1 left-1 chip stage-proposal">💭 Propuesta</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Sin copy aún</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">☕ Café Luna</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell" style="border-right: none;"><span class="day-num">19</span></div>
+    </div>
+
+    <!-- Week 4: Mon 20 – Sun 26 -->
+    <div class="grid grid-cols-7">
+      <div class="day-cell">
+        <span class="day-num">20</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #6366F1;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-gradient-to-br from-green-100 to-teal-200 flex items-center justify-center text-4xl">🥗</div>
+            <span class="absolute top-1 left-1 chip stage-design">✏️ En diseño</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Bowl saludable</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍔 Duo</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">21</span></div>
+      <div class="day-cell">
+        <span class="day-num">22</span>
+        <div class="post-card">
+          <div class="post-stage-bar" style="background: #94A3B8;"></div>
+          <div class="relative">
+            <div class="w-full aspect-square bg-slate-100 flex items-center justify-center text-3xl text-slate-400">💭</div>
+            <span class="absolute top-1 left-1 chip stage-proposal">💭 Propuesta</span>
+          </div>
+          <div class="p-1.5 bg-white">
+            <p class="text-[10px] font-semibold truncate">Sin copy aún</p>
+            <p class="text-[9px] text-slate-500 flex items-center gap-1">🍕 Bingo</p>
+          </div>
+        </div>
+      </div>
+      <div class="day-cell"><span class="day-num">23</span></div>
+      <div class="day-cell"><span class="day-num">24</span></div>
+      <div class="day-cell"><span class="day-num">25</span></div>
+      <div class="day-cell" style="border-right: none;"><span class="day-num">26</span></div>
+    </div>
+
+    <!-- Week 5: Mon 27 – Thu 30 + next month -->
+    <div class="grid grid-cols-7">
+      <div class="day-cell"><span class="day-num">27</span></div>
+      <div class="day-cell"><span class="day-num">28</span></div>
+      <div class="day-cell"><span class="day-num">29</span></div>
+      <div class="day-cell"><span class="day-num">30</span></div>
+      <div class="day-cell"><span class="day-num text-slate-300">1</span></div>
+      <div class="day-cell"><span class="day-num text-slate-300">2</span></div>
+      <div class="day-cell" style="border-right: none;"><span class="day-num text-slate-300">3</span></div>
+    </div>
+
+  </div>
+
+  <!-- Legend footer -->
+  <div class="px-6 py-3 bg-white border-t flex items-center gap-4 text-[10px] flex-shrink-0" style="border-color: var(--border);">
+    <span class="chip stage-proposal">💭 Propuesta</span>
+    <span class="chip stage-design">✏️ En diseño</span>
+    <span class="chip stage-review">👀 Revisión interna</span>
+    <span class="chip stage-client">📤 Con cliente</span>
+    <span class="chip stage-ready">✅ Listo</span>
+    <span class="chip stage-scheduled">🚀 Programado</span>
+    <span class="chip stage-published">📢 Publicado</span>
+  </div>
+</main>
+
+<!-- ═══════════════ DRAWER (post detail) ═══════════════ -->
+<div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="drawer">
+  <!-- Drawer header -->
+  <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10" style="border-color: var(--border);">
+    <div class="flex items-center gap-2">
+      <span class="chip stage-review">👀 Revisión interna</span>
+      <span class="text-xs text-slate-500">· 16 Abr, 10:00am</span>
+    </div>
+    <button onclick="closeDrawer()" class="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+  </div>
+
+  <!-- Post preview -->
+  <div class="p-4 space-y-4">
+
+    <!-- Canva page preview -->
+    <div>
+      <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Preview Canva (página 3 de 8)</p>
+      <div class="relative rounded-xl overflow-hidden border" style="border-color: var(--border);">
+        <div class="aspect-square bg-gradient-to-br from-violet-200 to-purple-200 flex items-center justify-center text-7xl">🥐</div>
+        <button class="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-white text-xs font-semibold shadow-md flex items-center gap-1.5 hover:shadow-lg transition-shadow">
+          ✏️ Editar en Canva
+        </button>
+      </div>
+    </div>
+
+    <!-- Title + client -->
+    <div>
+      <h3 class="font-semibold text-base">Croissant friday</h3>
+      <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">☕ Café Luna · 📸 Instagram · Feed</p>
+    </div>
+
+    <!-- Copy editable -->
+    <div>
+      <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Copy</label>
+      <div class="mt-1 p-3 rounded-lg border text-xs leading-relaxed" style="border-color: var(--border); background: #FAFAFA;">
+        ¿Viernes sin croissant? Imposible. Ven por el tuyo recién horneado y llévate un café americano gratis hasta las 11am. ☕🥐<br><br>#CaféLuna #ViernesDeCroissant
+      </div>
+      <button class="text-[11px] text-indigo-500 mt-1 flex items-center gap-1 hover:underline">✏️ Editar copy</button>
+    </div>
+
+    <!-- Meta -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Fecha</label>
+        <p class="text-xs mt-1">16 Abr, 2026</p>
+      </div>
+      <div>
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Hora</label>
+        <p class="text-xs mt-1">10:00 AM</p>
+      </div>
+      <div>
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Asignado</label>
+        <p class="text-xs mt-1 flex items-center gap-1.5">
+          <span class="w-4 h-4 rounded-full gradient-brand text-white flex items-center justify-center text-[8px] font-bold">MJ</span>
+          María J.
+        </p>
+      </div>
+      <div>
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">AI score</label>
+        <p class="text-xs mt-1 font-semibold" style="color: #10B981;">87 / 100</p>
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <div>
+      <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Comentarios internos (2)</label>
+      <div class="space-y-2 mt-2">
+        <div class="p-2.5 rounded-lg" style="background: #F8FAFC;">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 rounded-full gradient-brand text-white flex items-center justify-center text-[9px] font-bold">JH</span>
+            <span class="text-[11px] font-semibold">Jorge H.</span>
+            <span class="text-[10px] text-slate-400">hace 2h</span>
+          </div>
+          <p class="text-xs text-slate-700">Me gusta la foto. Podemos cambiar "americano gratis" por "americano en promoción"?</p>
+        </div>
+        <div class="p-2.5 rounded-lg" style="background: #EEF2FF;">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 rounded-full bg-violet-400 text-white flex items-center justify-center text-[9px] font-bold">MJ</span>
+            <span class="text-[11px] font-semibold">María J.</span>
+            <span class="text-[10px] text-slate-400">hace 30m</span>
+          </div>
+          <p class="text-xs text-slate-700">Ok, ya lo ajusto. Lo mando de nuevo.</p>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <input type="text" placeholder="Añadir comentario…" class="flex-1 text-xs px-3 py-1.5 border rounded-lg" style="border-color: var(--border);">
+        <button class="px-3 py-1.5 text-xs font-medium rounded-lg gradient-brand text-white">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky action footer -->
+  <div class="sticky bottom-0 bg-white border-t p-4 space-y-2" style="border-color: var(--border);">
+    <p class="text-[10px] text-slate-500 text-center">Siguiente paso para este post</p>
+    <button class="w-full py-2.5 rounded-lg font-semibold text-sm text-white gradient-brand hover:shadow-md transition-shadow">
+      ✅ Aprobar y mandar a cliente →
+    </button>
+    <div class="flex gap-2">
+      <button class="flex-1 py-2 rounded-lg text-xs font-medium border hover:bg-slate-50" style="border-color: var(--border);">
+        ↩️ Regresar a creativo
+      </button>
+      <button class="flex-1 py-2 rounded-lg text-xs font-medium border hover:bg-slate-50" style="border-color: var(--border);">
+        🗑️ Archivar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('backdrop').classList.add('open');
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('open');
+  }
+  function toggleStagePanel() {
+    const panel = document.getElementById('stagePanel');
+    const reopen = document.getElementById('stagePanelReopen');
+    const isCollapsed = panel.classList.contains('collapsed');
+    if (isCollapsed) {
+      panel.classList.remove('collapsed');
+      panel.style.width = '240px';
+      reopen.classList.add('hidden');
+      reopen.classList.remove('flex');
+    } else {
+      panel.classList.add('collapsed');
+      panel.style.width = '0';
+      panel.style.overflow = 'hidden';
+      reopen.classList.remove('hidden');
+      reopen.classList.add('flex');
+    }
+  }
+  // Open drawer by default on load so user sees both states
+  setTimeout(openDrawer, 300);
+</script>
+
+</body>
+</html>

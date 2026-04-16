@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useStats, useClients, usePosts, usePackages, useCurrentUser } from '@/lib/hooks';
+import { useStats, useClients, usePosts, usePackages, useCurrentUser, useMembers } from '@/lib/hooks';
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
 import ExcelJS from 'exceljs';
-import { BarChart3, TrendingUp, Award, Clock, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Award, Clock, Calendar, Building2, UserCircle, PaintBucket } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell,
   LineChart, Line, AreaChart, Area, ResponsiveContainer,
@@ -24,6 +24,7 @@ const CHART_COLORS = {
 const PIE_COLORS = ['#6366F1', '#A78BFA', '#38BDF8', '#86EFAC', '#93C5FD'];
 
 type CompareMode = 'none' | 'prev_month' | 'same_month_last_year';
+type ViewMode = 'agency' | 'client' | 'creative';
 
 export default function ReportsPage() {
   const { data: currentUser } = useCurrentUser();
@@ -31,10 +32,46 @@ export default function ReportsPage() {
   const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'member';
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
   const [compareMode, setCompareMode] = useState<CompareMode>('none');
+  const [viewMode, setViewMode] = useState<ViewMode>('agency');
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedCreativeId, setSelectedCreativeId] = useState<string>('');
   const { loading: statsLoading } = useStats();
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: posts, loading: postsLoading } = usePosts();
   const { data: packages, loading: packagesLoading } = usePackages();
+  const { data: members } = useMembers();
+
+  // Creatives-only (owners/admins can be assigned too, but prioritize creatives)
+  const creatives = useMemo(
+    () => members.filter((m) => ['creative', 'member', 'admin', 'owner'].includes(m.role)),
+    [members]
+  );
+
+  // Filter posts by view mode. Computed before stats/charts so everything downstream respects the filter.
+  const filteredPosts = useMemo(() => {
+    if (viewMode === 'client' && selectedClientId) {
+      return posts.filter((p) => p.client_id === selectedClientId);
+    }
+    if (viewMode === 'creative' && selectedCreativeId) {
+      return posts.filter((p) => p.assigned_to === selectedCreativeId);
+    }
+    return posts;
+  }, [posts, viewMode, selectedClientId, selectedCreativeId]);
+
+  // Filter clients for view (when in creative mode, only clients with posts assigned to that creative)
+  const filteredClients = useMemo(() => {
+    if (viewMode === 'client' && selectedClientId) {
+      return clients.filter((c) => c.id === selectedClientId);
+    }
+    if (viewMode === 'creative' && selectedCreativeId) {
+      const clientIds = new Set(filteredPosts.map((p) => p.client_id));
+      return clients.filter((c) => clientIds.has(c.id));
+    }
+    return clients;
+  }, [clients, viewMode, selectedClientId, selectedCreativeId, filteredPosts]);
+
+  // MRR only makes sense in agency view (or a single-client view)
+  const showMRR = isAdmin && viewMode !== 'creative';
 
   // Format currency as MXN
   const formatMXN = (amount: number) => {
@@ -67,13 +104,13 @@ export default function ReportsPage() {
 
   // Compute stats for a given month
   const computeStatsForMonth = (month: string) => {
-    if (!clients || !posts) return { activeClients: 0, totalMRR: 0, postsThisMonth: 0, pendingPayments: 0 };
-    const postsThisMonth = getPostsByMonth(posts, month);
+    if (!filteredClients || !filteredPosts) return { activeClients: 0, totalMRR: 0, postsThisMonth: 0, pendingPayments: 0 };
+    const postsThisMonth = getPostsByMonth(filteredPosts, month);
     const clientsWithPosts = new Set(postsThisMonth.map(p => p.client_id));
     const activeClients = clientsWithPosts.size;
 
     let totalMRR = 0;
-    clients.forEach(client => {
+    filteredClients.forEach(client => {
       if (clientsWithPosts.has(client.id)) {
         const pkg = client.package_id
           ? packages?.find(p => p.id === client.package_id) || null
@@ -83,7 +120,7 @@ export default function ReportsPage() {
       }
     });
 
-    const pendingPayments = clients.filter(c =>
+    const pendingPayments = filteredClients.filter(c =>
       c.pay_status === 'pendiente' || c.pay_status === 'vencido'
     ).length;
 
@@ -91,13 +128,13 @@ export default function ReportsPage() {
   };
 
   // Computed stats for selected month
-  const computedStats = useMemo(() => computeStatsForMonth(selectedMonth), [clients, posts, selectedMonth, packages]);
+  const computedStats = useMemo(() => computeStatsForMonth(selectedMonth), [filteredClients, filteredPosts, selectedMonth, packages]);
 
   // Comparison stats
   const comparisonStats = useMemo(() => {
     if (!comparisonMonth) return null;
     return computeStatsForMonth(comparisonMonth);
-  }, [comparisonMonth, clients, posts, packages]);
+  }, [comparisonMonth, filteredClients, filteredPosts, packages]);
 
   // Delta percentage helper
   const getDelta = (current: number, previous: number): { value: number; positive: boolean } | null => {
@@ -110,11 +147,11 @@ export default function ReportsPage() {
 
   // Client performance data
   const clientPerformance = useMemo(() => {
-    if (!clients || !posts) return [];
+    if (!filteredClients || !filteredPosts) return [];
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
 
-    return clients
+    return filteredClients
       .map(client => {
         const clientPosts = postsThisMonth.filter(p => p.client_id === client.id);
         const aiScores = clientPosts
@@ -145,13 +182,13 @@ export default function ReportsPage() {
         };
       })
       .sort((a, b) => b.postsCount - a.postsCount);
-  }, [clients, posts, selectedMonth]);
+  }, [filteredClients, filteredPosts, selectedMonth]);
 
   // Content distribution by post type (for PieChart)
   const postTypeDistribution = useMemo(() => {
-    if (!posts) return [];
+    if (!filteredPosts) return [];
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     const typeCounts: Record<PostType, number> = {
       ventas_promo: 0,
       fun_casual: 0,
@@ -176,13 +213,13 @@ export default function ReportsPage() {
         color: POST_TYPE_CONFIG[type as PostType]?.color || '#93C5FD',
       }))
       .sort((a, b) => b.count - a.count);
-  }, [posts, selectedMonth]);
+  }, [filteredPosts, selectedMonth]);
 
   // Platform distribution (for horizontal BarChart)
   const platformDistribution = useMemo(() => {
-    if (!posts) return [];
+    if (!filteredPosts) return [];
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     const platformCounts: Record<Platform, number> = {
       instagram: 0,
       tiktok: 0,
@@ -213,13 +250,13 @@ export default function ReportsPage() {
         count,
       }))
       .sort((a, b) => b.count - a.count);
-  }, [posts, selectedMonth]);
+  }, [filteredPosts, selectedMonth]);
 
   // Approval pipeline (for horizontal BarChart)
   const approvalPipeline = useMemo(() => {
-    if (!posts) return [];
+    if (!filteredPosts) return [];
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     const pipeline: Record<string, number> = {
       Borrador: 0,
       Planeado: 0,
@@ -239,11 +276,11 @@ export default function ReportsPage() {
     });
 
     return Object.entries(pipeline).map(([name, count]) => ({ name, count }));
-  }, [posts, selectedMonth]);
+  }, [filteredPosts, selectedMonth]);
 
   // Monthly trend (last 6 months) — for AreaChart
   const monthlyTrend = useMemo(() => {
-    if (!posts) return [];
+    if (!filteredPosts) return [];
 
     const now = new Date();
     const months = [];
@@ -253,17 +290,17 @@ export default function ReportsPage() {
       const monthStr = date.toISOString().split('T')[0].slice(0, 7);
       const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit' }).format(date);
 
-      const count = getPostsByMonth(posts, monthStr).length;
+      const count = getPostsByMonth(filteredPosts, monthStr).length;
       months.push({ month: monthLabel, count });
     }
 
     return months;
-  }, [posts]);
+  }, [filteredPosts]);
 
   // Posts by day of week
   const postsByDayOfWeek = useMemo(() => {
-    if (!posts) return [];
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    if (!filteredPosts) return [];
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
     const counts = [0, 0, 0, 0, 0, 0, 0];
 
@@ -280,11 +317,11 @@ export default function ReportsPage() {
       day: dayNames[i],
       count: counts[i],
     }));
-  }, [posts, selectedMonth]);
+  }, [filteredPosts, selectedMonth]);
 
   // AI Score trend (average per month, last 6 months)
   const aiScoreTrend = useMemo(() => {
-    if (!posts) return [];
+    if (!filteredPosts) return [];
 
     const now = new Date();
     const months = [];
@@ -294,7 +331,7 @@ export default function ReportsPage() {
       const monthStr = date.toISOString().split('T')[0].slice(0, 7);
       const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'short' }).format(date);
 
-      const monthPosts = getPostsByMonth(posts, monthStr);
+      const monthPosts = getPostsByMonth(filteredPosts, monthStr);
       const scores = monthPosts
         .map(p => p.ai_score)
         .filter((s): s is number => s !== null && s !== undefined);
@@ -307,13 +344,13 @@ export default function ReportsPage() {
     }
 
     return months;
-  }, [posts]);
+  }, [filteredPosts]);
 
   // Top 5 performing posts by AI score
   const topPerformingPosts = useMemo(() => {
-    if (!posts || !clients) return [];
+    if (!filteredPosts || !clients) return [];
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     return postsThisMonth
       .filter(p => p.ai_score !== null && p.ai_score !== undefined)
       .sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0))
@@ -327,13 +364,13 @@ export default function ReportsPage() {
           score: p.ai_score ?? 0,
         };
       });
-  }, [posts, clients, selectedMonth]);
+  }, [filteredPosts, clients, selectedMonth]);
 
   // Approval turnaround (avg days from created_at to approved_at)
   const approvalTurnaround = useMemo(() => {
-    if (!posts) return null;
+    if (!filteredPosts) return null;
 
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
     const approvedPosts = postsThisMonth.filter(p => p.approved_at && p.created_at);
 
     if (approvedPosts.length === 0) return null;
@@ -346,7 +383,7 @@ export default function ReportsPage() {
     }, 0);
 
     return Math.round((totalDays / approvedPosts.length) * 10) / 10;
-  }, [posts, selectedMonth]);
+  }, [filteredPosts, selectedMonth]);
 
   // Custom tooltip for Recharts
   const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name?: string }>; label?: string }) => {
@@ -405,7 +442,17 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}>
               <BarChart3 className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Reportes
             </h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Analisis de rendimiento y estadisticas</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
+              Analisis de rendimiento y estadisticas
+              {viewMode === 'client' && selectedClientId && (() => {
+                const c = clients.find((x) => x.id === selectedClientId);
+                return c ? ` — ${c.emoji} ${c.name}` : '';
+              })()}
+              {viewMode === 'creative' && selectedCreativeId && (() => {
+                const m = members.find((x) => x.id === selectedCreativeId);
+                return m ? ` — ${m.full_name || 'Creativo'}` : '';
+              })()}
+            </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <label style={{ color: 'var(--text-dark)' }} className="text-sm font-medium">Mes:</label>
@@ -488,6 +535,85 @@ export default function ReportsPage() {
           </div>
         </div>
 
+        {/* View Mode Selector */}
+        <div className="flex items-center gap-3 flex-wrap mb-4">
+          <div
+            className="flex rounded-lg p-0.5"
+            style={{ background: '#F1F5F9', border: '1px solid rgba(148,163,184,0.2)' }}
+          >
+            {([
+              { key: 'agency', label: 'Agencia', icon: Building2 },
+              { key: 'client', label: 'Por cliente', icon: UserCircle },
+              { key: 'creative', label: 'Por creativo', icon: PaintBucket },
+            ] as const).map((opt) => {
+              const active = viewMode === opt.key;
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    setViewMode(opt.key);
+                    if (opt.key === 'client' && !selectedClientId && clients.length > 0) {
+                      setSelectedClientId(clients[0].id);
+                    }
+                    if (opt.key === 'creative' && !selectedCreativeId && creatives.length > 0) {
+                      setSelectedCreativeId(creatives[0].id);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  style={{
+                    background: active ? 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' : 'transparent',
+                    color: active ? 'white' : '#64748B',
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {viewMode === 'client' && (
+            <select
+              value={selectedClientId}
+              onChange={(e) => setSelectedClientId(e.target.value)}
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--glass-border)',
+                color: 'var(--text-dark)',
+              }}
+              className="px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 text-sm"
+            >
+              <option value="">Selecciona cliente</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {viewMode === 'creative' && (
+            <select
+              value={selectedCreativeId}
+              onChange={(e) => setSelectedCreativeId(e.target.value)}
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--glass-border)',
+                color: 'var(--text-dark)',
+              }}
+              className="px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 text-sm"
+            >
+              <option value="">Selecciona creativo</option>
+              {creatives.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.full_name || 'Sin nombre'} · {m.role}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
         {/* Stats Row - 4 Glass Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Active Clients */}
@@ -513,8 +639,8 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Total MRR -- admin only */}
-          {isAdmin && (
+          {/* Total MRR -- admin only, hidden in creative view */}
+          {showMRR && (
             <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
               <div className="flex items-center justify-between mb-3">
                 <p style={{ color: 'var(--text-mid)' }} className="text-sm">MRR Total</p>
@@ -561,8 +687,8 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Pending Payments -- admin only */}
-          {isAdmin && (
+          {/* Pending Payments -- admin only, hidden in creative view */}
+          {showMRR && (
             <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
               <div className="flex items-center justify-between mb-3">
                 <p style={{ color: 'var(--text-mid)' }} className="text-sm">Pagos Pendientes</p>

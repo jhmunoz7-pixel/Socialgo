@@ -8,13 +8,12 @@ import type { MemberRole } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 import {
   Home, ListTodo,
   Package, Users, BarChart3, CalendarDays, Paintbrush, FolderOpen,
   Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
-  Eye, ClipboardCheck,
+  Eye,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -39,9 +38,8 @@ const navItems: NavItem[] = [
   { label: 'Reportes', icon: BarChart3, href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
   { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
   // Workspace
-  { label: 'Planificación', icon: CalendarDays, href: '/dashboard/planning', section: 'workspace' },
+  { label: 'Calendario', icon: CalendarDays, href: '/dashboard/calendario', section: 'workspace' },
   { label: 'En Diseño', icon: Paintbrush, href: '/dashboard/wip', section: 'workspace', roles: NON_CLIENT },
-  { label: 'Revisiones', icon: ClipboardCheck, href: '/dashboard/contenido', section: 'workspace' },
   { label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
   { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
   // Config
@@ -211,9 +209,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </p>
           </div>
         )}
-
-        {/* Theme Selector */}
-        <ThemeSelector />
 
         {/* Navigation */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto">

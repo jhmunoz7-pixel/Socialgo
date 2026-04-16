@@ -130,6 +130,8 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
         saves: 0,
         impressions: 0,
         reach: 0,
+        canva_design_id: null,
+        canva_page_number: null,
         published_url: null,
         published_at: null,
         publish_error: null,
