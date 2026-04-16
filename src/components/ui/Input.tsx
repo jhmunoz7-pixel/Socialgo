@@ -1,6 +1,6 @@
 /**
- * Input component - Branded text input for forms
- * Follows Loonshot brand design system
+ * Input component - SocialGo design system
+ * Clean form input with label and validation states
  */
 
 import { forwardRef } from "react";
@@ -17,9 +17,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-body-sm font-bold text-seashell mb-md">
+          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-mid)' }}>
             {label}
-            {props.required && <span className="text-inchworm ml-xs">*</span>}
+            {props.required && <span className="ml-0.5" style={{ color: 'var(--primary-deep)' }}>*</span>}
           </label>
         )}
 
@@ -27,23 +27,25 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           disabled={disabled}
           className={clsx(
-            "w-full px-lg py-md bg-navy border rounded-md text-seashell placeholder-aurometal transition-smooth",
-            "focus:outline-none focus:border-inchworm focus:ring-2 focus:ring-inchworm/20",
-            "disabled:bg-charcoal disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full px-3.5 py-2.5 bg-white border rounded-[10px] text-sm transition-all duration-150 outline-none",
+            "placeholder:text-[var(--text-light)]",
+            "focus:border-[var(--primary-deep)] focus:ring-2 focus:ring-[var(--primary-deep)]/20",
+            "disabled:bg-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-50",
             error
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-              : "border-aurometal/30 hover:border-aurometal/50",
+              ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
+              : "border-[var(--glass-border)] hover:border-[var(--primary)]",
             className
           )}
+          style={{ color: 'var(--text-dark)' }}
           {...props}
         />
 
         {error && (
-          <p className="text-body-xs text-red-500 mt-xs">{error}</p>
+          <p className="text-[11px] text-red-500 mt-1">{error}</p>
         )}
 
         {helperText && !error && (
-          <p className="text-body-xs text-aurometal mt-xs">{helperText}</p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-light)' }}>{helperText}</p>
         )}
       </div>
     );

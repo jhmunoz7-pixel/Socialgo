@@ -5,6 +5,7 @@ import { useStats, useClients, usePosts, usePackages, useCurrentUser } from '@/l
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
 import ExcelJS from 'exceljs';
+import { BarChart3 } from 'lucide-react';
 
 export default function ReportsPage() {
   const { data: currentUser } = useCurrentUser();
@@ -239,7 +240,7 @@ export default function ReportsPage() {
         {/* Header with Month Selector */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>📊 Reportes</h1>
+            <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><BarChart3 className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Reportes</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Análisis de rendimiento y estadísticas</p>
           </div>
           <div className="flex items-center gap-3">

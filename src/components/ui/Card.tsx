@@ -1,7 +1,6 @@
 /**
- * Card component - Branded card container for content
- * Provides consistent styling for content sections
- * Follows Loonshot brand design system
+ * Card component - SocialGo design system
+ * Clean, rounded card container with subtle shadow
  */
 
 import { forwardRef, ReactNode } from "react";
@@ -9,9 +8,17 @@ import clsx from "clsx";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
-  variant?: "default" | "dark" | "light";
+  variant?: "default" | "muted" | "outlined";
   hoverable?: boolean;
+  padding?: "none" | "sm" | "md" | "lg";
 }
+
+const paddingMap = {
+  none: "",
+  sm: "p-3",
+  md: "p-5",
+  lg: "p-6",
+};
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
   (
@@ -20,29 +27,24 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       children,
       variant = "default",
       hoverable = false,
+      padding = "md",
       ...props
     },
     ref
   ) => {
-    // Base styles
-    const baseStyles = "rounded-lg border";
+    const baseStyles = "rounded-[20px]";
 
-    // Variant styles
     const variantStyles = {
-      default: "bg-charcoal border-aurometal/20",
-      dark: "bg-navy border-aurometal/10",
-      light: "bg-seashell border-aurometal/10",
+      default: "bg-white border border-[var(--glass-border)] shadow-card",
+      muted: "bg-[var(--bg)] border border-[var(--glass-border)]",
+      outlined: "bg-transparent border border-[var(--glass-border)]",
     };
-
-    // Hoverable state
-    const hoverableStyles = hoverable
-      ? "transition-smooth hover:border-inchworm/30 hover:shadow-lg"
-      : "";
 
     const combinedClassName = clsx(
       baseStyles,
       variantStyles[variant],
-      hoverableStyles,
+      paddingMap[padding],
+      hoverable && "card-hover cursor-pointer",
       className
     );
 

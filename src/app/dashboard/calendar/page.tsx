@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-// Icon replacements (no external dependency)
-const ChevronLeft = ({ className }: { className?: string }) => <span className={className} style={{ display: 'inline-block' }}>◀</span>;
-const ChevronRight = ({ className }: { className?: string }) => <span className={className} style={{ display: 'inline-block' }}>▶</span>;
-import { usePosts } from '@/lib/hooks';
-import { useClients } from '@/lib/hooks';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { usePosts, useClients } from '@/lib/hooks';
 import { POST_TYPE_CONFIG } from '@/types';
 import type { Post, PostType } from '@/types';
 
@@ -222,7 +219,7 @@ export default function CalendarPage() {
     <div className="space-y-6">
       {/* Sticky Header */}
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
-        <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>📅 Calendario</h1>
+        <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><CalendarDays className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Calendario</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Vista mensual de tus posts planificados</p>
       </div>
 

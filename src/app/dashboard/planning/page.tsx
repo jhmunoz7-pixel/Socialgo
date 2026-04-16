@@ -5,6 +5,8 @@ import { useClients, usePosts, useCurrentUser, usePostComments, createPost, upda
 import { useOrganization } from '@/lib/hooks';
 import { POST_TYPE_CONFIG, FORMAT_CONFIG } from '@/types';
 import type { Client, Post, PostType, PostFormat, Platform } from '@/types';
+import { AIToolbar } from '@/components/ai/AIToolbar';
+import { CalendarDays, Download } from 'lucide-react';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -237,6 +239,9 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5A4A45' }}>Copy</label>
               <textarea value={copy} onChange={(e) => setCopy(e.target.value)} rows={4} placeholder="Escribe el texto del post..." className="w-full px-3 py-2 rounded-xl text-sm border resize-none" style={inputStyle} />
               <p className="text-xs mt-1" style={{ color: '#8A7A75' }}>{copy.length} caracteres</p>
+              <div className="mt-2">
+                <AIToolbar copy={copy} onCopyChange={setCopy} platform={platform} postType={postType} clientId={clientId} />
+              </div>
             </div>
 
             {/* Asset Upload */}
@@ -287,6 +292,30 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
   const [sending, setSending] = useState(false);
   const isClientViewer = currentUser.role === 'client_viewer';
   const canEdit = !isClientViewer;
+
+  // Share approval link state
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleGenerateShareLink = async () => {
+    if (!post) return;
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/generate-token`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setShareUrl(data.share_url);
+        navigator.clipboard.writeText(data.share_url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 3000);
+      }
+    } catch (err) {
+      console.error('Share link error:', err);
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   // Editable fields
   const [editName, setEditName] = useState('');
@@ -377,7 +406,21 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
             <h2 className="font-serif text-lg font-bold" style={{ color: '#2A1F1A' }}>
               {client?.emoji} {post.name || 'Post'}
             </h2>
-            <button onClick={onClose} className="text-xl hover:opacity-60">×</button>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                shareUrl ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(16,185,129,0.1)', color: '#059669' }}>
+                    <span className="font-semibold">{shareCopied ? '¡Link copiado!' : 'Link generado'}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); }} className="underline hover:opacity-70">Copiar</button>
+                  </div>
+                ) : (
+                  <button onClick={handleGenerateShareLink} disabled={shareLoading} className="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:opacity-80 transition disabled:opacity-50 flex items-center gap-1" style={{ borderColor: 'rgba(255,180,150,0.4)', color: '#FF8FAD' }}>
+                    {shareLoading ? '...' : '🔗 Compartir para aprobación'}
+                  </button>
+                )
+              )}
+              <button onClick={onClose} className="text-xl hover:opacity-60">×</button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
@@ -387,7 +430,7 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
                 <div className="space-y-3">
                   <img src={post.image_url} alt={post.name || 'Asset'} className="w-full rounded-xl object-cover max-h-[400px]" />
                   <button onClick={handleDownloadAsset} className="w-full py-2 rounded-xl text-sm font-medium border hover:opacity-80 transition" style={{ color: '#FF8FAD', borderColor: '#FF8FAD' }}>
-                    ⬇ Descargar asset
+                    <Download className="w-3.5 h-3.5 inline" /> Descargar asset
                   </button>
                 </div>
               ) : (
@@ -441,6 +484,9 @@ function PostReviewModal({ post, client, isOpen, onClose, onApprove, onSave, org
                   <div>
                     <label className="block text-xs font-semibold mb-1" style={{ color: '#8A7A75' }}>Copy</label>
                     <textarea value={editCopy} onChange={(e) => setEditCopy(e.target.value)} rows={3} className="w-full px-3 py-1.5 rounded-lg text-sm border resize-none" style={inputStyle} />
+                    <div className="mt-2">
+                      <AIToolbar copy={editCopy} onCopyChange={setEditCopy} platform={post?.platform} postType={post?.post_type || undefined} clientId={post?.client_id} />
+                    </div>
                   </div>
                   <button onClick={handleSave} disabled={saving} className="w-full py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
                     {saving ? 'Guardando...' : 'Guardar cambios'}
@@ -629,7 +675,7 @@ export default function PlanningPage() {
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>📋 Planificación</h1>
+            <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><CalendarDays className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Planificación</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
               {isClientViewer ? 'Revisa y aprueba el contenido planeado' : 'Crea posts y planifica tu contenido'}
             </p>

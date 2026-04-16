@@ -86,8 +86,9 @@ module.exports = {
       },
       boxShadow: {
         soft: "0 4px 24px rgba(200,120,100,0.10)",
-        card: "0 2px 16px rgba(200,120,100,0.08)",
+        card: "0 2px 16px rgba(200,120,100,0.06)",
         glow: "0 4px 16px rgba(255,143,173,0.35)",
+        "hover-lift": "0 8px 30px rgba(200,120,100,0.12)",
       },
       backdropBlur: {
         glass: "16px",

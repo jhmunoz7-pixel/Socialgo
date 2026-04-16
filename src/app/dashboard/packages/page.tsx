@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { usePackages, createPackage, updatePackage, deletePackage } from '@/lib/hooks';
 import { Package } from '@/types';
+import { Plus as PlusIcon, X as XIcon, Check as CheckIcon, Pencil, Trash2, Package as PackageIcon, AlertTriangle } from 'lucide-react';
 
-const Plus = () => <span className="text-lg leading-none">+</span>;
-const X = () => <span className="font-bold">✕</span>;
-const Check = () => <span className="text-green-600 font-bold">✓</span>;
-const Edit = () => <span>✏️</span>;
-const Trash = () => <span>🗑️</span>;
+const Plus = () => <PlusIcon className="w-4 h-4" />;
+const X = () => <XIcon className="w-4 h-4" />;
+const Check = () => <CheckIcon className="w-4 h-4 text-green-600" />;
+const Edit = () => <Pencil className="w-4 h-4" />;
+const Trash = () => <Trash2 className="w-4 h-4" />;
 
 export default function PackagesPage() {
   const { data: packages, loading, error, refetch } = usePackages();
@@ -165,7 +166,7 @@ export default function PackagesPage() {
         }}
       >
         <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
-          📦 Paquetes
+          <span className="flex items-center gap-2"><PackageIcon className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Paquetes</span>
         </h1>
         <button
           onClick={openCreateModal}
@@ -206,7 +207,7 @@ export default function PackagesPage() {
             className="flex flex-col items-center justify-center py-16 px-6 rounded-3xl border border-white/40"
             style={{ background: 'rgba(255,248,243,0.7)', backdropFilter: 'blur(16px)' }}
           >
-            <div className="text-5xl mb-4">📦</div>
+            <PackageIcon className="w-12 h-12 mb-4" style={{ color: 'var(--text-light)' }} />
             <h2 className="text-xl font-serif font-bold text-[#2A1F1A] mb-2">
               Sin paquetes aún
             </h2>
@@ -595,7 +596,7 @@ export default function PackagesPage() {
             style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--glass-border)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-4xl">🗑️</p>
+            <AlertTriangle className="w-10 h-10" style={{ color: 'var(--danger-text)' }} />
             <h3 className="text-lg font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
               ¿Eliminar paquete?
             </h3>

@@ -5,6 +5,7 @@ import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/h
 import { usePermissions, getRoleLabel, getRoleColor } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
+import { Settings } from 'lucide-react';
 
 
 // ============================================================================
@@ -753,7 +754,7 @@ export default function SettingsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Sticky Header */}
         <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
-          <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>⚙️ Configuración</h1>
+          <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><Settings className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Configuración</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Gestiona tu agencia y equipo</p>
         </div>
 

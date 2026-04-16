@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useClients, usePosts } from '@/lib/hooks';
 import { PostType, POST_TYPE_CONFIG, Platform } from '@/types';
+import { Sparkles } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ScoreResult {
@@ -286,7 +287,7 @@ export default function AIStudioPage() {
       {/* Sticky Header */}
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
         <h1 className="text-2xl font-serif font-bold" style={{ color: 'var(--text-dark)' }}>
-          ⚡ AI Studio
+          <span className="flex items-center gap-2"><Sparkles className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> AI Studio</span>
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>
           Analiza, genera y optimiza tu contenido con inteligencia artificial
