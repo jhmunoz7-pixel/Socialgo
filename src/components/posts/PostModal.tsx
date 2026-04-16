@@ -33,11 +33,11 @@ interface EditState {
 }
 
 const APPROVAL_STATUS_CONFIG: Record<ApprovalStatus, { label: string; bg: string; text: string }> = {
-  pending: { label: 'Pendiente', bg: '#FFE5B0', text: '#6B4423' },
-  approved: { label: 'Aprobado', bg: '#B8E8C8', text: '#1F4D2F' },
-  approved_with_changes: { label: 'Aprobado con cambios', bg: '#D0E8FF', text: '#0F3B5B' },
+  pending: { label: 'Pendiente', bg: '#FBBF24', text: '#6B4423' },
+  approved: { label: 'Aprobado', bg: '#86EFAC', text: '#1F4D2F' },
+  approved_with_changes: { label: 'Aprobado con cambios', bg: '#93C5FD', text: '#0F3B5B' },
   rejected: { label: 'Rechazado', bg: '#FFD0D8', text: '#5B1322' },
-  review_1_1: { label: 'Revisión 1:1', bg: '#E8D5FF', text: '#3B1D5B' },
+  review_1_1: { label: 'Revisión 1:1', bg: '#C4B5FD', text: '#3B1D5B' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {

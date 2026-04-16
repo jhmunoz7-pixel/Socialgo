@@ -202,7 +202,7 @@ export default function CompetitorsPage() {
           <button
             onClick={openCreateModal}
             className="flex items-center gap-2 px-4 py-2 rounded-2xl font-sans text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Agregar competidor</span>
@@ -381,7 +381,7 @@ export default function CompetitorsPage() {
                   onClick={runAnalysis}
                   disabled={isAnalyzing || competitors.length === 0}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-2xl font-sans text-sm font-medium text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                 >
                   {isAnalyzing ? (
                     <>
@@ -532,7 +532,7 @@ export default function CompetitorsPage() {
                   type="submit"
                   disabled={isSaving || !formData.name.trim()}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                 >
                   {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {editingCompetitor ? 'Guardar cambios' : 'Agregar'}
@@ -645,7 +645,7 @@ function AnalysisDisplay({ data }: { data: AnalysisResult }) {
             <li key={i} className="flex items-start gap-3 text-sm" style={{ color: 'var(--text-light)' }}>
               <span
                 className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}
+                style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}
               >
                 {i + 1}
               </span>

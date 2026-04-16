@@ -78,13 +78,13 @@ function CommentSection({ postId, isClient }: { postId: string; isClient: boolea
       {comments && comments.length > 0 && (
         <div className="space-y-2 max-h-40 overflow-y-auto">
           {comments.map((c) => (
-            <div key={c.id} className="p-2 rounded-lg text-xs" style={{ background: c.is_client_comment ? 'rgba(255,143,173,0.08)' : 'var(--bg)', color: 'var(--text-mid)' }}>
+            <div key={c.id} className="p-2 rounded-lg text-xs" style={{ background: c.is_client_comment ? 'rgba(99,102,241,0.08)' : 'var(--bg)', color: 'var(--text-mid)' }}>
               <span className="font-semibold" style={{ color: 'var(--text-dark)' }}>{c.author_name || 'Usuario'}</span>
               <span className="mx-1">·</span>
               <span className="text-[10px]" style={{ color: 'var(--text-light)' }}>
                 {c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
               </span>
-              {c.is_client_comment && <span className="ml-1 text-[10px] px-1 py-px rounded" style={{ background: 'rgba(255,143,173,0.15)', color: '#FF8FAD' }}>cliente</span>}
+              {c.is_client_comment && <span className="ml-1 text-[10px] px-1 py-px rounded" style={{ background: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>cliente</span>}
               <p className="mt-1">{c.content}</p>
             </div>
           ))}

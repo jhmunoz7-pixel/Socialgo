@@ -881,7 +881,7 @@ export default function BrandKitPanel({ clientId, orgId }: BrandKitPanelProps) {
                   alignItems: 'center',
                   gap: '8px',
                   padding: '8px 16px',
-                  background: 'linear-gradient(135deg, var(--primary), var(--secondary, #FFBA8A))',
+                  background: 'linear-gradient(135deg, var(--primary), var(--secondary, #A78BFA))',
                   border: 'none',
                   borderRadius: '8px',
                   color: 'white',
@@ -957,7 +957,7 @@ export default function BrandKitPanel({ clientId, orgId }: BrandKitPanelProps) {
                         </label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                           {voiceProfile.tone_adjectives.map((adj: string, i: number) => {
-                            const colors = ['var(--primary)', '#FFBA8A', '#A78BFA', '#34D399', '#F59E0B'];
+                            const colors = ['var(--primary)', '#A78BFA', '#A78BFA', '#34D399', '#F59E0B'];
                             const bg = colors[i % colors.length];
                             return (
                               <span

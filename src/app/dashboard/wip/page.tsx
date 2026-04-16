@@ -25,7 +25,7 @@ import {
 
 // ─── Status badge colors ─────────────────────────────────────────
 const STATUS_CONFIG: Record<CanvaDesign['status'], { label: string; color: string; bg: string }> = {
-  wip: { label: 'WIP', color: '#7A6560', bg: '#F3F0EE' },
+  wip: { label: 'WIP', color: '#64748B', bg: '#F3F0EE' },
   assigned: { label: 'Asignado', color: '#1D4ED8', bg: '#DBEAFE' },
   exported: { label: 'Exportado', color: '#15803D', bg: '#DCFCE7' },
 };

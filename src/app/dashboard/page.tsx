@@ -382,7 +382,7 @@ export default function ClientsPage() {
                   <tr
                     key={client.id}
                     onClick={() => handleEditClient(client.id)}
-                    className="border-b border-sg-border hover:bg-[rgba(255,181,200,0.07)] transition-colors cursor-pointer"
+                    className="border-b border-sg-border hover:bg-[rgba(129,140,248,0.07)] transition-colors cursor-pointer"
                   >
                     {/* Marca */}
                     <td className="p-4">

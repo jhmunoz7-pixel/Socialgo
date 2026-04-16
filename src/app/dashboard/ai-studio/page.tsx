@@ -829,7 +829,7 @@ export default function AIStudioPage() {
                           onClick={() => handleCopyHashtag(tag)}
                           className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-sm active:scale-[0.95] cursor-pointer"
                           style={{
-                            background: 'rgba(232,213,255,0.5)',
+                            background: 'rgba(196,181,253,0.5)',
                             color: 'var(--text-dark)',
                             border: '1px solid',
                             borderColor: copiedHashtag === tag ? 'var(--accent)' : 'transparent',
@@ -940,7 +940,7 @@ export default function AIStudioPage() {
           <div
             className="rounded-2xl border shadow-sm p-6"
             style={{
-              background: 'rgba(232,213,255,0.25)',
+              background: 'rgba(196,181,253,0.25)',
               backdropFilter: 'blur(16px)',
               borderColor: 'var(--glass-border)',
             }}

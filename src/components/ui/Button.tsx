@@ -62,9 +62,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     // Inline styles for gradients
     const variantInlineStyles: Record<string, React.CSSProperties> = {
-      primary: { background: "linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)" },
-      secondary: { borderColor: "rgba(255,180,150,0.4)", color: "#5A4A45", background: "rgba(255,255,255,0.5)" },
-      ghost: { color: "#5A4A45" },
+      primary: { background: "linear-gradient(135deg, #818CF8 0%, #A78BFA 100%)" },
+      secondary: { borderColor: "rgba(148,163,184,0.3)", color: "#334155", background: "rgba(255,255,255,0.7)" },
+      ghost: { color: "#334155" },
       danger: {},
     };
 

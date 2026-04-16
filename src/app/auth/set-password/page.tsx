@@ -17,18 +17,18 @@ export default function SetPasswordPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ background: "#FFF8F3" }}
+      style={{ background: "#F8FAFC" }}
     >
       {/* Process invite hash tokens if arriving directly from Supabase */}
       <InviteTokenHandler />
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div
           className="absolute top-0 right-1/4 w-96 h-96 rounded-full opacity-30 blur-3xl"
-          style={{ background: "#FFB5C8" }}
+          style={{ background: "#818CF8" }}
         />
         <div
           className="absolute bottom-1/4 left-0 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: "#E8D5FF" }}
+          style={{ background: "#C4B5FD" }}
         />
       </div>
 
@@ -37,13 +37,13 @@ export default function SetPasswordPage() {
           <Link href="/" className="inline-flex items-center gap-2">
             <span
               className="font-serif text-2xl font-bold"
-              style={{ color: "#2A1F1A" }}
+              style={{ color: "#0F172A" }}
             >
               socialgo
             </span>
             <div
               className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: "#FF8FAD" }}
+              style={{ backgroundColor: "#6366F1" }}
             />
           </Link>
         </div>
@@ -58,13 +58,13 @@ export default function SetPasswordPage() {
         >
           <h1
             className="text-2xl font-serif font-bold text-center mb-1"
-            style={{ color: "#2A1F1A" }}
+            style={{ color: "#0F172A" }}
           >
             Crea tu contraseña
           </h1>
           <p
             className="text-sm text-center mb-6"
-            style={{ color: "#7A6560" }}
+            style={{ color: "#64748B" }}
           >
             Tu invitación fue aceptada. Define una contraseña para entrar a tu
             equipo.
@@ -72,7 +72,7 @@ export default function SetPasswordPage() {
 
           <Suspense
             fallback={
-              <div className="py-8 text-center" style={{ color: "#B8A9A4" }}>
+              <div className="py-8 text-center" style={{ color: "#94A3B8" }}>
                 Cargando...
               </div>
             }

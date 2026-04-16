@@ -35,7 +35,7 @@ function ProfileAvatar({ emoji, size = 32 }: { emoji: string; size?: number }) {
       style={{
         width: size,
         height: size,
-        background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)',
+        background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)',
         fontSize: size * 0.5,
         lineHeight: 1,
       }}
@@ -160,7 +160,7 @@ export function InstagramStoryPreview({
         {/* Top bar: avatar + name */}
         <div className="absolute top-3 left-3 right-3 flex items-center gap-2">
           <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-sm"
-            style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+            style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
             {clientEmoji}
           </div>
           <span className="text-[11px] font-semibold text-white drop-shadow flex-1 truncate">{clientName}</span>
@@ -292,7 +292,7 @@ export function TikTokPostPreview({
         <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4">
           <div className="flex flex-col items-center gap-0.5">
             <div className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-sm"
-              style={{ background: 'linear-gradient(135deg, #FF8FAD, #FFBA8A)' }}>
+              style={{ background: 'linear-gradient(135deg, #6366F1, #A78BFA)' }}>
               {clientEmoji}
             </div>
             <div className="w-4 h-4 -mt-2 rounded-full bg-red-500 flex items-center justify-center text-white text-[8px] font-bold">

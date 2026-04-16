@@ -81,7 +81,7 @@ export function PlatformPreviewSelector(props: PlatformPreviewSelectorProps) {
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
             style={{
               background: activeTab === tab.id ? 'white' : 'transparent',
-              color: activeTab === tab.id ? '#2A1F1A' : '#7A6560',
+              color: activeTab === tab.id ? '#0F172A' : '#64748B',
               boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >

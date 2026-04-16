@@ -253,7 +253,7 @@ function AgenciaTab({ org, orgLoading, refetchOrg, canManage }: AgenciaTabProps)
               <span
                 className="inline-block px-3 py-1 rounded-full text-sm font-medium"
                 style={{
-                  backgroundColor: org.plan === 'full_access' ? '#E8D5FF' : org.plan === 'pro' ? '#FFD4B8' : '#F3F4F6',
+                  backgroundColor: org.plan === 'full_access' ? '#C4B5FD' : org.plan === 'pro' ? '#C4B5FD' : '#F3F4F6',
                   color: org.plan === 'full_access' ? '#6B21A8' : org.plan === 'pro' ? '#92400E' : '#374151',
                 }}
               >

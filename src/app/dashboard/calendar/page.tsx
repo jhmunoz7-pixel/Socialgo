@@ -211,7 +211,7 @@ export default function CalendarPage() {
                           } ${day.isCurrentMonth ? '' : 'opacity-40'}`}
                           style={{
                             background: snapshot.isDraggingOver
-                              ? (day.isPast ? 'rgba(255,100,100,0.08)' : 'rgba(255,143,173,0.1)')
+                              ? (day.isPast ? 'rgba(255,100,100,0.08)' : 'rgba(99,102,241,0.1)')
                               : 'var(--surface)',
                             borderColor: snapshot.isDraggingOver
                               ? (day.isPast ? 'rgba(255,100,100,0.3)' : 'var(--primary)')
@@ -231,8 +231,8 @@ export default function CalendarPage() {
                                     {...prov.dragHandleProps}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-shadow"
                                     style={{
-                                      backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#FFD4B8',
-                                      color: '#2A1F1A',
+                                      backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#C4B5FD',
+                                      color: '#0F172A',
                                       boxShadow: snap.isDragging ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
                                       ...prov.draggableProps.style,
                                     }}
@@ -279,7 +279,7 @@ export default function CalendarPage() {
                           <p className="text-sm font-semibold" style={{ color: 'var(--text-dark)' }}>{client?.emoji || '📱'} {client?.name || 'Cliente'}</p>
                           <p className="text-xs mt-0.5 capitalize" style={{ color: 'var(--text-mid)' }}>{post.platform}</p>
                         </div>
-                        <span className="px-2 py-1 rounded-full text-[10px] font-semibold" style={{ backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#FFD4B8', color: '#2A1F1A' }}>
+                        <span className="px-2 py-1 rounded-full text-[10px] font-semibold" style={{ backgroundColor: POST_TYPE_CONFIG[post.post_type || 'otro']?.color || '#C4B5FD', color: '#0F172A' }}>
                           {POST_TYPE_CONFIG[post.post_type || 'otro']?.label || post.post_type}
                         </span>
                       </div>

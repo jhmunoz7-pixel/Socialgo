@@ -22,7 +22,7 @@ interface AddClientModalProps {
 type ContractType = 'Mensual' | 'Trimestral' | 'Semestral' | 'Anual';
 
 const EMOJI_LIST = ['🎯', '💼', '🛍️', '✨', '🎨', '📸', '💎', '🌟', '🔥', '🌿', '☕', '🍕'];
-const PRESET_COLORS = ['#E8D5FF', '#FFE8D5', '#D5E8FF', '#E8FFD5', '#FFD5E8', '#D5FFE8'];
+const PRESET_COLORS = ['#C4B5FD', '#FFE8D5', '#D5E8FF', '#E8FFD5', '#FFD5E8', '#D5FFE8'];
 
 export const AddClientModal: React.FC<AddClientModalProps> = ({
   isOpen,
@@ -37,7 +37,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
   // Información de marca
   const [nombre, setNombre] = useState(editClient?.name || '');
   const [emoji, setEmoji] = useState(editClient?.emoji || '🎯');
-  const [color, setColor] = useState(editClient?.color || '#E8D5FF');
+  const [color, setColor] = useState(editClient?.color || '#C4B5FD');
 
   // Contacto
   const [nombreContacto, setNombreContacto] = useState(editClient?.contact_name || '');
@@ -122,7 +122,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
   const resetForm = () => {
     setNombre('');
     setEmoji('🎯');
-    setColor('#E8D5FF');
+    setColor('#C4B5FD');
     setNombreContacto('');
     setTelefono('');
     setEmail('');
@@ -305,7 +305,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({
                     type="text"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    placeholder="#E8D5FF"
+                    placeholder="#C4B5FD"
                     className="form-input"
                   />
                 </div>

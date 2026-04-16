@@ -35,7 +35,7 @@ export default function FeedPreview({ clientId: _clientId, posts }: FeedPreviewP
   // Get gradient color for placeholder
   const getPlaceholderColor = (postType: PostType | null): string => {
     if (!postType || !POST_TYPE_CONFIG[postType]) {
-      return 'linear-gradient(135deg, #D0E8FF 0%, #C7D2FE 100%)';
+      return 'linear-gradient(135deg, #93C5FD 0%, #C7D2FE 100%)';
     }
     const color = POST_TYPE_CONFIG[postType].color;
     return `linear-gradient(135deg, ${color}33 0%, ${color}66 100%)`;

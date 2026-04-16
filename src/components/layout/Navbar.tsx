@@ -10,21 +10,21 @@ export async function Navbar() {
   return (
     <nav
       style={{
-        background: "rgba(255,248,243,0.85)",
+        background: "rgba(241,245,249,0.85)",
         backdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,180,150,0.2)",
+        borderBottom: "1px solid rgba(148,163,184,0.15)",
       }}
       className="sticky top-0 z-50"
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between h-16 px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-serif text-xl font-bold" style={{ color: "#2A1F1A" }}>
+          <span className="font-serif text-xl font-bold" style={{ color: "#0F172A" }}>
             socialgo
           </span>
           <div
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: "#FF8FAD" }}
+            style={{ backgroundColor: "#6366F1" }}
           />
         </Link>
 
@@ -33,21 +33,21 @@ export async function Navbar() {
           <Link
             href="/#features"
             className="text-sm hover:opacity-70 transition-opacity"
-            style={{ color: "#5A4A45" }}
+            style={{ color: "#334155" }}
           >
             Funcionalidades
           </Link>
           <Link
             href="/pricing"
             className="text-sm hover:opacity-70 transition-opacity"
-            style={{ color: "#5A4A45" }}
+            style={{ color: "#334155" }}
           >
             Precios
           </Link>
           <Link
             href="/#faq"
             className="text-sm hover:opacity-70 transition-opacity"
-            style={{ color: "#5A4A45" }}
+            style={{ color: "#334155" }}
           >
             FAQ
           </Link>
@@ -60,7 +60,7 @@ export async function Navbar() {
               href="/dashboard"
               className="text-sm font-medium px-4 py-2 rounded-xl text-white"
               style={{
-                background: "linear-gradient(135deg, #FF8FAD, #FFBA8A)",
+                background: "linear-gradient(135deg, #6366F1, #A78BFA)",
               }}
             >
               Mi dashboard
@@ -70,7 +70,7 @@ export async function Navbar() {
               <Link
                 href="/auth/login"
                 className="text-sm font-medium px-4 py-2 rounded-xl transition-colors hover:bg-white/50"
-                style={{ color: "#5A4A45" }}
+                style={{ color: "#334155" }}
               >
                 Iniciar sesión
               </Link>
@@ -78,7 +78,7 @@ export async function Navbar() {
                 href="/pricing"
                 className="text-sm font-medium px-4 py-2 rounded-xl text-white"
                 style={{
-                  background: "linear-gradient(135deg, #FF8FAD, #FFBA8A)",
+                  background: "linear-gradient(135deg, #6366F1, #A78BFA)",
                 }}
               >
                 Empezar gratis

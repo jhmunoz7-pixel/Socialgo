@@ -83,7 +83,7 @@ export function KanbanBoard({ posts, clientMap, role, onStatusChange }: KanbanBo
                           style={{
                             background: 'white',
                             borderColor: snapshot.isDragging ? config.dotColor : 'var(--glass-border)',
-                            boxShadow: snapshot.isDragging ? '0 8px 30px rgba(200,120,100,0.15)' : 'var(--shadow-card)',
+                            boxShadow: snapshot.isDragging ? '0 8px 30px rgba(99,102,241,0.15)' : 'var(--shadow-card)',
                             ...provided.draggableProps.style,
                           }}
                         >

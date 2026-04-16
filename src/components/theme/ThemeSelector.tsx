@@ -12,7 +12,7 @@ const themeOptions: ThemeOption[] = [
   {
     id: 'rose',
     label: 'Rose',
-    gradient: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)',
+    gradient: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)',
   },
   {
     id: 'blue',

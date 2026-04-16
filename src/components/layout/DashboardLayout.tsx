@@ -11,6 +11,7 @@ import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 import {
+  Home, ListTodo,
   Package, Users, BarChart3, CalendarDays, Palette, FolderOpen,
   Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
   Eye, Target, Layers,
@@ -31,8 +32,10 @@ const ADMIN_ROLES: MemberRole[] = ['owner', 'admin', 'member'];
 const NON_CLIENT: MemberRole[] = ['owner', 'admin', 'member', 'creative'];
 
 const navItems: NavItem[] = [
-  { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
+  { label: 'Home', icon: Home, href: '/dashboard/home', section: 'principal' },
+  { label: 'Pendientes', icon: ListTodo, href: '/dashboard/pendientes', section: 'principal', roles: NON_CLIENT },
   { label: 'Clientes', icon: Users, href: '/dashboard', section: 'principal', roles: NON_CLIENT },
+  { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
   { label: 'Reportes', icon: BarChart3, href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
   { label: 'Planificación', icon: CalendarDays, href: '/dashboard/planning', section: 'workspace' },
   { label: 'Contenido', icon: Palette, href: '/dashboard/contenido', section: 'workspace' },
@@ -176,7 +179,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       <>
         {/* Logo + Collapse Toggle */}
         <div className="px-4 pt-5 pb-2 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
+          <Link href="/dashboard/home" className="flex items-center gap-2 min-w-0">
             {showLabels ? (
               <img src="/socialgo-wordmark-light-cropped.svg" alt="SocialGo" style={{ height: 26 }} />
             ) : (
@@ -326,7 +329,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Link href="/dashboard">
+          <Link href="/dashboard/home">
             <img src="/socialgo-wordmark-light-cropped.svg" alt="SocialGo" style={{ height: 40 }} />
           </Link>
           <div
@@ -435,9 +438,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="mx-4 mt-4 p-4 rounded-xl border flex items-center justify-between gap-4" style={{ background: 'rgba(255,100,100,0.08)', borderColor: 'rgba(255,100,100,0.3)' }}>
               <div>
                 <p className="text-sm font-semibold" style={{ color: '#8A1F35' }}>Tu suscripción ha sido cancelada</p>
-                <p className="text-xs mt-0.5" style={{ color: '#7A6560' }}>Tus datos siguen disponibles, pero no puedes crear nuevo contenido. Reactiva tu plan para continuar.</p>
+                <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>Tus datos siguen disponibles, pero no puedes crear nuevo contenido. Reactiva tu plan para continuar.</p>
               </div>
-              <Link href="/pricing" className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}>
+              <Link href="/pricing" className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}>
                 Reactivar plan
               </Link>
             </div>
@@ -446,9 +449,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="mx-4 mt-4 p-4 rounded-xl border flex items-center justify-between gap-4" style={{ background: 'rgba(255,180,50,0.08)', borderColor: 'rgba(255,180,50,0.3)' }}>
               <div>
                 <p className="text-sm font-semibold" style={{ color: '#8A5A00' }}>Tienes un pago pendiente</p>
-                <p className="text-xs mt-0.5" style={{ color: '#7A6560' }}>Actualiza tu método de pago para evitar la suspensión de tu cuenta.</p>
+                <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>Actualiza tu método de pago para evitar la suspensión de tu cuenta.</p>
               </div>
-              <button onClick={async () => { const res = await fetch('/api/stripe/portal', { method: 'POST' }); const data = await res.json(); if (data.url) window.location.href = data.url; }} className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}>
+              <button onClick={async () => { const res = await fetch('/api/stripe/portal', { method: 'POST' }); const data = await res.json(); if (data.url) window.location.href = data.url; }} className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}>
                 Actualizar pago
               </button>
             </div>

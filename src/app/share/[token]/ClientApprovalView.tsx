@@ -95,17 +95,17 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
   const alreadyDecided = post.approval_status !== 'pending';
 
   return (
-    <div className="min-h-screen" style={{ background: '#FFF8F3' }}>
+    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
       {/* Header */}
-      <header className="border-b px-6 py-4 flex items-center justify-between" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
+      <header className="border-b px-6 py-4 flex items-center justify-between" style={{ background: 'white', borderColor: 'rgba(148,163,184,0.2)' }}>
         <div className="flex items-center gap-3">
           <img src="/socialgo-wordmark-light-cropped.svg" alt="SocialGo" style={{ height: 24 }} />
-          <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(255,143,173,0.1)', color: '#FF8FAD' }}>
+          <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366F1' }}>
             Portal de Aprobación
           </span>
         </div>
         {post.client && (
-          <span className="text-sm font-medium" style={{ color: '#7A6560' }}>
+          <span className="text-sm font-medium" style={{ color: '#64748B' }}>
             {post.client.emoji} {post.client.name}
           </span>
         )}
@@ -120,10 +120,10 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
           }}>
             <CheckCircle2 className="w-5 h-5" style={{ color: approvalChoice === 'approved' ? '#059669' : '#D97706' }} />
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#2A1F1A' }}>
+              <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
                 {approvalChoice === 'approved' ? 'Contenido aprobado' : approvalChoice === 'rejected' ? 'Contenido rechazado' : 'Aprobado con cambios'}
               </p>
-              <p className="text-xs" style={{ color: '#7A6560' }}>Tu respuesta ha sido registrada. Gracias por tu feedback.</p>
+              <p className="text-xs" style={{ color: '#64748B' }}>Tu respuesta ha sido registrada. Gracias por tu feedback.</p>
             </div>
           </div>
         )}
@@ -136,8 +136,8 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
               onClick={() => setShowPreview((v) => !v)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
               style={{
-                background: showPreview ? 'rgba(255,143,173,0.15)' : 'rgba(200,200,200,0.12)',
-                color: showPreview ? '#FF8FAD' : '#7A6560',
+                background: showPreview ? 'rgba(99,102,241,0.15)' : 'rgba(200,200,200,0.12)',
+                color: showPreview ? '#6366F1' : '#64748B',
               }}
             >
               {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -145,7 +145,7 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
             </button>
 
             {showPreview ? (
-              <div className="rounded-2xl border p-4 flex items-center justify-center" style={{ background: '#F9F6F3', borderColor: 'rgba(255,180,150,0.25)', minHeight: 400 }}>
+              <div className="rounded-2xl border p-4 flex items-center justify-center" style={{ background: '#F9F6F3', borderColor: 'rgba(148,163,184,0.2)', minHeight: 400 }}>
                 <PlatformPreviewSelector
                   imageUrl={post.image_url}
                   copy={post.copy}
@@ -157,26 +157,26 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
                 />
               </div>
             ) : (
-              <div className="rounded-2xl border overflow-hidden" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
+              <div className="rounded-2xl border overflow-hidden" style={{ background: 'white', borderColor: 'rgba(148,163,184,0.2)' }}>
                 {post.image_url ? (
                   <img src={post.image_url} alt={post.name || 'Post'} className="w-full object-contain max-h-[500px]" />
                 ) : (
                   <div className="w-full h-64 flex items-center justify-center" style={{ background: 'rgba(200,200,200,0.06)' }}>
-                    <Image className="w-12 h-12" style={{ color: '#B8A9A4' }} />
+                    <Image className="w-12 h-12" style={{ color: '#94A3B8' }} />
                   </div>
                 )}
                 {/* Platform frame badge */}
-                <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(255,180,150,0.15)' }}>
-                  <span className="text-xs px-2 py-1 rounded-full capitalize font-semibold" style={{ background: 'rgba(255,143,173,0.1)', color: '#FF8FAD' }}>
+                <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
+                  <span className="text-xs px-2 py-1 rounded-full capitalize font-semibold" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366F1' }}>
                     {post.platform}
                   </span>
                   {post.format && (
-                    <span className="text-xs px-2 py-1 rounded-full capitalize" style={{ background: 'rgba(200,200,200,0.15)', color: '#7A6560' }}>
+                    <span className="text-xs px-2 py-1 rounded-full capitalize" style={{ background: 'rgba(200,200,200,0.15)', color: '#64748B' }}>
                       {post.format}
                     </span>
                   )}
                   {post.scheduled_date && (
-                    <span className="text-xs flex items-center gap-1 ml-auto" style={{ color: '#7A6560' }}>
+                    <span className="text-xs flex items-center gap-1 ml-auto" style={{ color: '#64748B' }}>
                       <Clock className="w-3 h-3" />
                       {new Date(post.scheduled_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
@@ -189,25 +189,25 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
           {/* Right: Content + Actions */}
           <div className="space-y-5">
             {/* Post details */}
-            <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
+            <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'white', borderColor: 'rgba(148,163,184,0.2)' }}>
               {post.name && (
-                <h2 className="text-lg font-bold" style={{ color: '#2A1F1A', fontFamily: 'Fraunces, Georgia, serif' }}>{post.name}</h2>
+                <h2 className="text-lg font-bold" style={{ color: '#0F172A', fontFamily: 'Fraunces, Georgia, serif' }}>{post.name}</h2>
               )}
               {post.copy && (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#7A6560' }}>{post.copy}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: '#64748B' }}>{post.copy}</p>
               )}
               {post.cta && (
-                <div className="px-3 py-2 rounded-xl" style={{ background: 'rgba(255,143,173,0.08)' }}>
-                  <p className="text-xs font-semibold" style={{ color: '#FF8FAD' }}>Call to Action</p>
-                  <p className="text-sm font-medium" style={{ color: '#2A1F1A' }}>{post.cta}</p>
+                <div className="px-3 py-2 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                  <p className="text-xs font-semibold" style={{ color: '#6366F1' }}>Call to Action</p>
+                  <p className="text-sm font-medium" style={{ color: '#0F172A' }}>{post.cta}</p>
                 </div>
               )}
             </div>
 
             {/* Approval actions */}
             {!alreadyDecided && status !== 'done' && (
-              <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
-                <h3 className="text-sm font-semibold" style={{ color: '#2A1F1A' }}>Tu decisión</h3>
+              <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'white', borderColor: 'rgba(148,163,184,0.2)' }}>
+                <h3 className="text-sm font-semibold" style={{ color: '#0F172A' }}>Tu decisión</h3>
 
                 <input
                   type="text"
@@ -215,7 +215,7 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Tu nombre (opcional)"
                   className="w-full px-3 py-2 rounded-xl text-sm border outline-none"
-                  style={{ borderColor: 'rgba(255,180,150,0.25)', color: '#2A1F1A' }}
+                  style={{ borderColor: 'rgba(148,163,184,0.2)', color: '#0F172A' }}
                 />
 
                 <textarea
@@ -224,7 +224,7 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
                   placeholder="Comentarios o feedback (opcional)"
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl text-sm border outline-none resize-none"
-                  style={{ borderColor: 'rgba(255,180,150,0.25)', color: '#2A1F1A' }}
+                  style={{ borderColor: 'rgba(148,163,184,0.2)', color: '#0F172A' }}
                 />
 
                 <div className="flex flex-col gap-2">
@@ -257,18 +257,18 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
             )}
 
             {/* Comments */}
-            <div className="rounded-2xl border p-5 space-y-3" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
-              <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#2A1F1A' }}>
+            <div className="rounded-2xl border p-5 space-y-3" style={{ background: 'white', borderColor: 'rgba(148,163,184,0.2)' }}>
+              <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#0F172A' }}>
                 <MessageSquare className="w-4 h-4" /> Comentarios
               </h3>
 
               {comments.length > 0 && (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {comments.map((c) => (
-                    <div key={c.id} className="p-2.5 rounded-xl text-xs" style={{ background: c.is_client_comment ? 'rgba(255,143,173,0.06)' : '#FFF8F3', color: '#7A6560' }}>
-                      <span className="font-semibold" style={{ color: '#2A1F1A' }}>{c.author_name || 'Usuario'}</span>
+                    <div key={c.id} className="p-2.5 rounded-xl text-xs" style={{ background: c.is_client_comment ? 'rgba(99,102,241,0.06)' : '#F8FAFC', color: '#64748B' }}>
+                      <span className="font-semibold" style={{ color: '#0F172A' }}>{c.author_name || 'Usuario'}</span>
                       <span className="mx-1 text-[10px]">·</span>
-                      <span className="text-[10px]" style={{ color: '#B8A9A4' }}>
+                      <span className="text-[10px]" style={{ color: '#94A3B8' }}>
                         {new Date(c.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <p className="mt-1">{c.content}</p>
@@ -285,13 +285,13 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
                   onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                   placeholder="Agregar comentario..."
                   className="flex-1 px-3 py-2 rounded-xl text-xs border outline-none"
-                  style={{ borderColor: 'rgba(255,180,150,0.25)', color: '#2A1F1A' }}
+                  style={{ borderColor: 'rgba(148,163,184,0.2)', color: '#0F172A' }}
                 />
                 <button
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || isSending}
                   className="px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-50 flex items-center gap-1"
-                  style={{ background: 'linear-gradient(135deg, #FF8FAD 0%, #FFBA8A 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
                 >
                   <Send className="w-3 h-3" /> Enviar
                 </button>
@@ -302,9 +302,9 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-4 text-center" style={{ borderColor: 'rgba(255,180,150,0.15)' }}>
-        <p className="text-xs" style={{ color: '#B8A9A4' }}>
-          Powered by <span className="font-semibold" style={{ color: '#FF8FAD' }}>SocialGo</span> — Gestión de contenido para agencias
+      <footer className="border-t py-4 text-center" style={{ borderColor: 'rgba(148,163,184,0.15)' }}>
+        <p className="text-xs" style={{ color: '#94A3B8' }}>
+          Powered by <span className="font-semibold" style={{ color: '#6366F1' }}>SocialGo</span> — Gestión de contenido para agencias
         </p>
       </footer>
     </div>
