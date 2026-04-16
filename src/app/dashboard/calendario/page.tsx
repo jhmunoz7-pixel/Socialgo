@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type DragEvent as ReactDragEvent } from 'react';
 import {
   useCurrentUser,
   useClients,
@@ -8,9 +8,10 @@ import {
   useCanvaDesigns,
   usePostComments,
   updatePost,
+  createPost,
   createPostComment,
 } from '@/lib/hooks';
-import type { Post, Client } from '@/types';
+import type { Post, Client, Platform, PostType, PostFormat } from '@/types';
 import {
   STAGE_CONFIG,
   STAGE_ORDER,
@@ -106,6 +107,14 @@ export default function CalendarioPage() {
     [posts, selectedPostId],
   );
 
+  // Drag & drop state
+  const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+  // New proposal modal
+  const [proposalOpen, setProposalOpen] = useState(false);
+  const [proposalDefaultDate, setProposalDefaultDate] = useState<string | null>(null);
+
   // Posts annotated with stage
   const postsWithStage = useMemo(
     () => posts.map((p) => ({ post: p, stage: postToStage(p) })),
@@ -200,6 +209,35 @@ export default function CalendarioPage() {
     }
   };
 
+  const handleDropOnDay = async (dateKey: string, postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post || post.scheduled_date === dateKey) return;
+    try {
+      await updatePost(postId, { scheduled_date: dateKey });
+      await refetchPosts();
+    } catch (err) {
+      console.error('Error rescheduling:', err);
+    }
+  };
+
+  const handleDropOnStage = async (stageKey: StageKey, postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    if (postToStage(post) === stageKey) return;
+    try {
+      await updatePost(postId, stageToPostFields(stageKey));
+      await refetchPosts();
+    } catch (err) {
+      console.error('Error changing stage:', err);
+    }
+  };
+
+  const handleOpenProposal = (date: string | null) => {
+    if (!selectedClientId) return;
+    setProposalDefaultDate(date);
+    setProposalOpen(true);
+  };
+
   const handleArchive = async () => {
     if (!selectedPost) return;
     setIsMoving(true);
@@ -277,6 +315,7 @@ export default function CalendarioPage() {
             {STAGE_ORDER.map((key) => {
               if (visibleStagesForRole && !visibleStagesForRole.has(key)) return null;
               const config = STAGE_CONFIG[key];
+              const dndKey = `stage:${key}`;
               return (
                 <StageItem
                   key={key}
@@ -285,7 +324,21 @@ export default function CalendarioPage() {
                   accent={config.accent}
                   count={stageCounts[key]}
                   active={activeStage === key}
+                  dragOver={dragOverKey === dndKey}
                   onClick={() => setActiveStage(key)}
+                  onDragOver={(e) => {
+                    if (!draggedPostId || isClientViewer) return;
+                    e.preventDefault();
+                    setDragOverKey(dndKey);
+                  }}
+                  onDragLeave={() => setDragOverKey((k) => (k === dndKey ? null : k))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const postId = draggedPostId || e.dataTransfer.getData('text/post-id');
+                    if (postId) handleDropOnStage(key, postId);
+                    setDraggedPostId(null);
+                    setDragOverKey(null);
+                  }}
                 />
               );
             })}
@@ -296,7 +349,7 @@ export default function CalendarioPage() {
             <div className="p-3 border-t" style={{ borderColor: 'var(--glass-border)' }}>
               <button
                 disabled={!selectedClientId}
-                onClick={() => alert('Pendiente: modal de nueva propuesta')}
+                onClick={() => handleOpenProposal(null)}
                 className="w-full py-2 rounded-lg text-xs font-semibold text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                 style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
               >
@@ -434,14 +487,38 @@ export default function CalendarioPage() {
                 const isToday = key === todayKey;
                 const isLastCol = (i + 1) % 7 === 0;
                 const postsThisDay = filteredPostsByDate[key] || [];
+                const dayDndKey = `day:${key}`;
+                const isDayOver = dragOverKey === dayDndKey;
 
                 return (
                   <div
                     key={key}
-                    className="min-h-[120px] p-2 flex flex-col gap-1"
+                    className="min-h-[120px] p-2 flex flex-col gap-1 transition-colors relative group"
                     style={{
                       borderRight: isLastCol ? 'none' : '1px solid var(--glass-border)',
                       borderBottom: '1px solid var(--glass-border)',
+                      background: isDayOver ? 'rgba(99,102,241,0.06)' : 'transparent',
+                      outline: isDayOver ? '2px dashed #6366F1' : 'none',
+                      outlineOffset: isDayOver ? '-2px' : '0',
+                      cursor: !isClientViewer && postsThisDay.length === 0 ? 'pointer' : 'default',
+                    }}
+                    onClick={(e) => {
+                      if (isClientViewer) return;
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      handleOpenProposal(key);
+                    }}
+                    onDragOver={(e) => {
+                      if (!draggedPostId || isClientViewer) return;
+                      e.preventDefault();
+                      setDragOverKey(dayDndKey);
+                    }}
+                    onDragLeave={() => setDragOverKey((k) => (k === dayDndKey ? null : k))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const postId = draggedPostId || e.dataTransfer.getData('text/post-id');
+                      if (postId) handleDropOnDay(key, postId);
+                      setDraggedPostId(null);
+                      setDragOverKey(null);
                     }}
                   >
                     <span
@@ -463,9 +540,28 @@ export default function CalendarioPage() {
                         post={post}
                         stage={stage}
                         thumbnail={post.image_url || designByPostId[post.id] || null}
+                        draggable={!isClientViewer}
                         onClick={() => setSelectedPostId(post.id)}
+                        onDragStart={(e) => {
+                          setDraggedPostId(post.id);
+                          e.dataTransfer.setData('text/post-id', post.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragEnd={() => {
+                          setDraggedPostId(null);
+                          setDragOverKey(null);
+                        }}
                       />
                     ))}
+                    {/* Hover "+ Propuesta" hint on empty cells */}
+                    {!isClientViewer && postsThisDay.length === 0 && inMonth && (
+                      <div
+                        className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center text-[10px] font-medium mt-auto mb-auto"
+                        style={{ color: 'var(--text-light)' }}
+                      >
+                        + Propuesta
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -515,6 +611,19 @@ export default function CalendarioPage() {
           />
         </>
       )}
+
+      {/* ═════ New proposal modal ═════ */}
+      {proposalOpen && selectedClientId && selectedClient && (
+        <NewProposalModal
+          client={selectedClient}
+          defaultDate={proposalDefaultDate}
+          onClose={() => setProposalOpen(false)}
+          onCreated={async () => {
+            setProposalOpen(false);
+            await refetchPosts();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -525,6 +634,7 @@ export default function CalendarioPage() {
 
 function StageItem({
   label, icon, accent, count, active, onClick,
+  dragOver = false, onDragOver, onDragLeave, onDrop,
 }: {
   label: string;
   icon: string;
@@ -532,18 +642,32 @@ function StageItem({
   count: number;
   active: boolean;
   onClick: () => void;
+  dragOver?: boolean;
+  onDragOver?: (e: ReactDragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: ReactDragEvent) => void;
 }) {
+  const bg = dragOver
+    ? 'rgba(99,102,241,0.18)'
+    : active
+    ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(167,139,250,0.08) 100%)'
+    : 'transparent';
   return (
     <button
       onClick={onClick}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
       style={{
-        background: active ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(167,139,250,0.08) 100%)' : 'transparent',
-        color: active ? '#6366F1' : 'var(--text-mid)',
+        background: bg,
+        color: active || dragOver ? '#6366F1' : 'var(--text-mid)',
         fontWeight: active ? 600 : 500,
+        outline: dragOver ? `2px dashed ${accent}` : 'none',
+        outlineOffset: dragOver ? '-2px' : '0',
       }}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = '#F8FAFC'; }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={(e) => { if (!active && !dragOver) e.currentTarget.style.background = '#F8FAFC'; }}
+      onMouseLeave={(e) => { if (!active && !dragOver) e.currentTarget.style.background = 'transparent'; }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
       <span className="text-xs flex-1 flex items-center gap-1">
@@ -635,17 +759,25 @@ function BrandSelector({
 
 function PostCard({
   post, stage, thumbnail, onClick,
+  draggable = false, onDragStart, onDragEnd,
 }: {
   post: Post;
   stage: StageKey;
   thumbnail: string | null;
   onClick: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: ReactDragEvent) => void;
+  onDragEnd?: () => void;
 }) {
   const config = STAGE_CONFIG[stage];
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="relative rounded-lg overflow-hidden w-full text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className="relative rounded-lg overflow-hidden w-full text-left transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
       style={{
         background: 'white',
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -973,5 +1105,241 @@ function PostDrawer({
         )}
       </div>
     </aside>
+  );
+}
+
+// ═════════════════════════════════════════════════════════
+// New Proposal Modal
+// ═════════════════════════════════════════════════════════
+
+function NewProposalModal({
+  client, defaultDate, onClose, onCreated,
+}: {
+  client: Client;
+  defaultDate: string | null;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [copy, setCopy] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(defaultDate || '');
+  const [platform, setPlatform] = useState<Platform>('instagram');
+  const [postType, setPostType] = useState<PostType>('educativo');
+  const [format, setFormat] = useState<PostFormat>('reel');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+    try {
+      await createPost({
+        client_id: client.id,
+        name: name.trim() || null,
+        copy: copy.trim() || null,
+        explanation: null,
+        cta: null,
+        inspo_url: null,
+        internal_comments: null,
+        post_type: postType,
+        format,
+        platform,
+        scheduled_date: scheduledDate || null,
+        scheduled_time: null,
+        status: 'draft',
+        approval_status: 'pending',
+        approval_token: null,
+        approval_comments: null,
+        approved_at: null,
+        approved_by: null,
+        image_url: null,
+        media_urls: [] as string[],
+        ai_score: null,
+        ai_insights: [] as Record<string, unknown>[],
+        likes: 0,
+        comments_count: 0,
+        shares: 0,
+        saves: 0,
+        impressions: 0,
+        reach: 0,
+        assigned_to: null,
+        published_url: null,
+        published_at: null,
+        publish_error: null,
+      });
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear la propuesta');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const inputStyle = { background: 'white', borderColor: 'var(--glass-border)', color: 'var(--text-dark)' };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.4)' }}>
+      <div
+        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+        style={{ background: 'white' }}
+      >
+        {/* Header */}
+        <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--glass-border)' }}>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+            >
+              <Plus className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-dark)' }}>Nueva propuesta</h3>
+              <p className="text-[11px]" style={{ color: 'var(--text-light)' }}>
+                Para <span className="font-medium">{client.emoji} {client.name}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center"
+            style={{ color: 'var(--text-light)' }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+              Nombre del post
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej: Promo 2x1 martes"
+              className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              style={inputStyle}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+              Copy (opcional)
+            </label>
+            <textarea
+              value={copy}
+              onChange={(e) => setCopy(e.target.value)}
+              rows={3}
+              placeholder="Texto tentativo del post…"
+              className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              style={inputStyle}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+                Fecha tentativa
+              </label>
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+                Plataforma
+              </label>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value as Platform)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={inputStyle}
+              >
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="facebook">Facebook</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="twitter">Twitter/X</option>
+                <option value="youtube">YouTube</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+                Tipo
+              </label>
+              <select
+                value={postType}
+                onChange={(e) => setPostType(e.target.value as PostType)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={inputStyle}
+              >
+                <option value="educativo">Educativo</option>
+                <option value="ventas_promo">Ventas / Promo</option>
+                <option value="fun_casual">Fun / Casual</option>
+                <option value="formal">Formal</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
+                Formato
+              </label>
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as PostFormat)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={inputStyle}
+              >
+                <option value="reel">Reel</option>
+                <option value="carousel">Carrusel</option>
+                <option value="estatico">Estático</option>
+                <option value="video">Video</option>
+                <option value="story">Story</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+
+          {error && (
+            <div
+              className="p-3 rounded-lg text-xs"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#991B1B' }}
+            >
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-slate-50"
+              style={{ borderColor: 'var(--glass-border)', color: 'var(--text-mid)' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold text-white shadow-sm hover:shadow-md transition-shadow disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+            >
+              {isSaving ? 'Creando…' : 'Crear propuesta'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
