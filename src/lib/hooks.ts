@@ -13,6 +13,8 @@ import {
   PostComment,
   ContentWeek,
   Competitor,
+  CanvaConnection,
+  CanvaDesign,
 } from '@/types';
 
 // Type for hook return pattern
@@ -1062,4 +1064,124 @@ export async function deleteCompetitor(id: string): Promise<void> {
   const { error } = await supabase.from('competitors').delete().eq('id', id);
 
   if (error) throw error;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Canva WIP Integration
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Fetches Canva connections, optionally filtered by client
+ */
+export function useCanvaConnections(clientId?: string | null): HookResultArray<CanvaConnection> {
+  const [data, setData] = useState<CanvaConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const fetchConnections = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!currentUser?.member?.org_id) {
+        setData([]);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      let query = supabase
+        .from('canva_connections')
+        .select('*')
+        .eq('org_id', currentUser.member.org_id);
+
+      if (clientId) {
+        query = query.eq('client_id', clientId);
+      }
+
+      const { data: connectionsData, error: connectionsError } = await query.order(
+        'created_at',
+        { ascending: false }
+      );
+
+      if (connectionsError) throw connectionsError;
+
+      setData(connectionsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.member?.org_id, clientId]);
+
+  useEffect(() => {
+    fetchConnections();
+  }, [fetchConnections]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchConnections,
+  };
+}
+
+/**
+ * Fetches Canva designs, optionally filtered by client and status
+ */
+export function useCanvaDesigns(clientId?: string | null, status?: string): HookResultArray<CanvaDesign> {
+  const [data, setData] = useState<CanvaDesign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const fetchDesigns = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!currentUser?.member?.org_id) {
+        setData([]);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      let query = supabase
+        .from('canva_designs')
+        .select('*, client:clients(name, emoji, color)')
+        .eq('org_id', currentUser.member.org_id);
+
+      if (clientId) {
+        query = query.eq('client_id', clientId);
+      }
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data: designsData, error: designsError } = await query.order(
+        'synced_at',
+        { ascending: false }
+      );
+
+      if (designsError) throw designsError;
+
+      setData(designsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.member?.org_id, clientId, status]);
+
+  useEffect(() => {
+    fetchDesigns();
+  }, [fetchDesigns]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchDesigns,
+  };
 }
