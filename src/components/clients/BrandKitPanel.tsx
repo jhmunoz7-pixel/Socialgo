@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useBrandKit, createBrandKit, updateBrandKit } from '@/lib/hooks';
 
 interface BrandKitPanelProps {
@@ -42,6 +43,11 @@ export default function BrandKitPanel({ clientId, orgId }: BrandKitPanelProps) {
   const [newInspoAccount, setNewInspoAccount] = useState('');
   const [inspoNotes, setInspoNotes] = useState('');
 
+  // AI Brand Voice state
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceProfile, setVoiceProfile] = useState<Record<string, any> | null>(null);
+  const [voiceExpanded, setVoiceExpanded] = useState(true);
+
   // Questionnaire state
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
 
@@ -64,6 +70,44 @@ export default function BrandKitPanel({ clientId, orgId }: BrandKitPanelProps) {
       setQuestionnaire(defaultQuest);
     }
   }, [brandKit]);
+
+  // Load AI brand voice from brand kit
+  useEffect(() => {
+    if (
+      brandKit?.style_questionnaire &&
+      typeof brandKit.style_questionnaire === 'object' &&
+      (brandKit.style_questionnaire as Record<string, any>).ai_brand_voice
+    ) {
+      setVoiceProfile((brandKit.style_questionnaire as Record<string, any>).ai_brand_voice);
+    }
+  }, [brandKit]);
+
+  // Analyze brand voice with AI
+  const analyzeBrandVoice = async () => {
+    try {
+      setVoiceLoading(true);
+      const res = await fetch('/api/ai/brand-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast('error', data.error || 'Error al analizar la voz de marca');
+        return;
+      }
+      const { success: _s, ...profile } = data;
+      setVoiceProfile(profile);
+      setVoiceExpanded(true);
+      showToast('success', 'Voz de marca analizada exitosamente');
+      await refetch();
+    } catch (error) {
+      console.error('Brand voice error:', error);
+      showToast('error', 'Error al analizar la voz de marca');
+    } finally {
+      setVoiceLoading(false);
+    }
+  };
 
   // Show toast message
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -796,6 +840,299 @@ export default function BrandKitPanel({ clientId, orgId }: BrandKitPanelProps) {
               />
             </div>
           </div>
+
+          {/* AI Brand Voice Section */}
+          <div
+            style={{
+              background: 'var(--surface)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '16px',
+              padding: '24px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  color: 'var(--text-dark)',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Sparkles size={18} style={{ color: 'var(--primary)' }} />
+                Voz de Marca (AI)
+              </h2>
+              <button
+                onClick={analyzeBrandVoice}
+                disabled={voiceLoading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, var(--primary), var(--secondary, #FFBA8A))',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontWeight: '600',
+                  cursor: voiceLoading ? 'not-allowed' : 'pointer',
+                  opacity: voiceLoading ? 0.7 : 1,
+                  fontSize: '13px',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {voiceLoading ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                {voiceLoading ? 'Analizando...' : 'Analizar voz de marca con AI'}
+              </button>
+            </div>
+
+            {!voiceProfile && !voiceLoading && (
+              <p style={{ color: 'var(--text-mid)', fontSize: '13px', margin: 0 }}>
+                Analiza los posts existentes de este cliente para generar un perfil de voz de marca automaticamente.
+                Se necesitan al menos 5 posts con contenido.
+              </p>
+            )}
+
+            {voiceProfile && (
+              <>
+                <button
+                  onClick={() => setVoiceExpanded(!voiceExpanded)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-mid)',
+                    fontSize: '13px',
+                    padding: '0 0 12px 0',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {voiceExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {voiceExpanded ? 'Ocultar perfil' : 'Mostrar perfil'}
+                </button>
+
+                {voiceExpanded && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Overall personality */}
+                    {voiceProfile.overall_personality && (
+                      <div
+                        style={{
+                          padding: '12px 16px',
+                          borderLeft: '3px solid var(--primary)',
+                          background: 'rgba(255, 143, 173, 0.05)',
+                          borderRadius: '0 8px 8px 0',
+                          color: 'var(--text-dark)',
+                          fontSize: '14px',
+                          fontStyle: 'italic',
+                          lineHeight: '1.5',
+                        }}
+                      >
+                        {voiceProfile.overall_personality}
+                      </div>
+                    )}
+
+                    {/* Tone adjectives */}
+                    {voiceProfile.tone_adjectives && voiceProfile.tone_adjectives.length > 0 && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dark)', fontSize: '13px', fontWeight: '600' }}>
+                          Tono de voz
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {voiceProfile.tone_adjectives.map((adj: string, i: number) => {
+                            const colors = ['var(--primary)', '#FFBA8A', '#A78BFA', '#34D399', '#F59E0B'];
+                            const bg = colors[i % colors.length];
+                            return (
+                              <span
+                                key={i}
+                                style={{
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  background: bg,
+                                  color: 'white',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                }}
+                              >
+                                {adj}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Vocabulary patterns */}
+                    {voiceProfile.vocabulary_patterns && voiceProfile.vocabulary_patterns.length > 0 && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-dark)', fontSize: '13px', fontWeight: '600' }}>
+                          Patrones de vocabulario
+                        </label>
+                        <p style={{ margin: 0, color: 'var(--text-mid)', fontSize: '13px', lineHeight: '1.6' }}>
+                          {voiceProfile.vocabulary_patterns.join(', ')}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Emoji usage + favorites */}
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      {voiceProfile.emoji_usage && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-dark)', fontSize: '13px', fontWeight: '600' }}>
+                            Uso de emojis
+                          </label>
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '6px',
+                              background: 'var(--bg)',
+                              border: '1px solid var(--glass-border)',
+                              color: 'var(--text-dark)',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                            }}
+                          >
+                            {voiceProfile.emoji_usage}
+                            {voiceProfile.emoji_favorites && voiceProfile.emoji_favorites.length > 0 && (
+                              <span style={{ marginLeft: '8px' }}>
+                                {voiceProfile.emoji_favorites.join(' ')}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Sentence style */}
+                      {voiceProfile.sentence_style && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-dark)', fontSize: '13px', fontWeight: '600' }}>
+                            Estilo de oraciones
+                          </label>
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '6px',
+                              background: 'var(--bg)',
+                              border: '1px solid var(--glass-border)',
+                              color: 'var(--text-dark)',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                            }}
+                          >
+                            {voiceProfile.sentence_style}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hashtag patterns */}
+                    {voiceProfile.hashtag_patterns && voiceProfile.hashtag_patterns.length > 0 && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-dark)', fontSize: '13px', fontWeight: '600' }}>
+                          Patrones de hashtags
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {voiceProfile.hashtag_patterns.map((tag: string, i: number) => (
+                            <span
+                              key={i}
+                              style={{
+                                padding: '3px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(255, 143, 173, 0.1)',
+                                color: 'var(--primary)',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dos and Don'ts */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {voiceProfile.dos && voiceProfile.dos.length > 0 && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', color: 'rgb(22, 163, 74)', fontSize: '13px', fontWeight: '600' }}>
+                            Hacer
+                          </label>
+                          <ul style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'none' }}>
+                            {voiceProfile.dos.map((item: string, i: number) => (
+                              <li
+                                key={i}
+                                style={{
+                                  color: 'var(--text-mid)',
+                                  fontSize: '13px',
+                                  lineHeight: '1.8',
+                                  position: 'relative',
+                                  paddingLeft: '4px',
+                                }}
+                              >
+                                <span style={{ color: 'rgb(22, 163, 74)', position: 'absolute', left: '-16px' }}>+</span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {voiceProfile.donts && voiceProfile.donts.length > 0 && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', color: 'rgb(220, 38, 38)', fontSize: '13px', fontWeight: '600' }}>
+                            Evitar
+                          </label>
+                          <ul style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'none' }}>
+                            {voiceProfile.donts.map((item: string, i: number) => (
+                              <li
+                                key={i}
+                                style={{
+                                  color: 'var(--text-mid)',
+                                  fontSize: '13px',
+                                  lineHeight: '1.8',
+                                  position: 'relative',
+                                  paddingLeft: '4px',
+                                }}
+                              >
+                                <span style={{ color: 'rgb(220, 38, 38)', position: 'absolute', left: '-16px' }}>-</span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Spin animation for loader */}
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
 
           {/* Style Questionnaire Section */}
           <div

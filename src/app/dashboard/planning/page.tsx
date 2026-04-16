@@ -124,6 +124,12 @@ function NewPostModal({ isOpen, onClose, clients, defaultDate, orgId, onPostCrea
         approval_comments: null,
         approved_at: null,
         approved_by: null,
+        likes: 0,
+        comments_count: 0,
+        shares: 0,
+        saves: 0,
+        impressions: 0,
+        reach: 0,
       });
 
       // Upload asset if selected

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, MessageSquare, Send, Clock, Image } from 'lucide-react';
+import { CheckCircle2, XCircle, MessageSquare, Send, Clock, Image, Eye, EyeOff } from 'lucide-react';
+import { PlatformPreviewSelector } from '@/components/posts/PlatformPreviewSelector';
 
 interface PostData {
   id: string;
@@ -37,6 +38,7 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
   const [clientName, setClientName] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Fetch existing comments
   useEffect(() => {
@@ -128,31 +130,60 @@ export function ClientApprovalView({ post, token }: { post: PostData; token: str
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: Asset Preview */}
-          <div className="rounded-2xl border overflow-hidden" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
-            {post.image_url ? (
-              <img src={post.image_url} alt={post.name || 'Post'} className="w-full object-contain max-h-[500px]" />
+          <div className="space-y-3">
+            {/* Vista Previa toggle */}
+            <button
+              onClick={() => setShowPreview((v) => !v)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+              style={{
+                background: showPreview ? 'rgba(255,143,173,0.15)' : 'rgba(200,200,200,0.12)',
+                color: showPreview ? '#FF8FAD' : '#7A6560',
+              }}
+            >
+              {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showPreview ? 'Ocultar Vista Previa' : 'Vista Previa'}
+            </button>
+
+            {showPreview ? (
+              <div className="rounded-2xl border p-4 flex items-center justify-center" style={{ background: '#F9F6F3', borderColor: 'rgba(255,180,150,0.25)', minHeight: 400 }}>
+                <PlatformPreviewSelector
+                  imageUrl={post.image_url}
+                  copy={post.copy}
+                  cta={post.cta}
+                  clientName={post.client?.name || 'Cliente'}
+                  clientEmoji={post.client?.emoji || '📱'}
+                  platform={post.platform}
+                  format={post.format}
+                />
+              </div>
             ) : (
-              <div className="w-full h-64 flex items-center justify-center" style={{ background: 'rgba(200,200,200,0.06)' }}>
-                <Image className="w-12 h-12" style={{ color: '#B8A9A4' }} />
+              <div className="rounded-2xl border overflow-hidden" style={{ background: 'white', borderColor: 'rgba(255,180,150,0.25)' }}>
+                {post.image_url ? (
+                  <img src={post.image_url} alt={post.name || 'Post'} className="w-full object-contain max-h-[500px]" />
+                ) : (
+                  <div className="w-full h-64 flex items-center justify-center" style={{ background: 'rgba(200,200,200,0.06)' }}>
+                    <Image className="w-12 h-12" style={{ color: '#B8A9A4' }} />
+                  </div>
+                )}
+                {/* Platform frame badge */}
+                <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(255,180,150,0.15)' }}>
+                  <span className="text-xs px-2 py-1 rounded-full capitalize font-semibold" style={{ background: 'rgba(255,143,173,0.1)', color: '#FF8FAD' }}>
+                    {post.platform}
+                  </span>
+                  {post.format && (
+                    <span className="text-xs px-2 py-1 rounded-full capitalize" style={{ background: 'rgba(200,200,200,0.15)', color: '#7A6560' }}>
+                      {post.format}
+                    </span>
+                  )}
+                  {post.scheduled_date && (
+                    <span className="text-xs flex items-center gap-1 ml-auto" style={{ color: '#7A6560' }}>
+                      <Clock className="w-3 h-3" />
+                      {new Date(post.scheduled_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
-            {/* Platform frame badge */}
-            <div className="px-4 py-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(255,180,150,0.15)' }}>
-              <span className="text-xs px-2 py-1 rounded-full capitalize font-semibold" style={{ background: 'rgba(255,143,173,0.1)', color: '#FF8FAD' }}>
-                {post.platform}
-              </span>
-              {post.format && (
-                <span className="text-xs px-2 py-1 rounded-full capitalize" style={{ background: 'rgba(200,200,200,0.15)', color: '#7A6560' }}>
-                  {post.format}
-                </span>
-              )}
-              {post.scheduled_date && (
-                <span className="text-xs flex items-center gap-1 ml-auto" style={{ color: '#7A6560' }}>
-                  <Clock className="w-3 h-3" />
-                  {new Date(post.scheduled_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              )}
-            </div>
           </div>
 
           {/* Right: Content + Actions */}

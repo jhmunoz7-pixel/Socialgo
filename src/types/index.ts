@@ -148,6 +148,13 @@ export interface Post {
   // AI
   ai_score: number | null;
   ai_insights: Record<string, unknown>[];
+  // Engagement metrics
+  likes: number;
+  comments_count: number;
+  shares: number;
+  saves: number;
+  impressions: number;
+  reach: number;
   // Assignment
   assigned_to: string | null;
   // Meta

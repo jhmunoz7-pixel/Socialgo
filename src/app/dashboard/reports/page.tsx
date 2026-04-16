@@ -5,13 +5,32 @@ import { useStats, useClients, usePosts, usePackages, useCurrentUser } from '@/l
 import type { Post, PostType, Platform } from '@/types';
 import { POST_TYPE_CONFIG, calculateMonthlyPayment } from '@/types';
 import ExcelJS from 'exceljs';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, TrendingUp, Award, Clock, Calendar } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell,
+  LineChart, Line, AreaChart, Area, ResponsiveContainer,
+} from 'recharts';
+
+// Hardcoded chart colors (CSS vars don't work in Recharts SVG)
+const CHART_COLORS = {
+  primary: '#FF8FAD',
+  secondary: '#FFBA8A',
+  accent: '#E8D5FF',
+  success: '#10B981',
+  warning: '#F59E0B',
+  info: '#3B82F6',
+  muted: '#B8A9A4',
+};
+const PIE_COLORS = ['#FF8FAD', '#FFBA8A', '#E8D5FF', '#B8E8C8', '#D0E8FF'];
+
+type CompareMode = 'none' | 'prev_month' | 'same_month_last_year';
 
 export default function ReportsPage() {
   const { data: currentUser } = useCurrentUser();
   const userRole = currentUser?.member?.role;
   const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'member';
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0].slice(0, 7));
+  const [compareMode, setCompareMode] = useState<CompareMode>('none');
   const { loading: statsLoading } = useStats();
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: posts, loading: postsLoading } = usePosts();
@@ -34,17 +53,25 @@ export default function ReportsPage() {
     });
   };
 
-  // Computed stats for selected month
-  const computedStats = useMemo(() => {
+  // Compute comparison month string
+  const comparisonMonth = useMemo(() => {
+    if (compareMode === 'none') return null;
+    const [year, month] = selectedMonth.split('-').map(Number);
+    if (compareMode === 'prev_month') {
+      const d = new Date(year, month - 2, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    // same_month_last_year
+    return `${year - 1}-${String(month).padStart(2, '0')}`;
+  }, [selectedMonth, compareMode]);
+
+  // Compute stats for a given month
+  const computeStatsForMonth = (month: string) => {
     if (!clients || !posts) return { activeClients: 0, totalMRR: 0, postsThisMonth: 0, pendingPayments: 0 };
-
-    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
-
-    // Active clients: those with posts in selected month
+    const postsThisMonth = getPostsByMonth(posts, month);
     const clientsWithPosts = new Set(postsThisMonth.map(p => p.client_id));
     const activeClients = clientsWithPosts.size;
 
-    // Total MRR: sum of monthly payments for all active clients
     let totalMRR = 0;
     clients.forEach(client => {
       if (clientsWithPosts.has(client.id)) {
@@ -56,18 +83,30 @@ export default function ReportsPage() {
       }
     });
 
-    // Pending payments: count of clients with pay_status 'pendiente' or 'vencido'
     const pendingPayments = clients.filter(c =>
       c.pay_status === 'pendiente' || c.pay_status === 'vencido'
     ).length;
 
-    return {
-      activeClients,
-      totalMRR,
-      postsThisMonth: postsThisMonth.length,
-      pendingPayments,
-    };
-  }, [clients, posts, selectedMonth, packages]);
+    return { activeClients, totalMRR, postsThisMonth: postsThisMonth.length, pendingPayments };
+  };
+
+  // Computed stats for selected month
+  const computedStats = useMemo(() => computeStatsForMonth(selectedMonth), [clients, posts, selectedMonth, packages]);
+
+  // Comparison stats
+  const comparisonStats = useMemo(() => {
+    if (!comparisonMonth) return null;
+    return computeStatsForMonth(comparisonMonth);
+  }, [comparisonMonth, clients, posts, packages]);
+
+  // Delta percentage helper
+  const getDelta = (current: number, previous: number): { value: number; positive: boolean } | null => {
+    if (!comparisonStats) return null;
+    if (previous === 0 && current === 0) return { value: 0, positive: true };
+    if (previous === 0) return { value: 100, positive: true };
+    const delta = ((current - previous) / previous) * 100;
+    return { value: Math.abs(Math.round(delta)), positive: delta >= 0 };
+  };
 
   // Client performance data
   const clientPerformance = useMemo(() => {
@@ -108,7 +147,7 @@ export default function ReportsPage() {
       .sort((a, b) => b.postsCount - a.postsCount);
   }, [clients, posts, selectedMonth]);
 
-  // Content distribution by post type
+  // Content distribution by post type (for PieChart)
   const postTypeDistribution = useMemo(() => {
     if (!posts) return [];
 
@@ -128,7 +167,7 @@ export default function ReportsPage() {
 
     const total = postsThisMonth.length;
     return Object.entries(typeCounts)
-      .filter(([_, count]) => count > 0)
+      .filter(([, count]) => count > 0)
       .map(([type, count]) => ({
         type: type as PostType,
         count,
@@ -139,7 +178,7 @@ export default function ReportsPage() {
       .sort((a, b) => b.count - a.count);
   }, [posts, selectedMonth]);
 
-  // Platform distribution
+  // Platform distribution (for horizontal BarChart)
   const platformDistribution = useMemo(() => {
     if (!posts) return [];
 
@@ -157,54 +196,52 @@ export default function ReportsPage() {
       platformCounts[post.platform]++;
     });
 
-    const platformEmojis: Record<Platform, string> = {
-      instagram: '📸',
-      tiktok: '🎵',
-      facebook: '📘',
-      linkedin: '💼',
-      twitter: '𝕏',
-      youtube: '🎬',
+    const platformLabels: Record<Platform, string> = {
+      instagram: 'Instagram',
+      tiktok: 'TikTok',
+      facebook: 'Facebook',
+      linkedin: 'LinkedIn',
+      twitter: 'Twitter/X',
+      youtube: 'YouTube',
     };
 
-    const total = postsThisMonth.length;
     return Object.entries(platformCounts)
-      .filter(([_, count]) => count > 0)
+      .filter(([, count]) => count > 0)
       .map(([platform, count]) => ({
         platform: platform as Platform,
+        name: platformLabels[platform as Platform],
         count,
-        percentage: total > 0 ? (count / total) * 100 : 0,
-        emoji: platformEmojis[platform as Platform],
       }))
       .sort((a, b) => b.count - a.count);
   }, [posts, selectedMonth]);
 
-  // Approval pipeline
+  // Approval pipeline (for horizontal BarChart)
   const approvalPipeline = useMemo(() => {
-    if (!posts) return { draft: 0, planned: 0, in_production: 0, pending_approval: 0, approved: 0, published: 0 };
+    if (!posts) return [];
 
     const postsThisMonth = getPostsByMonth(posts, selectedMonth);
-    const pipeline = {
-      draft: 0,
-      planned: 0,
-      in_production: 0,
-      pending_approval: 0,
-      approved: 0,
-      published: 0,
+    const pipeline: Record<string, number> = {
+      Borrador: 0,
+      Planeado: 0,
+      'En Prod.': 0,
+      Pendiente: 0,
+      Aprobado: 0,
+      Publicado: 0,
     };
 
     postsThisMonth.forEach(post => {
-      if (post.status === 'draft') pipeline.draft++;
-      else if (post.status === 'planned') pipeline.planned++;
-      else if (post.status === 'in_production') pipeline.in_production++;
-      else if (post.approval_status === 'pending') pipeline.pending_approval++;
-      else if (post.approval_status === 'approved' || post.approval_status === 'approved_with_changes') pipeline.approved++;
-      else if (post.status === 'published') pipeline.published++;
+      if (post.status === 'draft') pipeline['Borrador']++;
+      else if (post.status === 'planned') pipeline['Planeado']++;
+      else if (post.status === 'in_production') pipeline['En Prod.']++;
+      else if (post.approval_status === 'pending') pipeline['Pendiente']++;
+      else if (post.approval_status === 'approved' || post.approval_status === 'approved_with_changes') pipeline['Aprobado']++;
+      else if (post.status === 'published') pipeline['Publicado']++;
     });
 
-    return pipeline;
+    return Object.entries(pipeline).map(([name, count]) => ({ name, count }));
   }, [posts, selectedMonth]);
 
-  // Monthly trend (last 6 months)
+  // Monthly trend (last 6 months) — for AreaChart
   const monthlyTrend = useMemo(() => {
     if (!posts) return [];
 
@@ -217,33 +254,160 @@ export default function ReportsPage() {
       const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit' }).format(date);
 
       const count = getPostsByMonth(posts, monthStr).length;
-      months.push({ monthStr, monthLabel, count });
+      months.push({ month: monthLabel, count });
     }
 
-    const maxCount = Math.max(...months.map(m => m.count), 1);
-    return months.map(m => ({
-      ...m,
-      barHeight: maxCount > 0 ? (m.count / maxCount) * 100 : 0,
-    }));
+    return months;
   }, [posts]);
+
+  // Posts by day of week
+  const postsByDayOfWeek = useMemo(() => {
+    if (!posts) return [];
+    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+
+    postsThisMonth.forEach(post => {
+      if (post.scheduled_date) {
+        const day = new Date(post.scheduled_date + 'T00:00:00').getDay();
+        counts[day]++;
+      }
+    });
+
+    // Reorder to start from Monday
+    const orderedDays = [1, 2, 3, 4, 5, 6, 0];
+    return orderedDays.map(i => ({
+      day: dayNames[i],
+      count: counts[i],
+    }));
+  }, [posts, selectedMonth]);
+
+  // AI Score trend (average per month, last 6 months)
+  const aiScoreTrend = useMemo(() => {
+    if (!posts) return [];
+
+    const now = new Date();
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = date.toISOString().split('T')[0].slice(0, 7);
+      const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'short' }).format(date);
+
+      const monthPosts = getPostsByMonth(posts, monthStr);
+      const scores = monthPosts
+        .map(p => p.ai_score)
+        .filter((s): s is number => s !== null && s !== undefined);
+
+      const avg = scores.length > 0
+        ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+        : 0;
+
+      months.push({ month: monthLabel, score: avg });
+    }
+
+    return months;
+  }, [posts]);
+
+  // Top 5 performing posts by AI score
+  const topPerformingPosts = useMemo(() => {
+    if (!posts || !clients) return [];
+
+    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    return postsThisMonth
+      .filter(p => p.ai_score !== null && p.ai_score !== undefined)
+      .sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0))
+      .slice(0, 5)
+      .map(p => {
+        const client = clients.find(c => c.id === p.client_id);
+        return {
+          id: p.id,
+          name: p.name || 'Sin nombre',
+          clientName: client ? `${client.emoji} ${client.name}` : 'Sin cliente',
+          score: p.ai_score ?? 0,
+        };
+      });
+  }, [posts, clients, selectedMonth]);
+
+  // Approval turnaround (avg days from created_at to approved_at)
+  const approvalTurnaround = useMemo(() => {
+    if (!posts) return null;
+
+    const postsThisMonth = getPostsByMonth(posts, selectedMonth);
+    const approvedPosts = postsThisMonth.filter(p => p.approved_at && p.created_at);
+
+    if (approvedPosts.length === 0) return null;
+
+    const totalDays = approvedPosts.reduce((sum, p) => {
+      const created = new Date(p.created_at).getTime();
+      const approved = new Date(p.approved_at!).getTime();
+      const diff = (approved - created) / (1000 * 60 * 60 * 24);
+      return sum + Math.max(0, diff);
+    }, 0);
+
+    return Math.round((totalDays / approvedPosts.length) * 10) / 10;
+  }, [posts, selectedMonth]);
+
+  // Custom tooltip for Recharts
+  const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name?: string }>; label?: string }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    return (
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}
+      >
+        <p style={{ color: '#2A1F1A', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{label}</p>
+        {payload.map((entry, i) => (
+          <p key={i} style={{ color: '#7A6560', fontSize: 12 }}>
+            {entry.name ? `${entry.name}: ` : ''}{entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  // Delta badge component
+  const DeltaBadge = ({ current, previous }: { current: number; previous: number }) => {
+    const delta = getDelta(current, previous);
+    if (!delta) return null;
+    if (delta.value === 0) return null;
+
+    return (
+      <span
+        style={{ color: delta.positive ? CHART_COLORS.success : '#EF4444' }}
+        className="text-xs font-medium flex items-center gap-0.5"
+      >
+        {delta.positive ? '\u2191' : '\u2193'} {delta.value}%
+      </span>
+    );
+  };
 
   // Skeleton loader component
   const Skeleton = ({ width = 'w-full', height = 'h-4' }: { width?: string; height?: string }) => (
     <div className={`${width} ${height} rounded animate-pulse`} style={{ backgroundColor: 'var(--text-light)' }} />
   );
 
+  const loading = statsLoading || clientsLoading || postsLoading || packagesLoading;
+
   return (
     <div className="space-y-8">
       {/* Sticky Header + Stats */}
       <div className="sticky-header sticky top-0 z-50 -mx-8 px-8 pt-7 pb-4" style={{ backgroundColor: 'var(--bg)' }}>
 
-        {/* Header with Month Selector */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Header with Month Selector + Compare */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}><BarChart3 className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Reportes</h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Análisis de rendimiento y estadísticas</p>
+            <h1 className="text-2xl font-serif font-bold flex items-center gap-2" style={{ color: 'var(--text-dark)' }}>
+              <BarChart3 className="w-5 h-5" style={{ color: 'var(--primary-deep)' }} /> Reportes
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-mid)' }}>Analisis de rendimiento y estadisticas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <label style={{ color: 'var(--text-dark)' }} className="text-sm font-medium">Mes:</label>
             <input
               type="month"
@@ -256,15 +420,29 @@ export default function ReportsPage() {
               }}
               className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
             />
+            <label style={{ color: 'var(--text-dark)' }} className="text-sm font-medium">Comparar con:</label>
+            <select
+              value={compareMode}
+              onChange={(e) => setCompareMode(e.target.value as CompareMode)}
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--glass-border)',
+                color: 'var(--text-dark)',
+              }}
+              className="px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 text-sm"
+            >
+              <option value="none">Sin comparar</option>
+              <option value="prev_month">Mes anterior</option>
+              <option value="same_month_last_year">Mismo mes ano pasado</option>
+            </select>
             <button
               onClick={async () => {
                 try {
                   const wb = new ExcelJS.Workbook();
 
-                  // Sheet 1: Resumen
                   const ws1 = wb.addWorksheet('Resumen');
                   ws1.addRows([
-                    ['Métrica', 'Valor'],
+                    ['Metrica', 'Valor'],
                     ['Mes', selectedMonth],
                     ['Clientes activos', computedStats.activeClients],
                     ['MRR total', computedStats.totalMRR],
@@ -272,23 +450,20 @@ export default function ReportsPage() {
                     ['Pagos pendientes', computedStats.pendingPayments],
                   ]);
 
-                  // Sheet 2: Rendimiento por cliente
                   const ws2 = wb.addWorksheet('Clientes');
                   ws2.addRows([
-                    ['Cliente', 'Posts', 'AI Score Prom.', 'Tasa aprobación %', 'Status pago', 'Status cuenta'],
+                    ['Cliente', 'Posts', 'AI Score Prom.', 'Tasa aprobacion %', 'Status pago', 'Status cuenta'],
                     ...clientPerformance.map(c => [
                       `${c.emoji} ${c.name}`, c.postsCount, c.avgAiScore, c.approvalRate, c.payStatus, c.accountStatus,
                     ]),
                   ]);
 
-                  // Sheet 3: Distribución por tipo
                   const ws3 = wb.addWorksheet('Tipos');
                   ws3.addRows([
                     ['Tipo', 'Cantidad', 'Porcentaje %'],
                     ...postTypeDistribution.map(t => [t.label, t.count, Math.round(t.percentage)]),
                   ]);
 
-                  // Download via Blob
                   const buffer = await wb.xlsx.writeBuffer();
                   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                   const url = URL.createObjectURL(blob);
@@ -308,7 +483,7 @@ export default function ReportsPage() {
               }}
               className="px-4 py-2 rounded-lg font-medium text-sm transition-opacity hover:opacity-90"
             >
-              📥 Exportar
+              Exportar
             </button>
           </div>
         </div>
@@ -316,90 +491,106 @@ export default function ReportsPage() {
         {/* Stats Row - 4 Glass Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Active Clients */}
-          <div style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--glass-border)',
-            backdropFilter: 'blur(16px)',
-          }} className="p-6 rounded-2xl border">
-            <p style={{ color: 'var(--text-mid)' }} className="text-sm mb-3">Clientes Activos</p>
-            {statsLoading || clientsLoading ? (
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
+            <div className="flex items-center justify-between mb-3">
+              <p style={{ color: 'var(--text-mid)' }} className="text-sm">Clientes Activos</p>
+              <Calendar className="w-4 h-4" style={{ color: 'var(--text-light)' }} />
+            </div>
+            {loading ? (
               <Skeleton width="w-24" height="h-8" />
             ) : (
               <>
-                <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
-                  {computedStats.activeClients}
-                </p>
-                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Este mes</p>
+                <div className="flex items-baseline gap-2">
+                  <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
+                    {computedStats.activeClients}
+                  </p>
+                  {comparisonStats && (
+                    <DeltaBadge current={computedStats.activeClients} previous={comparisonStats.activeClients} />
+                  )}
+                </div>
+                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-2">Este mes</p>
               </>
             )}
           </div>
 
-          {/* Total MRR — admin only */}
-          {isAdmin && <div style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--glass-border)',
-            backdropFilter: 'blur(16px)',
-          }} className="p-6 rounded-2xl border">
-            <p style={{ color: 'var(--text-mid)' }} className="text-sm mb-3">MRR Total</p>
-            {statsLoading || clientsLoading || packagesLoading ? (
-              <Skeleton width="w-32" height="h-8" />
-            ) : (
-              <>
-                <p style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold">
-                  {formatMXN(computedStats.totalMRR)}
-                </p>
-                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Ingresos mensuales</p>
-              </>
-            )}
-          </div>}
+          {/* Total MRR -- admin only */}
+          {isAdmin && (
+            <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
+              <div className="flex items-center justify-between mb-3">
+                <p style={{ color: 'var(--text-mid)' }} className="text-sm">MRR Total</p>
+                <TrendingUp className="w-4 h-4" style={{ color: 'var(--text-light)' }} />
+              </div>
+              {loading ? (
+                <Skeleton width="w-32" height="h-8" />
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p style={{ color: 'var(--text-dark)' }} className="text-2xl font-serif font-bold">
+                      {formatMXN(computedStats.totalMRR)}
+                    </p>
+                    {comparisonStats && (
+                      <DeltaBadge current={computedStats.totalMRR} previous={comparisonStats.totalMRR} />
+                    )}
+                  </div>
+                  <p style={{ color: 'var(--text-light)' }} className="text-xs mt-2">Ingresos mensuales</p>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Posts This Month */}
-          <div style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--glass-border)',
-            backdropFilter: 'blur(16px)',
-          }} className="p-6 rounded-2xl border">
-            <p style={{ color: 'var(--text-mid)' }} className="text-sm mb-3">Posts Este Mes</p>
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
+            <div className="flex items-center justify-between mb-3">
+              <p style={{ color: 'var(--text-mid)' }} className="text-sm">Posts Este Mes</p>
+              <BarChart3 className="w-4 h-4" style={{ color: 'var(--text-light)' }} />
+            </div>
             {postsLoading ? (
               <Skeleton width="w-24" height="h-8" />
             ) : (
               <>
-                <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
-                  {computedStats.postsThisMonth}
-                </p>
-                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Publicaciones</p>
+                <div className="flex items-baseline gap-2">
+                  <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
+                    {computedStats.postsThisMonth}
+                  </p>
+                  {comparisonStats && (
+                    <DeltaBadge current={computedStats.postsThisMonth} previous={comparisonStats.postsThisMonth} />
+                  )}
+                </div>
+                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-2">Publicaciones</p>
               </>
             )}
           </div>
 
-          {/* Pending Payments — admin only */}
-          {isAdmin && <div style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--glass-border)',
-            backdropFilter: 'blur(16px)',
-          }} className="p-6 rounded-2xl border">
-            <p style={{ color: 'var(--text-mid)' }} className="text-sm mb-3">Pagos Pendientes</p>
-            {clientsLoading ? (
-              <Skeleton width="w-24" height="h-8" />
-            ) : (
-              <>
-                <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
-                  {computedStats.pendingPayments}
-                </p>
-                <p style={{ color: 'var(--text-light)' }} className="text-xs mt-3">Clientes</p>
-              </>
-            )}
-          </div>}
+          {/* Pending Payments -- admin only */}
+          {isAdmin && (
+            <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="p-5 rounded-2xl border">
+              <div className="flex items-center justify-between mb-3">
+                <p style={{ color: 'var(--text-mid)' }} className="text-sm">Pagos Pendientes</p>
+                <Clock className="w-4 h-4" style={{ color: 'var(--text-light)' }} />
+              </div>
+              {clientsLoading ? (
+                <Skeleton width="w-24" height="h-8" />
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p style={{ color: 'var(--text-dark)' }} className="text-3xl font-serif font-bold">
+                      {computedStats.pendingPayments}
+                    </p>
+                    {comparisonStats && (
+                      <DeltaBadge current={computedStats.pendingPayments} previous={comparisonStats.pendingPayments} />
+                    )}
+                  </div>
+                  <p style={{ color: 'var(--text-light)' }} className="text-xs mt-2">Clientes</p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div>
+      <div className="space-y-6">
         {/* Client Performance Table */}
-        <div style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(16px)',
-        }} className="p-5 rounded-2xl border">
+        <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
           <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Rendimiento por Cliente</h2>
 
           <div className="overflow-x-auto">
@@ -408,8 +599,8 @@ export default function ReportsPage() {
                 <tr style={{ borderColor: 'var(--glass-border)' }} className="border-b">
                   <th style={{ color: 'var(--text-mid)' }} className="text-left py-3 px-4 text-sm font-semibold">Cliente</th>
                   <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Posts</th>
-                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Puntuación IA</th>
-                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Tasa Aprobación</th>
+                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Puntuacion IA</th>
+                  <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Tasa Aprobacion</th>
                   {isAdmin && <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Pago</th>}
                   {isAdmin && <th style={{ color: 'var(--text-mid)' }} className="text-center py-3 px-4 text-sm font-semibold">Cuenta</th>}
                 </tr>
@@ -422,41 +613,43 @@ export default function ReportsPage() {
                     </td>
                   </tr>
                 ) : clientPerformance.length > 0 ? (
-                  clientPerformance.map((row, idx) => (
+                  clientPerformance.map((row) => (
                     <tr
                       key={row.id}
                       style={{ borderColor: 'var(--glass-border)' }}
-                      className={`border-b transition-colors ${idx % 2 === 0 ? '' : ''}`}
+                      className="border-b transition-colors hover:bg-gray-50/50"
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{row.emoji}</span>
-                          <div>
-                            <p style={{ color: 'var(--text-dark)' }} className="font-medium">{row.name}</p>
-                          </div>
+                          <p style={{ color: 'var(--text-dark)' }} className="font-medium">{row.name}</p>
                         </div>
                       </td>
                       <td style={{ color: 'var(--text-dark)' }} className="py-4 px-4 text-center font-semibold">
                         {row.postsCount}
                       </td>
                       <td style={{ color: 'var(--text-dark)' }} className="py-4 px-4 text-center font-semibold">
-                        {row.avgAiScore > 0 ? row.avgAiScore : '—'}
+                        {row.avgAiScore > 0 ? row.avgAiScore : '\u2014'}
                       </td>
                       <td style={{ color: 'var(--text-dark)' }} className="py-4 px-4 text-center font-semibold">
-                        {row.postsCount > 0 ? `${row.approvalRate}%` : '—'}
+                        {row.postsCount > 0 ? `${row.approvalRate}%` : '\u2014'}
                       </td>
-                      {isAdmin && <td className="py-4 px-4 text-center">
-                        <PayStatusBadge status={row.payStatus} />
-                      </td>}
-                      {isAdmin && <td className="py-4 px-4 text-center">
-                        <AccountStatusBadge status={row.accountStatus} />
-                      </td>}
+                      {isAdmin && (
+                        <td className="py-4 px-4 text-center">
+                          <PayStatusBadge status={row.payStatus} />
+                        </td>
+                      )}
+                      {isAdmin && (
+                        <td className="py-4 px-4 text-center">
+                          <AccountStatusBadge status={row.accountStatus} />
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={6} className="py-8 px-4 text-center">
-                      <p style={{ color: 'var(--text-light)' }}>No hay clientes con datos en este período</p>
+                      <p style={{ color: 'var(--text-light)' }}>No hay clientes con datos en este periodo</p>
                     </td>
                   </tr>
                 )}
@@ -466,150 +659,223 @@ export default function ReportsPage() {
         </div>
 
         {/* Distribution Charts - 2 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Post Type Distribution -- PieChart */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribucion por Tipo</h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : postTypeDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={postTypeDistribution}
+                    dataKey="count"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    innerRadius={45}
+                    paddingAngle={2}
+                    label={({ name, percent }: { name?: string; percent?: number }) =>
+                      `${name ?? ''} ${Math.round((percent ?? 0) * 100)}%`
+                    }
+                    labelLine={false}
+                  >
+                    {postTypeDistribution.map((entry, index) => (
+                      <Cell key={entry.type} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p style={{ color: 'var(--text-light)' }} className="py-12 text-center">No hay datos de contenido en este periodo</p>
+            )}
+          </div>
 
-        {/* Content Distribution */}
-        <div style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(16px)',
-        }} className="p-5 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribución por Tipo</h2>
-
-          {postsLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i}>
-                  <Skeleton height="h-6" />
-                  <div className="mt-2">
-                    <Skeleton height="h-3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : postTypeDistribution.length > 0 ? (
-            <div className="space-y-3">
-              {postTypeDistribution.map((item) => (
-                <div key={item.type}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p style={{ color: 'var(--text-dark)' }} className="text-sm font-medium">{item.label}</p>
-                    <p style={{ color: 'var(--text-mid)' }} className="text-sm">{item.count} ({item.percentage.toFixed(0)}%)</p>
-                  </div>
-                  <div style={{ backgroundColor: 'var(--glass-border)' }} className="h-3 rounded-full overflow-hidden">
-                    <div
-                      className="h-full transition-all duration-300 rounded-full"
-                      style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-light)' }}>No hay datos de contenido en este período</p>
-          )}
+          {/* Platform Distribution -- Horizontal BarChart */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribucion por Plataforma</h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : platformDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={platformDistribution} layout="vertical" margin={{ left: 20 }}>
+                  <XAxis type="number" tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#2A1F1A', fontSize: 12 }} width={80} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="count" name="Posts" fill={CHART_COLORS.primary} radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p style={{ color: 'var(--text-light)' }} className="py-12 text-center">No hay datos de plataforma en este periodo</p>
+            )}
+          </div>
         </div>
-
-        {/* Platform Distribution */}
-        <div style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(16px)',
-        }} className="p-5 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Distribución por Plataforma</h2>
-
-          {postsLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i}>
-                  <Skeleton height="h-6" />
-                  <div className="mt-2">
-                    <Skeleton height="h-3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : platformDistribution.length > 0 ? (
-            <div className="space-y-3">
-              {platformDistribution.map((item) => (
-                <div key={item.platform}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p style={{ color: 'var(--text-dark)' }} className="text-sm font-medium">{item.emoji} {item.platform.charAt(0).toUpperCase() + item.platform.slice(1)}</p>
-                    <p style={{ color: 'var(--text-mid)' }} className="text-sm">{item.count} ({item.percentage.toFixed(0)}%)</p>
-                  </div>
-                  <div style={{ backgroundColor: 'var(--glass-border)' }} className="h-3 rounded-full overflow-hidden">
-                    <div
-                      className="h-full transition-all duration-300 rounded-full"
-                      style={{ width: `${item.percentage}%`, backgroundColor: 'var(--primary)' }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-light)' }}>No hay datos de plataforma en este período</p>
-          )}
-        </div>
-        </div>{/* end distribution grid */}
 
         {/* Pipeline + Trend - 2 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Approval Pipeline -- Horizontal BarChart */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Pipeline de Aprobacion</h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={approvalPipeline} layout="vertical" margin={{ left: 10 }}>
+                  <XAxis type="number" tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#2A1F1A', fontSize: 12 }} width={70} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="count" name="Posts" fill={CHART_COLORS.secondary} radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
 
-        {/* Approval Pipeline */}
-        <div style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(16px)',
-        }} className="p-5 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Pipeline de Aprobación</h2>
-
-          {postsLoading ? (
-            <Skeleton height="h-20" />
-          ) : (
-            <div className="flex items-end justify-between gap-3 h-28">
-              <PipelineStage label="Borrador" count={approvalPipeline.draft} color="var(--text-light)" />
-              <PipelineStage label="Planeado" count={approvalPipeline.planned} color="var(--secondary)" />
-              <PipelineStage label="En Prod." count={approvalPipeline.in_production} color="var(--primary)" />
-              <PipelineStage label="Pendiente" count={approvalPipeline.pending_approval} color="var(--secondary)" />
-              <PipelineStage label="Aprobado" count={approvalPipeline.approved} color="var(--primary-deep)" />
-              <PipelineStage label="Publicado" count={approvalPipeline.published} color="var(--primary)" />
-            </div>
-          )}
+          {/* Monthly Trend -- AreaChart */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Tendencia Ultimos 6 Meses</h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : monthlyTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={monthlyTrend}>
+                  <defs>
+                    <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    name="Posts"
+                    stroke={CHART_COLORS.primary}
+                    fill="url(#colorPosts)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <p style={{ color: 'var(--text-light)' }} className="py-12 text-center">No hay datos en los ultimos 6 meses</p>
+            )}
+          </div>
         </div>
 
-        {/* Monthly Trend */}
-        <div style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(16px)',
-        }} className="p-5 rounded-2xl border">
-          <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4">Tendencia Últimos 6 Meses</h2>
+        {/* New analytics sections - 2 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Posts by Day of Week */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4 flex items-center gap-2">
+              <Calendar className="w-4 h-4" style={{ color: CHART_COLORS.primary }} />
+              Posts por Dia de la Semana
+            </h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={postsByDayOfWeek}>
+                  <XAxis dataKey="day" tick={{ fill: '#2A1F1A', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="count" name="Posts" fill={CHART_COLORS.accent} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
 
-          {postsLoading ? (
-            <Skeleton height="h-40" />
-          ) : monthlyTrend.length > 0 ? (
-            <div className="flex items-end justify-between gap-2 h-32">
-              {monthlyTrend.map((month) => (
-                <div key={month.monthStr} className="flex-1 flex flex-col items-center">
-                  <div className="flex items-end justify-center h-24 w-full">
-                    <div
-                      className="w-full rounded-t transition-all duration-300"
-                      style={{
-                        height: `${month.barHeight}%`,
-                        backgroundColor: month.count > 0 ? 'var(--primary)' : 'var(--glass-border)',
-                      }}
-                      title={`${month.monthLabel}: ${month.count} posts`}
-                    />
+          {/* AI Score Trend */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" style={{ color: CHART_COLORS.info }} />
+              Tendencia Puntuacion IA
+            </h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={aiScoreTrend}>
+                  <XAxis dataKey="month" tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: '#7A6560', fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    name="AI Score Prom."
+                    stroke={CHART_COLORS.info}
+                    strokeWidth={2}
+                    dot={{ fill: CHART_COLORS.info, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Top Performing Posts + Approval Turnaround */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Top Performing Posts */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5 md:col-span-2">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4 flex items-center gap-2">
+              <Award className="w-4 h-4" style={{ color: CHART_COLORS.warning }} />
+              Top 5 Posts por Puntuacion IA
+            </h2>
+            {postsLoading ? (
+              <Skeleton height="h-40" />
+            ) : topPerformingPosts.length > 0 ? (
+              <div className="space-y-3">
+                {topPerformingPosts.map((post, idx) => (
+                  <div key={post.id} className="flex items-center gap-3">
+                    <span
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ color: 'var(--text-dark)' }} className="text-sm font-medium truncate">{post.name}</p>
+                      <p style={{ color: 'var(--text-mid)' }} className="text-xs">{post.clientName}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#f3f4f6' }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${post.score}%`, backgroundColor: CHART_COLORS.success }}
+                        />
+                      </div>
+                      <span style={{ color: 'var(--text-dark)' }} className="text-sm font-bold w-10 text-right">{post.score}</span>
+                    </div>
                   </div>
-                  <p style={{ color: 'var(--text-mid)' }} className="text-xs mt-3 text-center">{month.monthLabel}</p>
-                  <p style={{ color: 'var(--text-dark)' }} className="text-xs font-semibold text-center">{month.count}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-light)' }}>No hay datos de posts en los últimos 6 meses</p>
-          )}
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-light)' }} className="py-8 text-center">No hay posts con puntuacion IA este mes</p>
+            )}
+          </div>
+
+          {/* Approval Turnaround */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5 flex flex-col items-center justify-center">
+            <Clock className="w-8 h-8 mb-3" style={{ color: CHART_COLORS.secondary }} />
+            <p style={{ color: 'var(--text-mid)' }} className="text-sm mb-2 text-center">Tiempo Promedio de Aprobacion</p>
+            {postsLoading ? (
+              <Skeleton width="w-20" height="h-10" />
+            ) : approvalTurnaround !== null ? (
+              <>
+                <p style={{ color: 'var(--text-dark)' }} className="text-4xl font-serif font-bold">
+                  {approvalTurnaround}
+                </p>
+                <p style={{ color: 'var(--text-light)' }} className="text-sm mt-1">dias</p>
+              </>
+            ) : (
+              <p style={{ color: 'var(--text-light)' }} className="text-sm text-center">Sin datos de aprobacion este mes</p>
+            )}
+          </div>
         </div>
-        </div>{/* end pipeline+trend grid */}
 
       </div>
     </div>
@@ -662,21 +928,5 @@ function AccountStatusBadge({ status }: { status: string }) {
     >
       {style.label}
     </span>
-  );
-}
-
-function PipelineStage({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 flex-1">
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white"
-        style={{ backgroundColor: color }}
-      >
-        {count}
-      </div>
-      <p style={{ color: 'var(--text-mid)' }} className="text-xs text-center font-medium">
-        {label}
-      </p>
-    </div>
   );
 }
