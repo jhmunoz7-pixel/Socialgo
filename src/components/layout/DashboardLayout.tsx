@@ -12,9 +12,9 @@ import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 import {
   Home, ListTodo,
-  Package, Users, BarChart3, CalendarDays, Palette, FolderOpen,
+  Package, Users, BarChart3, CalendarDays, Paintbrush, FolderOpen,
   Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
-  Eye, Target, Layers,
+  Eye, ClipboardCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -32,17 +32,19 @@ const ADMIN_ROLES: MemberRole[] = ['owner', 'admin', 'member'];
 const NON_CLIENT: MemberRole[] = ['owner', 'admin', 'member', 'creative'];
 
 const navItems: NavItem[] = [
+  // Principal
   { label: 'Home', icon: Home, href: '/dashboard/home', section: 'principal' },
-  { label: 'Pendientes', icon: ListTodo, href: '/dashboard/pendientes', section: 'principal', roles: NON_CLIENT },
   { label: 'Clientes', icon: Users, href: '/dashboard', section: 'principal', roles: NON_CLIENT },
-  { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
+  { label: 'Pendientes', icon: ListTodo, href: '/dashboard/pendientes', section: 'principal', roles: NON_CLIENT },
   { label: 'Reportes', icon: BarChart3, href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
+  { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
+  // Workspace
   { label: 'Planificación', icon: CalendarDays, href: '/dashboard/planning', section: 'workspace' },
-  { label: 'Contenido', icon: Palette, href: '/dashboard/contenido', section: 'workspace' },
-  { label: 'WIP', icon: Layers, href: '/dashboard/wip', section: 'workspace', roles: NON_CLIENT },
-  { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
+  { label: 'En Diseño', icon: Paintbrush, href: '/dashboard/wip', section: 'workspace', roles: NON_CLIENT },
+  { label: 'Revisiones', icon: ClipboardCheck, href: '/dashboard/contenido', section: 'workspace' },
   { label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
-  { label: 'Competencia', icon: Target, href: '/dashboard/competitors', section: 'workspace', roles: NON_CLIENT },
+  { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
+  // Config
   { label: 'Agencia', icon: Settings, href: '/dashboard/settings', section: 'config', roles: ADMIN_ROLES },
 ];
 
