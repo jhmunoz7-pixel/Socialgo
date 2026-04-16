@@ -13,6 +13,7 @@ import {
   Upload, Download, RefreshCw, MessageSquare, ChevronDown, ChevronUp,
   Send, FileEdit, Search, Clock, CheckCircle2, Inbox,
 } from 'lucide-react';
+import { PublishButton } from '@/components/publishing/PublishButton';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -251,6 +252,11 @@ function PostCard({ post, client, role, onStatusChange }: PostCardProps) {
             <button onClick={() => handleWorkflowAction('published', 'approved')} disabled={isUpdating} className="w-full py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-1.5" style={{ background: 'rgba(16,185,129,0.12)', color: '#065F46' }}>
               <CheckCircle2 className="w-3.5 h-3.5" /> Marcar como aprobado por cliente
             </button>
+          )}
+
+          {/* Direct Publishing */}
+          {isAdmin && (stage === 'client_ready' || stage === 'client_approved') && (
+            <PublishButton post={post} clientId={post.client_id} onPublished={onStatusChange} />
           )}
         </div>
 

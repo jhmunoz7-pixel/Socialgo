@@ -12,6 +12,7 @@ import {
   BrandKit,
   PostComment,
   ContentWeek,
+  Competitor,
 } from '@/types';
 
 // Type for hook return pattern
@@ -943,4 +944,122 @@ export async function uploadAndAttachAsset(
 ): Promise<Post> {
   const publicUrl = await uploadPostAsset(file, orgId, postId);
   return updatePost(postId, { image_url: publicUrl });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Competitors
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Fetches all competitors for a given client
+ */
+export function useCompetitors(clientId: string | null): HookResultArray<Competitor> {
+  const [data, setData] = useState<Competitor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchCompetitors = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!clientId) {
+        setData([]);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      const { data: competitorsData, error: competitorsError } = await supabase
+        .from('competitors')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('name', { ascending: true });
+
+      if (competitorsError) throw competitorsError;
+
+      setData(competitorsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchCompetitors();
+  }, [fetchCompetitors]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchCompetitors,
+  };
+}
+
+/**
+ * Creates a new competitor
+ */
+export async function createCompetitor(
+  data: Omit<Competitor, 'id' | 'org_id' | 'created_at' | 'updated_at'>
+): Promise<Competitor> {
+  const supabase = createSupabaseClient();
+  const { data: authData } = await supabase.auth.getUser();
+
+  if (!authData.user) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data: memberData } = await supabase
+    .from('members')
+    .select('org_id')
+    .eq('user_id', authData.user.id)
+    .single();
+
+  if (!memberData) {
+    throw new Error('User is not a member of any organization');
+  }
+
+  const { data: result, error } = await supabase
+    .from('competitors')
+    .insert({
+      ...data,
+      org_id: memberData.org_id,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return result as Competitor;
+}
+
+/**
+ * Updates an existing competitor
+ */
+export async function updateCompetitor(
+  id: string,
+  data: Partial<Omit<Competitor, 'id' | 'org_id' | 'created_at' | 'updated_at'>>
+): Promise<Competitor> {
+  const supabase = createSupabaseClient();
+
+  const { data: result, error } = await supabase
+    .from('competitors')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return result as Competitor;
+}
+
+/**
+ * Deletes a competitor
+ */
+export async function deleteCompetitor(id: string): Promise<void> {
+  const supabase = createSupabaseClient();
+
+  const { error } = await supabase.from('competitors').delete().eq('id', id);
+
+  if (error) throw error;
 }

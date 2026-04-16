@@ -1,0 +1,30 @@
+{
+  "name": "SocialGo — Agency OS",
+  "short_name": "SocialGo",
+  "description": "Gestiona clientes, planea contenido y analiza con IA. El sistema operativo para agencias de social media.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#FFF8F3",
+  "theme_color": "#FF8FAD",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/socialgo-isotipo-cropped.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es-MX"
+}

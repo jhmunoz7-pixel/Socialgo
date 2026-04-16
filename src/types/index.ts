@@ -26,6 +26,7 @@ export interface Organization {
   billing_cycle: 'monthly' | 'quarterly' | 'annual';
   client_limit: number;
   theme: 'rose' | 'blue' | 'dark';
+  slack_webhook_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -157,6 +158,10 @@ export interface Post {
   reach: number;
   // Assignment
   assigned_to: string | null;
+  // Publishing
+  published_url: string | null;
+  published_at: string | null;
+  publish_error: string | null;
   // Meta
   created_at: string;
   updated_at: string;
@@ -208,6 +213,20 @@ export interface PostComment {
   created_at: string;
 }
 
+// ========== Social Connection (Direct Publishing) ==========
+export interface SocialConnection {
+  id: string;
+  org_id: string;
+  client_id: string;
+  platform: 'instagram' | 'facebook';
+  access_token: string;
+  page_id: string | null;
+  page_name: string | null;
+  token_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ========== Content Week ==========
 export interface ContentWeek {
   id: string;
@@ -216,6 +235,22 @@ export interface ContentWeek {
   week_start: string;
   week_end: string;
   status: 'in_progress' | 'pending_approval' | 'approved' | 'published';
+  created_at: string;
+  updated_at: string;
+}
+
+// ========== Competitor ==========
+export interface Competitor {
+  id: string;
+  org_id: string;
+  client_id: string;
+  name: string;
+  instagram_handle: string | null;
+  facebook_url: string | null;
+  tiktok_handle: string | null;
+  linkedin_url: string | null;
+  website: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

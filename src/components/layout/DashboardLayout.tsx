@@ -13,7 +13,7 @@ import { OnboardingPopup } from '@/components/layout/OnboardingPopup';
 import {
   Package, Users, BarChart3, CalendarDays, Palette, FolderOpen,
   Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
-  Eye,
+  Eye, Target,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { label: 'Contenido', icon: Palette, href: '/dashboard/contenido', section: 'workspace' },
   { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
   { label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
+  { label: 'Competencia', icon: Target, href: '/dashboard/competitors', section: 'workspace', roles: NON_CLIENT },
   { label: 'Agencia', icon: Settings, href: '/dashboard/settings', section: 'config', roles: ADMIN_ROLES },
 ];
 
