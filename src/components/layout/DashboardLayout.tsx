@@ -13,7 +13,7 @@ import {
   Home, ListTodo,
   Package, Users, BarChart3, CalendarDays, Paintbrush, FolderOpen,
   Sparkles, Settings, Shield, LogOut, Menu, X, ChevronLeft,
-  Eye, ClipboardCheck,
+  Eye,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -38,9 +38,8 @@ const navItems: NavItem[] = [
   { label: 'Reportes', icon: BarChart3, href: '/dashboard/reports', section: 'principal', roles: NON_CLIENT },
   { label: 'Paquetes', icon: Package, href: '/dashboard/packages', section: 'principal', roles: ADMIN_ROLES },
   // Workspace
-  { label: 'Planificación', icon: CalendarDays, href: '/dashboard/planning', section: 'workspace' },
+  { label: 'Calendario', icon: CalendarDays, href: '/dashboard/calendario', section: 'workspace' },
   { label: 'En Diseño', icon: Paintbrush, href: '/dashboard/wip', section: 'workspace', roles: NON_CLIENT },
-  { label: 'Revisiones', icon: ClipboardCheck, href: '/dashboard/contenido', section: 'workspace' },
   { label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio', section: 'workspace', roles: NON_CLIENT },
   { label: 'Assets', icon: FolderOpen, href: '/dashboard/assets', section: 'workspace', roles: NON_CLIENT },
   // Config
