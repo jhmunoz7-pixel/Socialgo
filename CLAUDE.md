@@ -91,3 +91,70 @@ npx tsc --noEmit     # Type check (should be 0 errors)
 
 ## Language
 UI is in Spanish (es-MX). Code comments and variable names in English.
+
+## Session: April 16, 2026 — Changes Made
+- "Empezar Gratis" → redirects to /pricing (plan selection first)
+- Signup form: added agency name + phone fields, trial 7 days
+- Dashboard sidebar: Paquetes first, then Clientes
+- Onboarding popup (3-step setup guide, auto-hides after first client)
+- Client form: removed "Status inicial", defaults to "activo"
+- Client panel: activate/deactivate toggle with tooltip
+- Team settings: removed "Miembro" from invite roles, default "Creativo"
+- Resend invitation button + /api/members/resend-invite endpoint
+- Permission matrix tab removed, owner/admin/member unified as "Administrador"
+- Invite flow: InviteTokenHandler on login/set-password pages for Supabase hash tokens
+- DashboardLayout split into outer (AuthProvider) + DashboardLayoutInner (consumes context)
+- Role-based sidebar filtering (creative: no Paquetes/Agencia; client_viewer: only Planificación/Contenido)
+- Client panel: creatives see no financial data (MRR, payments, tipo, mensualidad)
+- Reports: creatives/clients see no MRR or payment sections; charts compacted in 2-col grids
+- Planning page redesign: calendar (left) + posts table (right), "Nuevo Post Planeado" button/modal
+- Post review modal: editable for non-clients, asset upload, comments system
+- Content approval workflow: En edición → Listo para revisión interna → En revisión interna → Aprobación interna → Visible al cliente → Aprobado
+- Client_viewer only sees internally-approved posts in Contenido
+- Asset download for client_viewer in planning and contenido
+
+## Roadmap: SocialGo v2 — Competitive Upgrade (vs Kontentino)
+
+### Design Direction
+- Adopt Kontentino-inspired minimalist UX: softer rounded shapes (no harsh squares),
+  generous whitespace, subtle shadows, informational banners/tips, clean iconography
+- Keep SocialGo's warm color palette (#FF8FAD rose, #FFBA8A peach, #FFF8F3 warm white)
+- Transition from glass-morphism heavy to clean, airy panels with subtle borders
+- Use Lucide React icons (outline style) instead of emoji for navigation and actions
+- Add contextual tip banners ("💡 Tip: ...") and empty state illustrations
+- Cards with rounded-2xl+, subtle hover lift, no heavy borders
+
+### Phase 1 — Quick Wins (high impact, low effort)
+1. **UI/UX Overhaul** — Redesign all dashboard pages with Kontentino-inspired minimalism
+   - Softer panels, better spacing, icon-based nav, tip banners
+   - Consistent component library (cards, buttons, badges, modals)
+2. **AI Content Generation** — Expand Claude API usage:
+   - Generate copy from prompt, improve existing copy, suggest hashtags
+   - Translate posts (84 languages via Claude)
+   - Integrate into planning modal and post editor
+3. **Vista Kanban** in Contenido — Drag-and-drop columns by workflow stage
+   (En edición | Revisión interna | Con cliente | Aprobado)
+4. **Client approval portal (no login)** — Unique token-based link per post
+   Client opens link → sees preview + can approve/comment without account
+5. **Instagram Grid Preview** — Visual feed preview for each client
+
+### Phase 2 — Differentiators (medium effort)
+6. **Live Post Previews** — Mockup how post looks on IG, FB, TikTok, LinkedIn
+7. **AI Brand Voice** — Analyze client's previous posts to replicate tone
+8. **Enhanced Analytics** — Engagement tracking, period comparison, visual charts
+9. **AI Image Generation** — Integrate image gen for asset creation
+10. **Drag & Drop Calendar** — Reschedule posts by dragging
+
+### Phase 3 — Full Competition (high effort)
+11. **Direct Publishing** — Auto-publish to Instagram/Facebook via Meta Graph API
+12. **PWA / Mobile** — Progressive web app for mobile access
+13. **Integrations** — Canva, Google Drive, Slack notifications
+14. **Competitor Analysis** — Monitor competitor social accounts
+
+### SocialGo's Competitive Moat (what Kontentino can't copy)
+- **Integrated client billing** (Stripe, packages, MRR tracking, payment status)
+- **Multi-tenant agency SaaS** (org subscriptions, plan enforcement, white-label potential)
+- **LATAM-native** (Spanish UI, MXN pricing, local payment methods)
+- **AI-first with Claude** (more powerful than Kontentino's AI, included in all plans)
+- **All-in-one** — "The only platform that manages your entire agency business:
+  from client contracts to post publication"
