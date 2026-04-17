@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Wifi, WifiOff, Trash2, Save, RefreshCw, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+
+const FacebookIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
 import type { SocialConnection } from '@/types';
 import { MetaConnectWizard } from './MetaConnectWizard';
 
@@ -65,6 +71,33 @@ export function ConnectionSetup({ clientId }: ConnectionSetupProps) {
   useEffect(() => {
     fetchConnections();
   }, [fetchConnections]);
+
+  // Surface the result of the "Conectar con Facebook" redirect flow.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('meta_oauth');
+    if (!status) return;
+    if (status === 'success') {
+      const page = params.get('page');
+      const hasIg = params.get('has_ig') === '1';
+      setMessage({
+        type: 'success',
+        text: hasIg
+          ? `¡Conectado! Página "${page}" + Instagram vinculados.`
+          : `Página "${page}" conectada (Facebook). No se detectó Instagram vinculado.`,
+      });
+    } else {
+      setMessage({
+        type: 'error',
+        text: `Error al conectar: ${params.get('reason') || 'desconocido'}`,
+      });
+    }
+    // Clean the URL so the banner doesn't reappear on every render.
+    const cleanUrl = new URL(window.location.href);
+    ['meta_oauth', 'reason', 'page', 'has_ig', 'pages_count'].forEach((k) => cleanUrl.searchParams.delete(k));
+    window.history.replaceState({}, '', cleanUrl.toString());
+  }, []);
 
   const handleSave = async (platform: 'instagram' | 'facebook') => {
     const form = forms[platform];
@@ -187,6 +220,47 @@ export function ConnectionSetup({ clientId }: ConnectionSetupProps) {
       <p className="text-xs" style={{ color: 'var(--text-mid)' }}>
         Conecta las cuentas de redes sociales de este cliente para publicar directamente desde SocialGo.
       </p>
+
+      {/* One-click OAuth — the recommended path for clients */}
+      <div
+        className="rounded-2xl p-5"
+        style={{
+          background: 'linear-gradient(135deg, #1877F2 0%, #42A5F5 100%)',
+          color: 'white',
+        }}
+      >
+        <div className="flex items-start gap-3 mb-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.18)' }}
+          >
+            <FacebookIcon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">Conectar con Facebook</h3>
+            <p className="text-xs mt-0.5 opacity-90">
+              Un solo click: Facebook te pide aceptar los permisos y nosotros guardamos automáticamente la página e Instagram del cliente.
+            </p>
+          </div>
+        </div>
+        <a
+          href={`/api/meta/oauth/start?client_id=${clientId}`}
+          className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'white', color: '#1877F2' }}
+        >
+          <FacebookIcon className="w-4 h-4" />
+          Conectar cuenta de Facebook / Instagram
+        </a>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-2 my-4" role="separator">
+        <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
+        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-light)' }}>
+          o pegar token (avanzado)
+        </span>
+        <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
+      </div>
 
       {/* Guided wizard — pastes a token, auto-discovers pages + IG */}
       <MetaConnectWizard clientId={clientId} onConnected={fetchConnections} />
