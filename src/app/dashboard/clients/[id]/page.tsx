@@ -8,6 +8,7 @@ import { LayoutGrid, Image as ImageIcon } from 'lucide-react';
 import { PostModal } from '@/components/posts/PostModal';
 import { EditClientModal } from '@/components/clients/EditClientModal';
 import BrandKitPanel from '@/components/clients/BrandKitPanel';
+import { ConnectionSetup } from '@/components/publishing/ConnectionSetup';
 import FeedPreview from '@/components/clients/FeedPreview';
 import InstagramPanel from '@/components/clients/InstagramPanel';
 
@@ -29,7 +30,7 @@ export default function ClientDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [createPostOpen, setCreatePostOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'parrilla' | 'feed' | 'instagram' | 'brandkit'>('parrilla');
+  const [activeTab, setActiveTab] = useState<'parrilla' | 'feed' | 'instagram' | 'brandkit' | 'publishing'>('parrilla');
   const [editClientOpen, setEditClientOpen] = useState(false);
 
   // Filter posts by selected month
@@ -352,6 +353,13 @@ export default function ClientDetailPage() {
           >
             🎨 Brand Kit
           </button>
+          <button
+            onClick={() => setActiveTab('publishing')}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+            style={activeTab === 'publishing' ? { background: 'var(--gradient)', color: 'white' } : { color: 'var(--text-mid)' }}
+          >
+            🚀 Publicación
+          </button>
         </div>
 
         {/* Feed Preview Tab */}
@@ -367,6 +375,13 @@ export default function ClientDetailPage() {
         {/* Brand Kit Tab */}
         {activeTab === 'brandkit' && (
           <BrandKitPanel clientId={clientId} orgId={currentUser.data?.member?.org_id || ''} />
+        )}
+
+        {/* Publishing Tab — connect IG/FB accounts for direct publishing */}
+        {activeTab === 'publishing' && (
+          <div className="max-w-2xl">
+            <ConnectionSetup clientId={clientId} />
+          </div>
         )}
 
         {/* Parrilla Tab */}

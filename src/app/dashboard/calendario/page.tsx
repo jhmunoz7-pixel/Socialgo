@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { PublishButton } from '@/components/publishing/PublishButton';
+import { FlowOnboarding } from '@/components/calendario/FlowOnboarding';
 
 // Spanish weekday headers, Monday-first
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -144,6 +145,9 @@ export default function CalendarioPage() {
   const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
+  // Reopenable flow onboarding
+  const [helpOpen, setHelpOpen] = useState(false);
+
   // New proposal modal
   const [proposalOpen, setProposalOpen] = useState(false);
   const [proposalDefaultDate, setProposalDefaultDate] = useState<string | null>(null);
@@ -196,9 +200,10 @@ export default function CalendarioPage() {
       if (!p.canva_design_id) return;
       const d = designs.find((x) => x.id === p.canva_design_id);
       if (d) {
+        const page = p.canva_page_number ?? null;
         map[p.id] = {
-          thumbnail: resolvePageThumbnail(d, p.canva_page_number),
-          page: p.canva_page_number,
+          thumbnail: resolvePageThumbnail(d, page),
+          page,
           pageCount: d.page_count,
         };
       }
@@ -494,10 +499,19 @@ export default function CalendarioPage() {
 
         {/* Tip banner */}
         <div
-          className="px-6 py-2 border-b flex items-center gap-2 text-[11px] flex-shrink-0"
+          className="px-6 py-2 border-b flex items-center justify-between gap-2 text-[11px] flex-shrink-0"
           style={{ background: 'white', borderColor: 'var(--glass-border)', color: 'var(--text-light)' }}
         >
-          💡 <span><b style={{ color: 'var(--text-mid)' }}>Tip:</b> haz click en un post para revisar y moverlo de etapa. Próximamente podrás arrastrarlo entre días.</span>
+          <span className="flex items-center gap-2">
+            💡 <span><b style={{ color: 'var(--text-mid)' }}>Tip:</b> arrastra un post entre días para reprogramar, o al panel de etapas para moverlo de fase.</span>
+          </span>
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="px-2 py-1 rounded-md text-[11px] font-semibold hover:bg-slate-100 transition-colors"
+            style={{ color: '#6366F1' }}
+          >
+            ¿Cómo funciona?
+          </button>
         </div>
 
         {/* Calendar grid */}
@@ -681,6 +695,10 @@ export default function CalendarioPage() {
           }}
         />
       )}
+
+      {/* Flow onboarding — auto-opens on first visit, reopenable via the
+          "¿Cómo funciona?" button in the tip banner. */}
+      <FlowOnboarding forceOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
@@ -1178,7 +1196,7 @@ function PostDrawer({
           {pickerOpen && !isClientViewer && (
             <CanvaPickerPanel
               allDesigns={allDesigns}
-              currentDesignId={post.canva_design_id}
+              currentDesignId={post.canva_design_id ?? null}
               currentPage={pageNumber}
               onSave={saveCanvaLink}
               onClose={() => setPickerOpen(false)}
@@ -1306,6 +1324,23 @@ function PostDrawer({
 
       {/* Sticky action footer */}
       <div className="border-t p-4 space-y-2 flex-shrink-0" style={{ borderColor: 'var(--glass-border)', background: 'white' }}>
+        {/* Scheduled-state note: explain that the cron will publish automatically */}
+        {stage === 'scheduled' && post.scheduled_date && (
+          <div
+            className="p-2.5 rounded-lg text-[11px] flex items-start gap-2"
+            style={{ background: '#E0F2FE', border: '1px solid rgba(56,189,248,0.3)', color: '#075985' }}
+          >
+            <span>🚀</span>
+            <span>
+              Se publicará automáticamente el{' '}
+              <b>
+                {new Date(post.scheduled_date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+                {post.scheduled_time ? ` a las ${post.scheduled_time.slice(0, 5)}` : ''}
+              </b>
+              . Si no hay cuenta conectada, usa el botón para publicar manualmente.
+            </span>
+          </div>
+        )}
         {/* Direct-publish to IG/FB when the post is approved + scheduled */}
         {!isClientViewer && (
           <PublishButton post={post} clientId={post.client_id} onPublished={() => { void onLinkChange(); }} />
@@ -1427,15 +1462,28 @@ function NewProposalModal({
         impressions: 0,
         reach: 0,
         assigned_to: null,
-        canva_design_id: null,
-        canva_page_number: null,
+        // canva_design_id / canva_page_number left out on purpose — the DB
+        // fills them as null when migration 013 is applied, and skipping
+        // them here keeps inserts working on databases that haven't yet
+        // received that migration.
         published_url: null,
         published_at: null,
         publish_error: null,
       });
       onCreated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la propuesta');
+    } catch (err: unknown) {
+      // Supabase errors aren't Error instances — they're POJOs with .message
+      // and sometimes .details / .hint. Surface whatever we can so the user
+      // (and we) can actually diagnose what went wrong.
+      console.error('Create proposal failed:', err);
+      let message = 'Error al crear la propuesta';
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (err && typeof err === 'object') {
+        const e = err as { message?: string; details?: string; hint?: string; code?: string };
+        message = e.message || e.details || e.hint || e.code || message;
+      }
+      setError(message);
     } finally {
       setIsSaving(false);
     }
