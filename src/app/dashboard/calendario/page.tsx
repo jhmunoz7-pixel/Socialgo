@@ -11,6 +11,7 @@ import {
   updatePost,
   createPost,
   createPostComment,
+  uploadAndAttachAsset,
 } from '@/lib/hooks';
 import type { Post, Client, Platform, PostType, PostFormat, CanvaDesign } from '@/types';
 import {
@@ -37,6 +38,7 @@ import {
   Palette,
   Smartphone,
   Wand2,
+  Upload,
 } from 'lucide-react';
 import { PlatformPreview } from '@/components/posts/PlatformPreview';
 import { PublishButton } from '@/components/publishing/PublishButton';
@@ -929,6 +931,29 @@ function PostDrawer({
   const [imageGenPrompt, setImageGenPrompt] = useState('');
   const [imageGenLoading, setImageGenLoading] = useState(false);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const orgId = currentUserData?.member?.org_id;
+    if (!orgId) {
+      setUploadError('No se pudo determinar tu organización');
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    try {
+      await uploadAndAttachAsset(file, orgId, post.id);
+      await onLinkChange();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error al subir archivo');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const handleGenerateImage = async () => {
     if (!imageGenPrompt.trim()) return;
@@ -1083,6 +1108,21 @@ function PostDrawer({
               </div>
               {!isClientViewer && (
                 <>
+                  <label
+                    className="flex items-center gap-1 text-[10px] font-semibold hover:underline cursor-pointer"
+                    style={{ color: uploading ? 'var(--text-light)' : '#059669', pointerEvents: uploading ? 'none' : 'auto' }}
+                    title="Subir archivo desde tu computadora"
+                  >
+                    <Upload className="w-3 h-3" />
+                    {uploading ? 'Subiendo…' : 'Subir archivo'}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                  </label>
                   <button
                     onClick={() => setImageGenOpen((v) => !v)}
                     className="flex items-center gap-1 text-[10px] font-semibold hover:underline"
@@ -1149,6 +1189,15 @@ function PostDrawer({
               <p className="text-[9px]" style={{ color: 'var(--text-light)' }}>
                 Se usará como imagen del post. Puede reemplazar la actual.
               </p>
+            </div>
+          )}
+
+          {uploadError && (
+            <div
+              className="mt-2 mb-2 p-2 rounded-md text-[10px]"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#991B1B' }}
+            >
+              {uploadError}
             </div>
           )}
 
