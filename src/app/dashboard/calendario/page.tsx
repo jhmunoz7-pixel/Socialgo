@@ -920,14 +920,23 @@ function PostDrawer({
       const res = await fetch('/api/ai/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: imageGenPrompt.trim() }),
+        body: JSON.stringify({
+          prompt: imageGenPrompt.trim(),
+          post_id: post.id, // endpoint persists to post-assets and updates image_url
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
         setImageGenError(body.error || 'Error al generar imagen');
         return;
       }
-      await updatePost(post.id, { image_url: body.url });
+      // Endpoint already updated the post when persisted=true. If it fell
+      // back to the ephemeral URL, patch it ourselves so the UI still shows
+      // something until the user uploads a replacement.
+      if (!body.persisted) {
+        await updatePost(post.id, { image_url: body.url });
+      }
+      if (body.warning) setImageGenError(body.warning);
       await onLinkChange();
       setImageGenOpen(false);
       setImageGenPrompt('');

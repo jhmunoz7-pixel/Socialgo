@@ -346,10 +346,10 @@ export default function ReportsPage() {
     return months;
   }, [filteredPosts]);
 
-  // Engagement totals for the selected month (likes + comments + shares + saves)
-  const engagementThisMonth = useMemo(() => {
+  // Engagement totals for a given month (likes + comments + shares + saves)
+  const computeEngagementForMonth = (month: string) => {
     if (!filteredPosts) return { total: 0, likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 };
-    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
+    const postsThisMonth = getPostsByMonth(filteredPosts, month);
     return postsThisMonth.reduce(
       (acc, p) => ({
         total: acc.total + (p.likes || 0) + (p.comments_count || 0) + (p.shares || 0) + (p.saves || 0),
@@ -361,7 +361,16 @@ export default function ReportsPage() {
       }),
       { total: 0, likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 },
     );
-  }, [filteredPosts, selectedMonth]);
+  };
+
+  const engagementThisMonth = useMemo(
+    () => computeEngagementForMonth(selectedMonth),
+    [filteredPosts, selectedMonth],
+  );
+  const engagementComparison = useMemo(
+    () => (comparisonMonth ? computeEngagementForMonth(comparisonMonth) : null),
+    [filteredPosts, comparisonMonth],
+  );
 
   // Engagement trend (last 6 months, total interactions per month)
   const engagementTrend = useMemo(() => {
@@ -993,20 +1002,25 @@ export default function ReportsPage() {
             ) : (
               <div className="space-y-3">
                 <div>
-                  <p className="text-3xl font-bold tabular-nums" style={{ color: CHART_COLORS.primary }}>
-                    {engagementThisMonth.total.toLocaleString('es-MX')}
-                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold tabular-nums" style={{ color: CHART_COLORS.primary }}>
+                      {engagementThisMonth.total.toLocaleString('es-MX')}
+                    </p>
+                    {engagementComparison && (
+                      <DeltaBadge current={engagementThisMonth.total} previous={engagementComparison.total} />
+                    )}
+                  </div>
                   <p className="text-xs" style={{ color: 'var(--text-light)' }}>Interacciones totales</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                  <EngagementStat label="Likes" value={engagementThisMonth.likes} color={CHART_COLORS.primary} />
-                  <EngagementStat label="Comentarios" value={engagementThisMonth.comments} color={CHART_COLORS.secondary} />
-                  <EngagementStat label="Shares" value={engagementThisMonth.shares} color={CHART_COLORS.accent} />
+                  <EngagementStat label="Likes" value={engagementThisMonth.likes} previous={engagementComparison?.likes} color={CHART_COLORS.primary} />
+                  <EngagementStat label="Comentarios" value={engagementThisMonth.comments} previous={engagementComparison?.comments} color={CHART_COLORS.secondary} />
+                  <EngagementStat label="Shares" value={engagementThisMonth.shares} previous={engagementComparison?.shares} color={CHART_COLORS.accent} />
                 </div>
                 {engagementThisMonth.reach > 0 && (
                   <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                    <EngagementStat label="Alcance" value={engagementThisMonth.reach} color={CHART_COLORS.info} />
-                    <EngagementStat label="Impresiones" value={engagementThisMonth.impressions} color={CHART_COLORS.muted} />
+                    <EngagementStat label="Alcance" value={engagementThisMonth.reach} previous={engagementComparison?.reach} color={CHART_COLORS.info} />
+                    <EngagementStat label="Impresiones" value={engagementThisMonth.impressions} previous={engagementComparison?.impressions} color={CHART_COLORS.muted} />
                   </div>
                 )}
                 {engagementThisMonth.total === 0 && (
@@ -1155,13 +1169,43 @@ function AccountStatusBadge({ status }: { status: string }) {
   );
 }
 
-function EngagementStat({ label, value, color }: { label: string; value: number; color: string }) {
+function EngagementStat({
+  label, value, previous, color,
+}: {
+  label: string;
+  value: number;
+  previous?: number;
+  color: string;
+}) {
+  let deltaPct: number | null = null;
+  let deltaPositive = true;
+  if (typeof previous === 'number') {
+    if (previous === 0 && value === 0) deltaPct = 0;
+    else if (previous === 0) {
+      deltaPct = 100;
+      deltaPositive = true;
+    } else {
+      const diff = ((value - previous) / previous) * 100;
+      deltaPct = Math.abs(Math.round(diff));
+      deltaPositive = diff >= 0;
+    }
+  }
   return (
     <div>
       <p className="text-lg font-bold tabular-nums" style={{ color }}>
         {value.toLocaleString('es-MX')}
       </p>
-      <p className="text-[10px]" style={{ color: 'var(--text-light)' }}>{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-[10px]" style={{ color: 'var(--text-light)' }}>{label}</p>
+        {deltaPct !== null && deltaPct > 0 && (
+          <span
+            className="text-[9px] font-semibold"
+            style={{ color: deltaPositive ? '#10B981' : '#EF4444' }}
+          >
+            {deltaPositive ? '\u2191' : '\u2193'}{deltaPct}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }
