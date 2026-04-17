@@ -5,7 +5,7 @@ import { useOrganization, useMembers, useCurrentUser, useClients } from '@/lib/h
 import { usePermissions, getRoleLabel, getRoleColor } from '@/lib/permissions';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { MemberRole, Organization } from '@/types';
-import { Settings, Hash, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Settings, Hash, CheckCircle, XCircle, Loader2, Palette, Link2, Unlink } from 'lucide-react';
 
 
 // ============================================================================
@@ -892,7 +892,17 @@ export default function SettingsPage() {
   const { data: _currentUserData } = useCurrentUser();
   const { role: _role, loading: permLoading, can } = usePermissions();
 
-  const [activeTab, setActiveTab] = useState<'agencia' | 'equipo'>('agencia');
+  const [activeTab, setActiveTab] = useState<'agencia' | 'equipo' | 'integraciones'>('agencia');
+
+  // Respect ?tab=integraciones deep-links (used by the Canva OAuth callback)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'integraciones' || tab === 'equipo' || tab === 'agencia') {
+      setActiveTab(tab);
+    }
+  }, []);
 
   const canManageOrg = can('manage_organization');
   const canManageMembers = can('manage_members');
@@ -919,6 +929,7 @@ export default function SettingsPage() {
           {[
             { id: 'agencia', label: 'Agencia' },
             { id: 'equipo', label: 'Equipo' },
+            { id: 'integraciones', label: 'Integraciones' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -988,10 +999,192 @@ export default function SettingsPage() {
               </div>
             ))}
 
+          {activeTab === 'integraciones' && <IntegracionesTab />}
+
         </div>
         </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// INTEGRACIONES TAB
+// ============================================================================
+
+interface CanvaStatus {
+  configured: boolean;
+  connected: boolean;
+  displayName: string | null;
+  canvaUserId: string | null;
+  expiresAt: string | null;
+  updatedAt: string | null;
+  scope: string | null;
+}
+
+function IntegracionesTab() {
+  const [status, setStatus] = useState<CanvaStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/canva/auth/status', { cache: 'no-store' });
+      const body = await res.json();
+      if (res.ok) setStatus(body);
+    } catch (err) {
+      console.error('Error loading Canva status:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+    // Read query string set by the OAuth callback redirect
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const canva = params.get('canva');
+      if (canva === 'connected') {
+        setMessage({ type: 'success', text: 'Canva conectado correctamente.' });
+      } else if (canva === 'error') {
+        const reason = params.get('reason') || 'unknown';
+        setMessage({ type: 'error', text: `No se pudo conectar con Canva (${reason}).` });
+      }
+    }
+  }, []);
+
+  const handleConnect = () => {
+    window.location.href = '/api/canva/auth/authorize';
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('¿Desconectar tu cuenta de Canva? Los diseños ya sincronizados se conservan.')) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/canva/auth/disconnect', { method: 'POST' });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Canva desconectado.' });
+        await loadStatus();
+      } else {
+        const body = await res.json();
+        setMessage({ type: 'error', text: body.error || 'Error al desconectar.' });
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {message && (
+        <div
+          className="p-3 rounded-xl text-sm"
+          style={{
+            background: message.type === 'success' ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+            border: message.type === 'success' ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
+            color: message.type === 'success' ? '#047857' : '#991B1B',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {/* Canva card */}
+      <div
+        className="rounded-2xl p-6"
+        style={{ background: 'white', border: '1px solid var(--glass-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+      >
+        <div className="flex items-start gap-4">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+          >
+            <Palette className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-base font-semibold" style={{ color: 'var(--text-dark)' }}>Canva</h3>
+              {loading ? null : status?.connected ? (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ background: '#ECFDF5', color: '#047857' }}
+                >
+                  <CheckCircle className="w-3 h-3" /> Conectado
+                </span>
+              ) : (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: '#F1F5F9', color: 'var(--text-mid)' }}
+                >
+                  Sin conectar
+                </span>
+              )}
+            </div>
+            <p className="text-sm" style={{ color: 'var(--text-mid)' }}>
+              Conecta tu cuenta para sincronizar páginas de tus diseños y verlas en el calendario.
+            </p>
+
+            {!loading && !status?.configured && (
+              <div
+                className="mt-3 p-3 rounded-xl text-xs"
+                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#92400E' }}
+              >
+                El administrador debe configurar <b>CANVA_CLIENT_ID</b>, <b>CANVA_CLIENT_SECRET</b> y <b>CANVA_REDIRECT_URI</b> en el servidor antes de que los usuarios puedan conectar.
+              </div>
+            )}
+
+            {!loading && status?.connected && (
+              <div
+                className="mt-3 p-3 rounded-xl text-xs"
+                style={{ background: '#F8FAFC', border: '1px solid var(--glass-border)', color: 'var(--text-mid)' }}
+              >
+                <p>
+                  Conectado como <b style={{ color: 'var(--text-dark)' }}>{status.displayName || status.canvaUserId || 'Cuenta Canva'}</b>
+                </p>
+                {status.expiresAt && (
+                  <p className="mt-1">Token válido hasta {new Date(status.expiresAt).toLocaleString('es-MX')}.</p>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              {loading ? (
+                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-light)' }}>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando…
+                </div>
+              ) : status?.connected ? (
+                <button
+                  onClick={handleDisconnect}
+                  disabled={actionLoading}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
+                  style={{ borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
+                >
+                  <Unlink className="w-3.5 h-3.5" />
+                  {actionLoading ? 'Desconectando…' : 'Desconectar'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleConnect}
+                  disabled={!status?.configured}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md transition-shadow disabled:opacity-50 flex items-center gap-1.5"
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Conectar Canva
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs" style={{ color: 'var(--text-light)' }}>
+        Más integraciones (Slack, Instagram, Facebook) disponibles en la pestaña de Agencia o próximamente aquí.
+      </p>
     </div>
   );
 }
