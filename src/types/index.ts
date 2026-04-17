@@ -159,8 +159,11 @@ export interface Post {
   // Assignment
   assigned_to: string | null;
   // Canva linkage (per-page)
-  canva_design_id: string | null;
-  canva_page_number: number | null;
+  // Optional on the TS side so old inserts that don't know about these
+  // columns still compile (and still work against a DB that hasn't yet
+  // applied migration 013).
+  canva_design_id?: string | null;
+  canva_page_number?: number | null;
   // Publishing
   published_url: string | null;
   published_at: string | null;
