@@ -67,7 +67,7 @@ export default function AgenciesTable({
         body: JSON.stringify({ orgId }),
       });
       if (res.ok) {
-        router.push("/dashboard");
+        router.push("/dashboard/home");
         router.refresh();
       }
     } finally {

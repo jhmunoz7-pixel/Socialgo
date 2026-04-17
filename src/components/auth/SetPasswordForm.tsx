@@ -90,7 +90,7 @@ export function SetPasswordForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/dashboard/home");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error inesperado");

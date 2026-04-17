@@ -42,7 +42,7 @@ export default function UpdatePasswordPage() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push('/dashboard/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado');
       setIsLoading(false);

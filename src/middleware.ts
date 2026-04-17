@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isPublicAuthRoute && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard/home", request.url));
   }
 
   return response;
