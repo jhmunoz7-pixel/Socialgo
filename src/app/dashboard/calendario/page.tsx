@@ -34,7 +34,12 @@ import {
   ArrowRight,
   ArrowLeft,
   Archive,
+  Palette,
+  Smartphone,
+  Wand2,
 } from 'lucide-react';
+import { PlatformPreview } from '@/components/posts/PlatformPreview';
+import { PublishButton } from '@/components/publishing/PublishButton';
 
 // Spanish weekday headers, Monday-first
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -901,6 +906,37 @@ function PostDrawer({
   const [isSending, setIsSending] = useState(false);
   const [copyDraft, setCopyDraft] = useState(post.copy || '');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'canva' | 'platform'>('canva');
+  const [imageGenOpen, setImageGenOpen] = useState(false);
+  const [imageGenPrompt, setImageGenPrompt] = useState('');
+  const [imageGenLoading, setImageGenLoading] = useState(false);
+  const [imageGenError, setImageGenError] = useState<string | null>(null);
+
+  const handleGenerateImage = async () => {
+    if (!imageGenPrompt.trim()) return;
+    setImageGenLoading(true);
+    setImageGenError(null);
+    try {
+      const res = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: imageGenPrompt.trim() }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setImageGenError(body.error || 'Error al generar imagen');
+        return;
+      }
+      await updatePost(post.id, { image_url: body.url });
+      await onLinkChange();
+      setImageGenOpen(false);
+      setImageGenPrompt('');
+    } catch (err) {
+      setImageGenError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setImageGenLoading(false);
+    }
+  };
 
   // The design this post is currently linked to (prefers posts.canva_design_id)
   const linkedDesign = useMemo(
@@ -981,45 +1017,153 @@ function PostDrawer({
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>
-              {linkedDesign
+              {previewMode === 'canva' && linkedDesign
                 ? `Preview · Canva (pág ${pageNumber ?? 1} de ${linkedDesign.page_count})`
+                : previewMode === 'platform'
+                ? `Preview · ${post.platform}`
                 : 'Preview'}
             </p>
-            {!isClientViewer && (
-              <button
-                onClick={() => setPickerOpen((v) => !v)}
-                className="text-[10px] font-semibold hover:underline"
-                style={{ color: '#6366F1' }}
+            <div className="flex items-center gap-2">
+              {/* Preview mode toggle */}
+              <div
+                className="flex rounded-md p-0.5"
+                style={{ background: '#F1F5F9', border: '1px solid var(--glass-border)' }}
               >
-                {linkedDesign ? 'Cambiar' : 'Vincular Canva'}
-              </button>
-            )}
-          </div>
-          <div
-            className="relative rounded-xl overflow-hidden border"
-            style={{ borderColor: 'var(--glass-border)' }}
-          >
-            {thumbnail ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={thumbnail} alt={post.name || 'Preview'} className="w-full aspect-square object-cover" />
-            ) : (
-              <div className="w-full aspect-square flex items-center justify-center text-7xl" style={{ background: '#F1F5F9' }}>
-                {config.icon}
+                <button
+                  onClick={() => setPreviewMode('canva')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
+                  style={{
+                    background: previewMode === 'canva' ? 'white' : 'transparent',
+                    color: previewMode === 'canva' ? '#6366F1' : 'var(--text-light)',
+                    boxShadow: previewMode === 'canva' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  }}
+                >
+                  <Palette className="w-3 h-3" />
+                  Canva
+                </button>
+                <button
+                  onClick={() => setPreviewMode('platform')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
+                  style={{
+                    background: previewMode === 'platform' ? 'white' : 'transparent',
+                    color: previewMode === 'platform' ? '#6366F1' : 'var(--text-light)',
+                    boxShadow: previewMode === 'platform' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  }}
+                >
+                  <Smartphone className="w-3 h-3" />
+                  Feed
+                </button>
               </div>
-            )}
-            {linkedDesign?.design_url && (
-              <a
-                href={linkedDesign.design_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md flex items-center gap-1.5 hover:shadow-lg transition-shadow"
-                style={{ background: 'white', color: 'var(--text-dark)' }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Editar en Canva
-              </a>
-            )}
+              {!isClientViewer && (
+                <>
+                  <button
+                    onClick={() => setImageGenOpen((v) => !v)}
+                    className="flex items-center gap-1 text-[10px] font-semibold hover:underline"
+                    style={{ color: '#A78BFA' }}
+                    title="Generar imagen con IA"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    Generar IA
+                  </button>
+                  <button
+                    onClick={() => setPickerOpen((v) => !v)}
+                    className="text-[10px] font-semibold hover:underline"
+                    style={{ color: '#6366F1' }}
+                  >
+                    {linkedDesign ? 'Cambiar' : 'Vincular Canva'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+
+          {imageGenOpen && !isClientViewer && (
+            <div
+              className="mt-2 mb-2 rounded-xl border p-3 space-y-2"
+              style={{ borderColor: 'var(--glass-border)', background: 'linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%)' }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold flex items-center gap-1" style={{ color: '#6D28D9' }}>
+                  <Wand2 className="w-3 h-3" /> Generar imagen con IA
+                </p>
+                <button
+                  onClick={() => setImageGenOpen(false)}
+                  className="text-[10px] hover:underline"
+                  style={{ color: 'var(--text-light)' }}
+                >
+                  Cerrar
+                </button>
+              </div>
+              <textarea
+                value={imageGenPrompt}
+                onChange={(e) => setImageGenPrompt(e.target.value)}
+                placeholder="Describe la imagen que quieres (ej: foto de croissant recién horneado sobre mesa de madera, luz natural)"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={{ borderColor: 'var(--glass-border)', background: 'white' }}
+              />
+              {imageGenError && (
+                <div
+                  className="p-2 rounded-md text-[10px]"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#991B1B' }}
+                >
+                  {imageGenError}
+                </div>
+              )}
+              <button
+                onClick={handleGenerateImage}
+                disabled={imageGenLoading || !imageGenPrompt.trim()}
+                className="w-full py-1.5 rounded-lg text-xs font-semibold text-white shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5"
+                style={{ background: 'linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)' }}
+              >
+                <Wand2 className="w-3 h-3" />
+                {imageGenLoading ? 'Generando… (30-60s)' : 'Generar imagen'}
+              </button>
+              <p className="text-[9px]" style={{ color: 'var(--text-light)' }}>
+                Se usará como imagen del post. Puede reemplazar la actual.
+              </p>
+            </div>
+          )}
+
+          {previewMode === 'platform' ? (
+            <div className="flex justify-center">
+              <PlatformPreview
+                imageUrl={thumbnail}
+                copy={copyDraft || post.copy}
+                cta={post.cta}
+                clientName={client?.name || 'Marca'}
+                clientEmoji={client?.emoji || '🏢'}
+                platform={post.platform}
+                format={post.format}
+              />
+            </div>
+          ) : (
+            <div
+              className="relative rounded-xl overflow-hidden border"
+              style={{ borderColor: 'var(--glass-border)' }}
+            >
+              {thumbnail ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumbnail} alt={post.name || 'Preview'} className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="w-full aspect-square flex items-center justify-center text-7xl" style={{ background: '#F1F5F9' }}>
+                  {config.icon}
+                </div>
+              )}
+              {linkedDesign?.design_url && (
+                <a
+                  href={linkedDesign.design_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md flex items-center gap-1.5 hover:shadow-lg transition-shadow"
+                  style={{ background: 'white', color: 'var(--text-dark)' }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Editar en Canva
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Canva picker panel */}
           {pickerOpen && !isClientViewer && (
@@ -1153,6 +1297,10 @@ function PostDrawer({
 
       {/* Sticky action footer */}
       <div className="border-t p-4 space-y-2 flex-shrink-0" style={{ borderColor: 'var(--glass-border)', background: 'white' }}>
+        {/* Direct-publish to IG/FB when the post is approved + scheduled */}
+        {!isClientViewer && (
+          <PublishButton post={post} clientId={post.client_id} onPublished={() => { void onLinkChange(); }} />
+        )}
         {canClientApprove ? (
           <>
             <p className="text-[10px] text-center" style={{ color: 'var(--text-light)' }}>
