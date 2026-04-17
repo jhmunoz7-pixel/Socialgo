@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Wifi, WifiOff, Trash2, Save, RefreshCw, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
 import type { SocialConnection } from '@/types';
+import { MetaConnectWizard } from './MetaConnectWizard';
 
 interface ConnectionSetupProps {
   clientId: string;
@@ -186,6 +187,18 @@ export function ConnectionSetup({ clientId }: ConnectionSetupProps) {
       <p className="text-xs" style={{ color: 'var(--text-mid)' }}>
         Conecta las cuentas de redes sociales de este cliente para publicar directamente desde SocialGo.
       </p>
+
+      {/* Guided wizard — pastes a token, auto-discovers pages + IG */}
+      <MetaConnectWizard clientId={clientId} onConnected={fetchConnections} />
+
+      {/* Divider */}
+      <div className="flex items-center gap-2 my-4" role="separator">
+        <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
+        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-light)' }}>
+          o manual
+        </span>
+        <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
+      </div>
 
       {/* Status message */}
       {message && (
