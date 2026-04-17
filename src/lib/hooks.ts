@@ -181,6 +181,85 @@ export function useClients(
 }
 
 /**
+ * Returns the set of client IDs the current user is scoped to.
+ *
+ *   - owner / admin / member → `null` (meaning: every client, no filter)
+ *   - creative               → Set of client IDs from client_members ∪
+ *                              clients where manager_id = member.id
+ *   - client_viewer          → Set of client IDs from client_members
+ *                              (their own brand)
+ *   - unauthenticated        → empty Set
+ *
+ * Use this before filtering the full clients list for any role-scoped UI.
+ */
+export function useMyAssignedClientIds(): HookResult<Set<string> | null> {
+  const [data, setData] = useState<Set<string> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const fetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const role = currentUser?.member?.role;
+      const memberId = currentUser?.member?.id;
+      const userId = currentUser?.user?.id;
+      const orgId = currentUser?.member?.org_id;
+
+      if (!role || !orgId) {
+        setData(new Set<string>());
+        return;
+      }
+
+      // Admins see every client — signal "no filter" with null.
+      if (role === 'owner' || role === 'admin' || role === 'member') {
+        setData(null);
+        return;
+      }
+
+      const supabase = createSupabaseClient();
+      const ids = new Set<string>();
+
+      // client_members assignments
+      if (userId) {
+        const { data: rows, error: rowsErr } = await supabase
+          .from('client_members')
+          .select('client_id')
+          .eq('org_id', orgId)
+          .eq('user_id', userId);
+        if (rowsErr) throw rowsErr;
+        (rows ?? []).forEach((r: { client_id: string }) => ids.add(r.client_id));
+      }
+
+      // Legacy fallback: clients where the creative is the manager_id.
+      if (role === 'creative' && memberId) {
+        const { data: managed, error: managedErr } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('org_id', orgId)
+          .eq('manager_id', memberId);
+        if (managedErr) throw managedErr;
+        (managed ?? []).forEach((r: { id: string }) => ids.add(r.id));
+      }
+
+      setData(ids);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.member?.role, currentUser?.member?.id, currentUser?.member?.org_id, currentUser?.user?.id]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { data, loading, error, refetch: fetch };
+}
+
+/**
  * Fetches a single client with their posts
  * @param clientId - The client ID to fetch
  */

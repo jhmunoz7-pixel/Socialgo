@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, type DragEvent as ReactDragEvent } from '
 import {
   useCurrentUser,
   useClients,
+  useMyAssignedClientIds,
   usePosts,
   useCanvaDesigns,
   usePostComments,
@@ -84,22 +85,18 @@ function buildCalendarGrid(viewMonth: Date): Date[] {
 export default function CalendarioPage() {
   const { data: currentUser } = useCurrentUser();
   const role = currentUser?.member?.role ?? null;
-  const memberId = currentUser?.member?.id ?? null;
   const isClientViewer = role === 'client_viewer';
-  const isCreative = role === 'creative';
 
   const { data: allClients, loading: clientsLoading } = useClients();
+  // For non-admins this returns the scoped set of client IDs (union of
+  // client_members + clients.manager_id). `null` = no filter (admins).
+  const { data: scopedClientIds } = useMyAssignedClientIds();
 
-  // Scope brands per role:
-  // - owner/admin/member: every client in the org
-  // - creative: only clients where they are the manager
-  // - client_viewer: no selector is rendered; still list their clients (managed elsewhere)
+  // Apply the scope — admins pass through; everyone else is filtered.
   const clients = useMemo(() => {
-    if (isCreative && memberId) {
-      return allClients.filter((c) => c.manager_id === memberId);
-    }
-    return allClients;
-  }, [allClients, isCreative, memberId]);
+    if (scopedClientIds === null) return allClients;
+    return allClients.filter((c) => scopedClientIds.has(c.id));
+  }, [allClients, scopedClientIds]);
 
   // Brand selection — default to the first client the role can see.
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
