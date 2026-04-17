@@ -1295,15 +1295,35 @@ function PostDrawer({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>Fecha</label>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-dark)' }}>
-              {post.scheduled_date ? new Date(post.scheduled_date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-            </p>
+            {isClientViewer ? (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dark)' }}>
+                {post.scheduled_date ? new Date(post.scheduled_date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+              </p>
+            ) : (
+              <input
+                type="date"
+                value={post.scheduled_date || ''}
+                onChange={(e) => updatePost(post.id, { scheduled_date: e.target.value || null }).then(onLinkChange)}
+                className="mt-1 w-full px-2 py-1.5 rounded-md border text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={{ borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
+              />
+            )}
           </div>
           <div>
             <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>Hora</label>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-dark)' }}>
-              {post.scheduled_time || '—'}
-            </p>
+            {isClientViewer ? (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dark)' }}>
+                {post.scheduled_time ? post.scheduled_time.slice(0, 5) : '—'}
+              </p>
+            ) : (
+              <input
+                type="time"
+                value={post.scheduled_time ? post.scheduled_time.slice(0, 5) : ''}
+                onChange={(e) => updatePost(post.id, { scheduled_time: e.target.value || null }).then(onLinkChange)}
+                className="mt-1 w-full px-2 py-1.5 rounded-md border text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                style={{ borderColor: 'var(--glass-border)', color: 'var(--text-dark)' }}
+              />
+            )}
           </div>
           {post.ai_score !== null && (
             <div>
