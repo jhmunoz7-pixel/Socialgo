@@ -346,6 +346,43 @@ export default function ReportsPage() {
     return months;
   }, [filteredPosts]);
 
+  // Engagement totals for the selected month (likes + comments + shares + saves)
+  const engagementThisMonth = useMemo(() => {
+    if (!filteredPosts) return { total: 0, likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 };
+    const postsThisMonth = getPostsByMonth(filteredPosts, selectedMonth);
+    return postsThisMonth.reduce(
+      (acc, p) => ({
+        total: acc.total + (p.likes || 0) + (p.comments_count || 0) + (p.shares || 0) + (p.saves || 0),
+        likes: acc.likes + (p.likes || 0),
+        comments: acc.comments + (p.comments_count || 0),
+        shares: acc.shares + (p.shares || 0),
+        reach: acc.reach + (p.reach || 0),
+        impressions: acc.impressions + (p.impressions || 0),
+      }),
+      { total: 0, likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 },
+    );
+  }, [filteredPosts, selectedMonth]);
+
+  // Engagement trend (last 6 months, total interactions per month)
+  const engagementTrend = useMemo(() => {
+    if (!filteredPosts) return [];
+    const now = new Date();
+    const months: Array<{ month: string; likes: number; comments: number; shares: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = date.toISOString().split('T')[0].slice(0, 7);
+      const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'short' }).format(date);
+      const monthPosts = getPostsByMonth(filteredPosts, monthStr);
+      months.push({
+        month: monthLabel,
+        likes: monthPosts.reduce((a, p) => a + (p.likes || 0), 0),
+        comments: monthPosts.reduce((a, p) => a + (p.comments_count || 0), 0),
+        shares: monthPosts.reduce((a, p) => a + (p.shares || 0), 0),
+      });
+    }
+    return months;
+  }, [filteredPosts]);
+
   // Top 5 performing posts by AI score
   const topPerformingPosts = useMemo(() => {
     if (!filteredPosts || !clients) return [];
@@ -943,6 +980,67 @@ export default function ReportsPage() {
           </div>
         </div>
 
+        {/* Engagement overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Totals */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" style={{ color: CHART_COLORS.success }} />
+              Engagement del Mes
+            </h2>
+            {postsLoading ? (
+              <Skeleton height="h-[200px]" />
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-3xl font-bold tabular-nums" style={{ color: CHART_COLORS.primary }}>
+                    {engagementThisMonth.total.toLocaleString('es-MX')}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-light)' }}>Interacciones totales</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                  <EngagementStat label="Likes" value={engagementThisMonth.likes} color={CHART_COLORS.primary} />
+                  <EngagementStat label="Comentarios" value={engagementThisMonth.comments} color={CHART_COLORS.secondary} />
+                  <EngagementStat label="Shares" value={engagementThisMonth.shares} color={CHART_COLORS.accent} />
+                </div>
+                {engagementThisMonth.reach > 0 && (
+                  <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                    <EngagementStat label="Alcance" value={engagementThisMonth.reach} color={CHART_COLORS.info} />
+                    <EngagementStat label="Impresiones" value={engagementThisMonth.impressions} color={CHART_COLORS.muted} />
+                  </div>
+                )}
+                {engagementThisMonth.total === 0 && (
+                  <p className="text-xs italic mt-2" style={{ color: 'var(--text-light)' }}>
+                    Sin datos de engagement aún. Conecta publicación directa para empezar a medir.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Engagement trend (6 months, stacked) */}
+          <div style={{ background: 'white', borderColor: 'var(--glass-border)' }} className="rounded-2xl border p-5 md:col-span-2">
+            <h2 style={{ color: 'var(--text-dark)' }} className="text-lg font-serif font-bold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" style={{ color: CHART_COLORS.primary }} />
+              Tendencia de Engagement · Últimos 6 meses
+            </h2>
+            {postsLoading ? (
+              <Skeleton height="h-[250px]" />
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={engagementTrend}>
+                  <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#64748B', fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="likes" stackId="a" fill={CHART_COLORS.primary} name="Likes" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="comments" stackId="a" fill={CHART_COLORS.secondary} name="Comentarios" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="shares" stackId="a" fill={CHART_COLORS.accent} name="Shares" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
         {/* Top Performing Posts + Approval Turnaround */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Top Performing Posts */}
@@ -1054,5 +1152,16 @@ function AccountStatusBadge({ status }: { status: string }) {
     >
       {style.label}
     </span>
+  );
+}
+
+function EngagementStat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div>
+      <p className="text-lg font-bold tabular-nums" style={{ color }}>
+        {value.toLocaleString('es-MX')}
+      </p>
+      <p className="text-[10px]" style={{ color: 'var(--text-light)' }}>{label}</p>
+    </div>
   );
 }
