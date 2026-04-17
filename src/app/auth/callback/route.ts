@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       const isInvitedUser =
         invitedAt && (signInCount === null || signInCount <= 1);
 
-      const destination = isInvitedUser ? "/auth/set-password" : "/dashboard";
+      const destination = isInvitedUser ? "/auth/set-password" : "/dashboard/home";
       return NextResponse.redirect(new URL(destination, request.url));
     } catch (error) {
       console.error("Unexpected error in auth callback:", error);

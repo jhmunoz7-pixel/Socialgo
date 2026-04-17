@@ -29,7 +29,7 @@ export default function AgencyDetailActions({
         body: JSON.stringify({ orgId: agency.id }),
       });
       if (res.ok) {
-        router.push("/dashboard");
+        router.push("/dashboard/home");
         router.refresh();
       } else {
         console.error("Impersonation failed");

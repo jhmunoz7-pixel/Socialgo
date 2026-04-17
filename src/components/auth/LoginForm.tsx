@@ -47,7 +47,7 @@ export function LoginForm() {
         router.push(`/pricing?auto=1&plan=${planParam}&cycle=${cycleParam}`);
       } else {
         // Middleware handles admin redirect to /platform automatically
-        router.push("/dashboard");
+        router.push("/dashboard/home");
       }
       router.refresh();
     } catch (err) {
