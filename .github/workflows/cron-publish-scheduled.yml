@@ -1,0 +1,26 @@
+name: Publish scheduled posts
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call publish-scheduled endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://socialgo-one.vercel.app' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET secret is not set. Add it in Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+          response=$(curl -sS -w "\n%{http_code}" "$APP_URL/api/cron/publish-scheduled?secret=$CRON_SECRET")
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n1)
+          echo "HTTP $status"
+          echo "$body"
+          [ "$status" = "200" ] || exit 1

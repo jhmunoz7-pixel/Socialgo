@@ -8,10 +8,6 @@
     {
       "path": "/api/cron/weekly-alerts",
       "schedule": "0 15 * * 1"
-    },
-    {
-      "path": "/api/cron/publish-scheduled",
-      "schedule": "*/5 * * * *"
     }
   ],
   "headers": [
